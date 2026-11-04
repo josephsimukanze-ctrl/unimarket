@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # UniMarket
 
 Everything you need. All in one place.
@@ -40,3 +41,6 @@ cd frontend && pnpm install
 
 # 6. Start frontend (terminal 2)
 make frontend
+=======
+# unimarket
+>>>>>>> ef3c7a76f86c7d6c61191e3c6631e37b75c483ea
