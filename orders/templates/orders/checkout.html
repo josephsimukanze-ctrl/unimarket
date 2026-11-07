@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% block title %}Checkout — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .ck-input { width:100%; border:1px solid #d1d5db; border-radius:8px; padding:.6rem .75rem; font-size:.875rem; color:#111827; background:#fff; outline:none; transition:border-color .15s; }
+  .ck-input:focus { border-color:#ea580c; box-shadow:0 0 0 3px rgba(234,88,12,.12); }
+  .ck-label { display:block; font-size:.85rem; font-weight:600; color:#374151; margin-bottom:.35rem; }
+  .ck-help  { font-size:.75rem; color:#6b7280; font-weight:400; }
+  .ck-card  { background:#fff; border:1px solid #e5e7eb; border-radius:16px; }
+  .ck-err   { margin-top:.35rem; font-size:.8rem; color:#dc2626; }
+  /* Style Django's rendered widgets (they already carry FIELD_CLASS classes, but ensure consistency) */
+  .ck-form input[type="text"],
+  .ck-form input[type="tel"],
+  .ck-form select,
+  .ck-form textarea {
+    width:100%; border:1px solid #d1d5db; border-radius:8px;
+    padding:.6rem .75rem; font-size:.875rem; color:#111827; background:#fff; outline:none;
+  }
+  .ck-form input:focus, .ck-form select:focus, .ck-form textarea:focus {
+    border-color:#ea580c; box-shadow:0 0 0 3px rgba(234,88,12,.12);
+  }
+</style>
+
+<div style="max-width:72rem; margin:0 auto; padding-bottom:2.5rem;">
+
+  {# ── Header ── #}
+  <div style="margin-bottom:1.5rem;">
+    <nav style="display:flex; align-items:center; gap:.35rem; font-size:.75rem; color:#6b7280; margin-bottom:.75rem;">
+      <a href="{% url 'cart:cart_detail' %}" style="color:#6b7280; text-decoration:none;">Cart</a>
+      <span>/</span>
+      <span style="color:#111827; font-weight:600;">Checkout</span>
+    </nav>
+
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:.75rem;">
+      <div>
+        <h1 style="font-size:1.5rem; font-weight:800; color:#111827; letter-spacing:-.01em; margin:0;">Checkout</h1>
+        <p style="font-size:.85rem; color:#374151; margin-top:.25rem;">Enter your shipping details to complete the order.</p>
+      </div>
+      <span style="font-size:.7rem; font-weight:700; color:#9a3412; background:#fff7ed; padding:.25rem .75rem; border-radius:9999px;">Step 1 of 2 · Shipping</span>
+    </div>
+  </div>
+
+  {# ── Error banner ── #}
+  {% if form.errors %}
+    <div style="background:#fef2f2; border:1px solid #fecaca; color:#7f1d1d; border-radius:12px; padding:1rem; margin-bottom:1.25rem;">
+      <p style="font-weight:700; font-size:.9rem; margin:0 0 .5rem;">Please fix the errors below:</p>
+      <ul style="margin:0; padding-left:1.25rem; font-size:.85rem; line-height:1.5;">
+        {% for field in form %}
+          {% for error in field.errors %}
+            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div class="ck-grid" style="display:grid; gap:1.5rem; grid-template-columns:1fr;">
+    <style>@media(min-width:1024px){ .ck-grid { grid-template-columns:minmax(0,1fr) 360px !important; } }</style>
+
+    {# ══ LEFT: Shipping form ══ #}
+    <div class="ck-card" style="padding:1.5rem;">
+
+      <div style="display:flex; align-items:center; gap:.75rem; margin-bottom:1.25rem;">
+        <div style="width:2.5rem; height:2.5rem; border-radius:12px; background:#ffedd5; color:#ea580c; display:flex; align-items:center; justify-content:center;">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h2 style="font-size:1rem; font-weight:700; color:#111827; margin:0;">Shipping details</h2>
+          <p style="font-size:.75rem; color:#6b7280; margin:0;">Where should we deliver your order?</p>
+        </div>
+      </div>
+
+      <form method="post" novalidate class="ck-form">
+        {% csrf_token %}
+
+        <div class="ck-2col" style="display:grid; grid-template-columns:1fr; gap:1rem;">
+          <style>@media(min-width:640px){ .ck-2col { grid-template-columns:1fr 1fr !important; } .ck-span2 { grid-column: span 2 !important; } }</style>
+
+          {# Full name #}
+          <div class="ck-span2">
+            <label for="{{ form.full_name.id_for_label }}" class="ck-label">
+              {{ form.full_name.label }} <span style="color:#dc2626;">*</span>
+            </label>
+            {{ form.full_name }}
+            {% if form.full_name.errors %}<p class="ck-err">{{ form.full_name.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          {# Phone #}
+          <div>
+            <label for="{{ form.phone.id_for_label }}" class="ck-label">
+              {{ form.phone.label }} <span style="color:#dc2626;">*</span>
+            </label>
+            {{ form.phone }}
+            {% if form.phone.errors %}<p class="ck-err">{{ form.phone.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          {# Country #}
+          <div>
+            <label for="{{ form.country.id_for_label }}" class="ck-label">
+              {{ form.country.label }} <span style="color:#dc2626;">*</span>
+            </label>
+            {{ form.country }}
+            {% if form.country.errors %}<p class="ck-err">{{ form.country.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          {# ── TRANSPORT COMPANY (real field: shipping_method) ── #}
+          <div class="ck-span2">
+            <label for="{{ form.shipping_method.id_for_label }}" class="ck-label">
+              {{ form.shipping_method.label }} <span style="color:#dc2626;">*</span>
+            </label>
+            {{ form.shipping_method }}
+            {% if form.shipping_method.help_text %}<p class="ck-help" style="margin-top:.35rem;">{{ form.shipping_method.help_text }}</p>{% endif %}
+            {% if form.shipping_method.errors %}<p class="ck-err">{{ form.shipping_method.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          {# Address line 1 (real field: address_line1) #}
+          <div class="ck-span2">
+            <label for="{{ form.address_line1.id_for_label }}" class="ck-label">
+              {{ form.address_line1.label }} <span style="color:#dc2626;">*</span>
+            </label>
+            {{ form.address_line1 }}
+            {% if form.address_line1.errors %}<p class="ck-err">{{ form.address_line1.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          {# Address line 2 #}
+          <div class="ck-span2">
+            <label for="{{ form.address_line2.id_for_label }}" class="ck-label">
+              {{ form.address_line2.label }} <span class="ck-help">(optional)</span>
+            </label>
+            {{ form.address_line2 }}
+            {% if form.address_line2.errors %}<p class="ck-err">{{ form.address_line2.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          {# City #}
+          <div>
+            <label for="{{ form.city.id_for_label }}" class="ck-label">
+              {{ form.city.label }} <span style="color:#dc2626;">*</span>
+            </label>
+            {{ form.city }}
+            {% if form.city.errors %}<p class="ck-err">{{ form.city.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          {# Region / province (real field: region) #}
+          <div>
+            <label for="{{ form.region.id_for_label }}" class="ck-label">
+              {{ form.region.label }} <span class="ck-help">(optional)</span>
+            </label>
+            {{ form.region }}
+            {% if form.region.errors %}<p class="ck-err">{{ form.region.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          {# Postal code #}
+          <div>
+            <label for="{{ form.postal_code.id_for_label }}" class="ck-label">
+              {{ form.postal_code.label }} <span class="ck-help">(optional)</span>
+            </label>
+            {{ form.postal_code }}
+            {% if form.postal_code.errors %}<p class="ck-err">{{ form.postal_code.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          {# Notes #}
+          <div class="ck-span2">
+            <label for="{{ form.notes.id_for_label }}" class="ck-label">
+              {{ form.notes.label }} <span class="ck-help">(optional)</span>
+            </label>
+            {{ form.notes }}
+            {% if form.notes.errors %}<p class="ck-err">{{ form.notes.errors|join:", " }}</p>{% endif %}
+          </div>
+
+        </div>
+
+        <div class="ck-actions" style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid #f3f4f6; display:flex; flex-direction:column; gap:.75rem;">
+          <style>@media(min-width:640px){ .ck-actions { flex-direction:row !important; } }</style>
+          <a href="{% url 'cart:cart_detail' %}"
+             style="text-align:center; border:1px solid #d1d5db; background:#fff; padding:.75rem 1.5rem; border-radius:12px; font-size:.85rem; font-weight:600; color:#374151; text-decoration:none;">
+            ← Back to cart
+          </a>
+          <button type="submit"
+                  style="flex:1; background:#f97316; color:#fff; padding:.75rem 1.5rem; border-radius:12px; font-size:.85rem; font-weight:700; border:0; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.05);">
+            Place order
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {# ══ RIGHT: Order summary ══ #}
+    <aside style="display:flex; flex-direction:column; gap:1rem; align-self:start;">
+
+      <div class="ck-card" style="padding:1.25rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+          <h2 style="font-size:1rem; font-weight:700; color:#111827; margin:0;">Order summary</h2>
+          <a href="{% url 'cart:cart_detail' %}" style="font-size:.75rem; color:#ea580c; font-weight:600; text-decoration:underline;">Edit cart</a>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:.75rem; max-height:20rem; overflow-y:auto; padding-right:.25rem; margin-bottom:1rem;">
+          {% for item in items %}
+            <div style="display:flex; align-items:flex-start; gap:.75rem;">
+              <div style="width:3rem; height:3rem; flex-shrink:0; border-radius:8px; background:#f3f4f6; overflow:hidden;">
+                {% with item.variant.product.images.first as img %}
+                  {% if img %}
+                    <img src="{{ img.image.url }}" alt="" style="width:100%; height:100%; object-fit:cover;">
+                  {% else %}
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:#6b7280; font-size:.6rem;">—</div>
+                  {% endif %}
+                {% endwith %}
+              </div>
+              <div style="flex:1; min-width:0;">
+                <p style="font-size:.85rem; font-weight:600; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin:0;">{{ item.variant.product.name }}</p>
+                <p style="font-size:.75rem; color:#374151; margin:2px 0 0;">Qty {{ item.quantity }} · {{ item.variant.currency }} {{ item.variant.price }} each</p>
+              </div>
+              <p style="font-size:.85rem; font-weight:700; color:#111827; flex-shrink:0; margin:0;">{{ item.variant.currency }} {{ item.subtotal }}</p>
+            </div>
+          {% endfor %}
+        </div>
+
+        <hr style="border:0; border-top:1px solid #f3f4f6; margin:1rem 0;">
+
+        <div style="display:flex; flex-direction:column; gap:.5rem; font-size:.85rem;">
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:#4b5563;">Subtotal</span>
+            <span style="font-weight:600; color:#111827;">{{ currency }} {{ subtotal }}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="color:#4b5563;">Shipping</span>
+            <span style="color:#6b7280; font-size:.75rem;">calculated by seller</span>
+          </div>
+        </div>
+
+        <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid #f3f4f6; display:flex; justify-content:space-between; font-weight:800; font-size:1rem; color:#111827;">
+          <span>Total</span>
+          <span>{{ currency }} {{ subtotal }}</span>
+        </div>
+      </div>
+
+      <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:16px; padding:1rem;">
+        <p style="font-size:.7rem; font-weight:800; color:#9a3412; text-transform:uppercase; letter-spacing:.05em; margin:0 0 .75rem;">Why buy with confidence</p>
+        <ul style="margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:.5rem; font-size:.75rem; color:#374151;">
+          <li style="display:flex; align-items:center; gap:.5rem;">
+            <svg width="14" height="14" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Buyer protection on every order
+          </li>
+          <li style="display:flex; align-items:center; gap:.5rem;">
+            <svg width="14" height="14" fill="none" stroke="#f97316" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            Secure payment processing
+          </li>
+          <li style="display:flex; align-items:center; gap:.5rem;">
+            <svg width="14" height="14" fill="none" stroke="#f97316" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0"/></svg>
+            Fast local delivery
+          </li>
+        </ul>
+      </div>
+
+    </aside>
+  </div>
+
+</div>
+{% endblock %}

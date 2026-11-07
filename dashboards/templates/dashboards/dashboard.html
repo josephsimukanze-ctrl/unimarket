@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .db-wrap { display: flex; flex-direction: column; gap: 1.25rem; }
+  @media (min-width: 640px) { .db-wrap { gap: 1.5rem; } }
+
+  /* Welcome hero */
+  .db-hero {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 55%, #c2410c 100%);
+    border-radius: 16px;
+    padding: 1.25rem;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  @media (min-width: 640px) { .db-hero { padding: 1.5rem; } }
+  .db-hero::after {
+    content: ""; position: absolute;
+    bottom: -4rem; right: -4rem;
+    width: 12rem; height: 12rem;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.06);
+    pointer-events: none;
+  }
+  .db-hero-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  @media (min-width: 640px) {
+    .db-hero-inner { flex-direction: row; align-items: center; justify-content: space-between; }
+  }
+  .db-hero-label {
+    font-size: .7rem; font-weight: 600;
+    color: #ffedd5; text-transform: uppercase; letter-spacing: .05em; margin: 0;
+  }
+  .db-hero-name {
+    font-size: 1.25rem; font-weight: 800; margin: .25rem 0 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  @media (min-width: 640px) { .db-hero-name { font-size: 1.5rem; } }
+  .db-hero-sub { font-size: .8rem; color: #ffedd5; margin: .35rem 0 0; line-height: 1.4; }
+  .db-hero-actions { display: flex; flex-wrap: wrap; gap: .5rem; flex-shrink: 0; }
+  .db-hero-btn {
+    display: inline-flex; align-items: center;
+    padding: .6rem 1rem; border-radius: 10px;
+    font-size: .8rem; font-weight: 700;
+    text-decoration: none; white-space: nowrap;
+    box-sizing: border-box; min-height: 40px;
+  }
+  .db-hero-btn-white { background: #fff; color: #ea580c; }
+  .db-hero-btn-white:hover { background: #fff7ed; }
+  .db-hero-btn-ghost { border: 1px solid rgba(255,255,255,0.5); color: #fff; }
+  .db-hero-btn-ghost:hover { background: rgba(255,255,255,0.1); }
+
+  /* Seller panel */
+  .db-seller {
+    background: #111827;
+    border-radius: 16px;
+    padding: 1.25rem;
+    color: #fff;
+  }
+  @media (min-width: 640px) { .db-seller { padding: 1.5rem; } }
+  .db-seller-head {
+    display: flex; flex-wrap: wrap;
+    align-items: center; justify-content: space-between;
+    gap: .5rem; margin-bottom: 1rem;
+  }
+  .db-seller-label {
+    font-size: .65rem; font-weight: 800;
+    color: #fb923c; text-transform: uppercase;
+    letter-spacing: .05em; margin: 0;
+  }
+  .db-seller-name {
+    font-size: 1.1rem; font-weight: 800;
+    margin: .15rem 0 0; line-height: 1.25;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  @media (min-width: 640px) { .db-seller-name { font-size: 1.25rem; } }
+  .db-seller-link {
+    font-size: .75rem; color: rgba(255,255,255,0.85);
+    text-decoration: none;
+  }
+  .db-seller-link:hover { color: #fff; }
+  .db-seller-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .6rem;
+  }
+  @media (min-width: 1024px) { .db-seller-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .db-seller-stat {
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: .75rem;
+    min-width: 0;
+  }
+  .db-seller-stat-label {
+    font-size: .6rem; font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase; letter-spacing: .05em; margin: 0;
+  }
+  .db-seller-stat-num {
+    font-size: 1.15rem; font-weight: 800;
+    margin: .25rem 0 0; line-height: 1.1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  @media (min-width: 640px) { .db-seller-stat-num { font-size: 1.5rem; } }
+  .db-seller-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+  .db-seller-btn {
+    display: inline-flex; align-items: center;
+    padding: .5rem .85rem; border-radius: 8px;
+    font-size: .75rem; font-weight: 700;
+    text-decoration: none; white-space: nowrap;
+    min-height: 34px; box-sizing: border-box;
+  }
+  .db-seller-btn-primary { background: #f97316; color: #fff; }
+  .db-seller-btn-primary:hover { background: #ea580c; }
+  .db-seller-btn-ghost {
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+  }
+  .db-seller-btn-ghost:hover { background: rgba(255,255,255,0.1); }
+
+  /* KPI cards */
+  .db-kpis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .65rem;
+  }
+  @media (min-width: 1024px) { .db-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; } }
+
+  .db-kpi {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: box-shadow .15s, border-color .15s;
+    min-width: 0;
+  }
+  .db-kpi:hover { border-color: #fdba74; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+
+  .db-kpi-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: .5rem; margin-bottom: .25rem;
+  }
+  .db-kpi-label {
+    font-size: .65rem; font-weight: 700;
+    color: #4b5563; text-transform: uppercase; letter-spacing: .05em;
+    margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .db-kpi-icon {
+    width: 1.75rem; height: 1.75rem; border-radius: 8px;
+    background: #fff7ed; color: #f97316;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .db-kpi-num {
+    font-size: 1.35rem; font-weight: 800;
+    color: #111827; margin: .25rem 0 0; line-height: 1.1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  @media (min-width: 640px) { .db-kpi-num { font-size: 1.5rem; } }
+  .db-kpi-foot { font-size: .65rem; color: #6b7280; margin: .35rem 0 0; line-height: 1.4; }
+  .db-kpi-foot .accent { color: #ea580c; font-weight: 700; }
+
+  /* Section cards */
+  .db-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .db-card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: .5rem; padding: .75rem 1rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .db-card-title {
+    font-size: .85rem; font-weight: 800;
+    color: #111827; margin: 0;
+  }
+  .db-card-link {
+    font-size: .7rem; font-weight: 600;
+    color: #ea580c; text-decoration: none;
+  }
+  .db-card-link:hover { text-decoration: underline; }
+
+  /* Quick actions */
+  .db-quick {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .5rem;
+  }
+  @media (min-width: 640px) { .db-quick { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+  .db-quick-item {
+    display: flex; flex-direction: column;
+    align-items: center; gap: .4rem;
+    padding: .5rem .25rem;
+    border-radius: 8px;
+    text-decoration: none;
+    text-align: center;
+    transition: background-color .15s;
+  }
+  .db-quick-item:hover { background: #fff7ed; }
+  .db-quick-icon {
+    width: 2.25rem; height: 2.25rem;
+    border-radius: 9999px;
+    background: #ffedd5; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .db-quick-label {
+    font-size: .65rem; font-weight: 700;
+    color: #374151;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 100%;
+  }
+
+  /* Rows in list cards */
+  .db-row {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .75rem 1rem;
+    text-decoration: none;
+    color: inherit;
+    border-top: 1px solid #f3f4f6;
+    transition: background-color .15s;
+  }
+  .db-row:first-child { border-top: 0; }
+  .db-row:hover { background: #fff7ed; }
+
+  .db-row-icon {
+    width: 2rem; height: 2rem; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .db-row-icon-gray { background: #f3f4f6; color: #4b5563; }
+  .db-row-icon-orange { background: #ffedd5; color: #ea580c; }
+
+  .db-row-main { flex: 1; min-width: 0; }
+  .db-row-title {
+    font-size: .85rem; font-weight: 600;
+    color: #111827; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .db-row-sub {
+    font-size: .7rem; color: #6b7280; margin: .15rem 0 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .db-row-right { text-align: right; flex-shrink: 0; }
+  .db-row-amount { font-size: .8rem; font-weight: 800; color: #111827; margin: 0; }
+  .db-row-status {
+    font-size: .65rem; font-weight: 600;
+    margin: .15rem 0 0;
+    text-transform: capitalize;
+  }
+  .db-row-status-green { color: #16a34a; }
+  .db-row-status-amber { color: #b45309; }
+
+  .db-empty {
+    padding: 2rem 1rem;
+    text-align: center;
+    font-size: .8rem;
+    color: #6b7280;
+  }
+  .db-empty a {
+    color: #ea580c;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .db-empty a:hover { text-decoration: underline; }
+
+  /* Unread dot for notifications */
+  .db-unread-dot {
+    width: 6px; height: 6px; border-radius: 9999px;
+    background: #f97316;
+    flex-shrink: 0;
+    margin-top: .5rem;
+  }
+</style>
+
+<div class="db-wrap">
+
+  {# ══ Welcome hero ══ #}
+  <div class="db-hero">
+    <div class="db-hero-inner">
+      <div style="min-width:0;">
+        <p class="db-hero-label">Welcome back</p>
+        <h1 class="db-hero-name">{{ user.username }}</h1>
+        <p class="db-hero-sub">
+          {% if buyer_stats.pending_orders %}
+            {{ buyer_stats.pending_orders }} order{{ buyer_stats.pending_orders|pluralize }} in progress
+          {% else %}
+            All caught up
+          {% endif %}
+          {% if buyer_stats.unread_messages %} · {{ buyer_stats.unread_messages }} unread message{{ buyer_stats.unread_messages|pluralize }}{% endif %}
+        </p>
+      </div>
+      <div class="db-hero-actions">
+        {% if not vendor %}
+          <a href="{% url 'vendors:become_seller' %}" class="db-hero-btn db-hero-btn-white">Become a seller</a>
+        {% else %}
+          <a href="{% url 'vendors:dashboard' %}" class="db-hero-btn db-hero-btn-white">Seller dashboard</a>
+        {% endif %}
+        <a href="{% url 'catalogue:browse' %}" class="db-hero-btn db-hero-btn-ghost">Browse</a>
+      </div>
+    </div>
+  </div>
+
+  {# ══ Seller panel ══ #}
+  {% if vendor and seller_stats %}
+    <div class="db-seller">
+      <div class="db-seller-head">
+        <div style="min-width:0;">
+          <p class="db-seller-label">Seller</p>
+          <h2 class="db-seller-name">{{ vendor.display_name }}</h2>
+        </div>
+        <a href="{% url 'vendors:dashboard' %}" class="db-seller-link">Manage store →</a>
+      </div>
+
+      <div class="db-seller-stats">
+        <div class="db-seller-stat">
+          <p class="db-seller-stat-label">Revenue</p>
+          <p class="db-seller-stat-num">ZMW {{ seller_stats.revenue }}</p>
+        </div>
+        <div class="db-seller-stat">
+          <p class="db-seller-stat-label">Incoming orders</p>
+          <p class="db-seller-stat-num">{{ seller_stats.incoming_orders }}</p>
+        </div>
+        <div class="db-seller-stat">
+          <p class="db-seller-stat-label">Active products</p>
+          <p class="db-seller-stat-num">{{ seller_stats.active_products }}</p>
+        </div>
+        <div class="db-seller-stat">
+          <p class="db-seller-stat-label">Open disputes</p>
+          <p class="db-seller-stat-num">{{ seller_stats.open_disputes }}</p>
+        </div>
+      </div>
+
+      <div class="db-seller-actions">
+        <a href="{% url 'catalogue:product_create' %}" class="db-seller-btn db-seller-btn-primary">+ Add product</a>
+        <a href="{% url 'orders:seller_orders' %}" class="db-seller-btn db-seller-btn-ghost">Incoming orders</a>
+        <a href="{% url 'auctions:auction_create' %}" class="db-seller-btn db-seller-btn-ghost">Create auction</a>
+        <a href="{% url 'catalogue:my_products' %}" class="db-seller-btn db-seller-btn-ghost">My products</a>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ══ KPI strip ══ #}
+  <div class="db-kpis">
+    <a href="{% url 'orders:my_orders' %}" class="db-kpi">
+      <div class="db-kpi-head">
+        <p class="db-kpi-label">Orders</p>
+        <span class="db-kpi-icon">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+        </span>
+      </div>
+      <p class="db-kpi-num">{{ buyer_stats.total_orders }}</p>
+      <p class="db-kpi-foot">
+        {% if buyer_stats.pending_orders %}
+          <span class="accent">{{ buyer_stats.pending_orders }} in progress</span>
+        {% else %}
+          All delivered
+        {% endif %}
+      </p>
+    </a>
+
+    <a href="{% url 'messaging:inbox' %}" class="db-kpi">
+      <div class="db-kpi-head">
+        <p class="db-kpi-label">Messages</p>
+        <span class="db-kpi-icon">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+        </span>
+      </div>
+      <p class="db-kpi-num">{{ buyer_stats.unread_messages }}</p>
+      <p class="db-kpi-foot">unread</p>
+    </a>
+
+    <a href="{% url 'auctions:my_watchlist' %}" class="db-kpi">
+      <div class="db-kpi-head">
+        <p class="db-kpi-label">Watchlist</p>
+        <span class="db-kpi-icon">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+        </span>
+      </div>
+      <p class="db-kpi-num">{{ buyer_stats.watchlist_count }}</p>
+      <p class="db-kpi-foot">items tracked</p>
+    </a>
+
+    <div class="db-kpi">
+      <div class="db-kpi-head">
+        <p class="db-kpi-label">Spent</p>
+        <span class="db-kpi-icon">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </span>
+      </div>
+      <p class="db-kpi-num">ZMW {{ buyer_stats.total_spent }}</p>
+      <p class="db-kpi-foot">lifetime</p>
+    </div>
+  </div>
+
+  {# ══ Quick actions ══ #}
+  <div class="db-card">
+    <div class="db-card-head">
+      <h2 class="db-card-title">Quick actions</h2>
+    </div>
+    <div style="padding:.75rem;">
+      <div class="db-quick">
+        <a href="{% url 'catalogue:browse' %}" class="db-quick-item">
+          <span class="db-quick-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg></span>
+          <span class="db-quick-label">Browse</span>
+        </a>
+        <a href="{% url 'cart:cart_detail' %}" class="db-quick-item">
+          <span class="db-quick-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg></span>
+          <span class="db-quick-label">Cart</span>
+        </a>
+        <a href="{% url 'orders:my_orders' %}" class="db-quick-item">
+          <span class="db-quick-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></span>
+          <span class="db-quick-label">Orders</span>
+        </a>
+        <a href="{% url 'auctions:auction_list' %}" class="db-quick-item">
+          <span class="db-quick-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+          <span class="db-quick-label">Auctions</span>
+        </a>
+        <a href="{% url 'wholesale:open_rfqs' %}" class="db-quick-item">
+          <span class="db-quick-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span>
+          <span class="db-quick-label">RFQs</span>
+        </a>
+        <a href="{% url 'wholesale:my_rfqs' %}" class="db-quick-item">
+          <span class="db-quick-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg></span>
+          <span class="db-quick-label">My RFQs</span>
+        </a>
+        <a href="{% url 'disputes:my_disputes' %}" class="db-quick-item">
+          <span class="db-quick-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></span>
+          <span class="db-quick-label">Disputes</span>
+        </a>
+        <a href="{% url 'notifications:list' %}" class="db-quick-item">
+          <span class="db-quick-icon"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></span>
+          <span class="db-quick-label">Alerts</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {# ══ Recent orders + activity ══ #}
+  <div class="db-split" style="display:grid; gap:1rem; grid-template-columns:minmax(0,1fr);">
+    <style>@media(min-width:1024px){ .db-split { grid-template-columns:repeat(2, minmax(0,1fr)) !important; } }</style>
+
+    {# Recent orders #}
+    <div class="db-card">
+      <div class="db-card-head">
+        <h2 class="db-card-title">Recent orders</h2>
+        <a href="{% url 'orders:my_orders' %}" class="db-card-link">View all →</a>
+      </div>
+      <div>
+        {% for order in recent_orders %}
+          <a href="{% url 'orders:order_detail' order.order_number %}" class="db-row">
+            <div class="db-row-icon db-row-icon-gray">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </div>
+            <div class="db-row-main">
+              <p class="db-row-title">{{ order.order_number }}</p>
+              <p class="db-row-sub">{{ order.vendor.display_name }}</p>
+            </div>
+            <div class="db-row-right">
+              <p class="db-row-amount">{{ order.currency }} {{ order.total }}</p>
+              <p class="db-row-status {% if order.status == 'delivered' %}db-row-status-green{% else %}db-row-status-amber{% endif %}">{{ order.get_status_display }}</p>
+            </div>
+          </a>
+        {% empty %}
+          <div class="db-empty">
+            No orders yet. <a href="{% url 'catalogue:browse' %}">Start shopping →</a>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Recent activity #}
+    <div class="db-card">
+      <div class="db-card-head">
+        <h2 class="db-card-title">Recent activity</h2>
+        <a href="{% url 'notifications:list' %}" class="db-card-link">View all →</a>
+      </div>
+      <div>
+        {% for n in recent_notifications %}
+          <a href="{% if n.url %}{{ n.url }}{% else %}{% url 'notifications:list' %}{% endif %}" class="db-row" style="align-items:flex-start;">
+            <div class="db-row-icon {% if n.read_at %}db-row-icon-gray{% else %}db-row-icon-orange{% endif %}" style="margin-top:2px;">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            </div>
+            <div class="db-row-main">
+              <p class="db-row-title">{{ n.title }}</p>
+              {% if n.body %}<p class="db-row-sub">{{ n.body }}</p>{% endif %}
+              <p class="db-row-sub" style="font-size:.65rem;color:#9ca3af;">{{ n.created_at|date:"M d, H:i" }}</p>
+            </div>
+            {% if not n.read_at %}<span class="db-unread-dot"></span>{% endif %}
+          </a>
+        {% empty %}
+          <div class="db-empty">No activity yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ══ Top products (seller only) ══ #}
+  {% if top_products %}
+    <div class="db-card">
+      <div class="db-card-head">
+        <h2 class="db-card-title">Your top products</h2>
+        <a href="{% url 'catalogue:my_products' %}" class="db-card-link">Manage →</a>
+      </div>
+      <div style="padding:.75rem;">
+        <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:.5rem;">
+          <style>@media(min-width:480px){ .db-products { grid-template-columns:repeat(4, minmax(0,1fr)) !important; } } @media(min-width:1024px){ .db-products { grid-template-columns:repeat(8, minmax(0,1fr)) !important; } }</style>
+          <div class="db-products" style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:.5rem;">
+            {% for p in top_products %}
+              {% include "components/product_card.html" with product=p %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

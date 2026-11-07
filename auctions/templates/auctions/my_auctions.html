@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}My auctions — UniMarket{% endblock %}
+{% block content %}
+
+{# ── Header ────────────────────────────────────────────── #}
+<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-ink-900 tracking-tight">My auctions</h1>
+    <p class="text-sm text-ink-500 mt-1">Auctions you've created and their live status.</p>
+  </div>
+  <a href="{% url 'auctions:auction_create' %}" class="btn-primary">+ Create auction</a>
+</div>
+
+{# ── Stats ────────────────────────────────────────────── #}
+{% if stats.total %}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+    <a href="{% url 'auctions:my_auctions' %}" class="bg-white rounded-xl border {% if not status_filter %}border-orange-300 ring-1 ring-orange-100{% else %}border-ink-200{% endif %} p-3 sm:p-4 hover:shadow-sm transition">
+      <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Total</p>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900 mt-1">{{ stats.total }}</p>
+    </a>
+    <a href="?status=live" class="bg-white rounded-xl border {% if status_filter == 'live' %}border-orange-300 ring-1 ring-orange-100{% else %}border-ink-200{% endif %} p-3 sm:p-4 hover:shadow-sm transition">
+      <div class="flex items-center gap-1.5">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        </span>
+        <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Live</p>
+      </div>
+      <p class="text-xl sm:text-2xl font-bold text-green-600 mt-1">{{ stats.live }}</p>
+    </a>
+    <a href="?status=scheduled" class="bg-white rounded-xl border {% if status_filter == 'scheduled' %}border-orange-300 ring-1 ring-orange-100{% else %}border-ink-200{% endif %} p-3 sm:p-4 hover:shadow-sm transition">
+      <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Scheduled</p>
+      <p class="text-xl sm:text-2xl font-bold text-amber-600 mt-1">{{ stats.scheduled }}</p>
+    </a>
+    <a href="?status=ended" class="bg-white rounded-xl border {% if status_filter == 'ended' %}border-orange-300 ring-1 ring-orange-100{% else %}border-ink-200{% endif %} p-3 sm:p-4 hover:shadow-sm transition">
+      <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Ended</p>
+      <p class="text-xl sm:text-2xl font-bold text-ink-600 mt-1">{{ stats.ended }}</p>
+    </a>
+  </div>
+{% endif %}
+
+{# ── Auctions list ────────────────────────────────────── #}
+{% if auctions %}
+
+  {# Desktop: table #}
+  <div class="hidden md:block bg-white rounded-xl border border-ink-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-ink-50 text-left text-xs uppercase tracking-wide text-ink-500">
+        <tr>
+          <th class="px-4 py-3 font-medium">Auction</th>
+          <th class="px-4 py-3 font-medium">Status</th>
+          <th class="px-4 py-3 font-medium">Current bid</th>
+          <th class="px-4 py-3 font-medium">Bids</th>
+          <th class="px-4 py-3 font-medium">Ends</th>
+          <th class="px-4 py-3 font-medium text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for auction in auctions %}
+          <tr class="hover:bg-orange-50/30 transition">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-ink-100 rounded-lg overflow-hidden shrink-0">
+                  {% with auction.variant.product.images.first as img %}
+                    {% if img %}
+                      <img src="{{ img.image.url }}" alt="" class="w-full h-full object-cover">
+                    {% else %}
+                      <div class="w-full h-full flex items-center justify-center text-ink-400 text-[10px]">—</div>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+                <div class="min-w-0">
+                  <a href="{% url 'auctions:auction_detail' auction.pk %}" class="font-medium text-ink-900 hover:text-orange-600 truncate block">
+                    {{ auction.title }}
+                  </a>
+                  <p class="text-xs text-ink-500 truncate">
+                    {{ auction.variant.product.category.name }} · {{ auction.variant.product.name }}
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <span class="{% if auction.status == 'live' %}badge-success{% elif auction.status == 'ended' %}badge-neutral{% elif auction.status == 'cancelled' %}badge-danger{% else %}badge-warning{% endif %} capitalize">
+                {% if auction.status == 'live' %}
+                  <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse mr-1"></span>
+                {% endif %}
+                {{ auction.get_status_display }}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <p class="font-semibold text-ink-900">{{ auction.currency }} {{ auction.current_price }}</p>
+              {% if auction.buy_it_now_price %}
+                <p class="text-[10px] text-ink-500">BIN: {{ auction.buy_it_now_price }}</p>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center gap-1 text-ink-700">
+                <svg class="h-3.5 w-3.5 text-ink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                {{ auction.bids.count }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-ink-600 whitespace-nowrap">
+              <p>{{ auction.ends_at|date:"M d, Y" }}</p>
+              <p class="text-xs text-ink-500">{{ auction.ends_at|date:"H:i" }}</p>
+            </td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+              <a href="{% url 'auctions:auction_detail' auction.pk %}" class="text-xs text-orange-600 hover:underline font-medium mr-3">View</a>
+              <a href="{% url 'auctions:auction_create' %}" class="text-xs text-ink-600 hover:text-orange-600 font-medium">New</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Mobile: cards #}
+  <div class="md:hidden space-y-3">
+    {% for auction in auctions %}
+      <a href="{% url 'auctions:auction_detail' auction.pk %}" class="block bg-white rounded-xl border border-ink-200 p-3 hover:border-orange-200 transition">
+        <div class="flex gap-3">
+          <div class="w-16 h-16 bg-ink-100 rounded-lg overflow-hidden shrink-0">
+            {% with auction.variant.product.images.first as img %}
+              {% if img %}
+                <img src="{{ img.image.url }}" alt="" class="w-full h-full object-cover">
+              {% else %}
+                <div class="w-full h-full flex items-center justify-center text-ink-400 text-[10px]">—</div>
+              {% endif %}
+            {% endwith %}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-ink-900 truncate">{{ auction.title }}</p>
+            <p class="text-xs text-ink-500 truncate">{{ auction.variant.product.category.name }}</p>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="{% if auction.status == 'live' %}badge-success{% elif auction.status == 'ended' %}badge-neutral{% elif auction.status == 'cancelled' %}badge-danger{% else %}badge-warning{% endif %} capitalize text-[10px]">
+                {% if auction.status == 'live' %}
+                  <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse mr-1"></span>
+                {% endif %}
+                {{ auction.get_status_display }}
+              </span>
+              <span class="text-xs text-ink-500">{{ auction.bids.count }} bid{{ auction.bids.count|pluralize }}</span>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="font-semibold text-ink-900 text-sm">{{ auction.currency }} {{ auction.current_price }}</p>
+            <p class="text-[10px] text-ink-500 mt-1">Ends {{ auction.ends_at|date:"M d" }}</p>
+          </div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="bg-white rounded-xl border border-ink-200 p-12 text-center">
+    <div class="mx-auto h-16 w-16 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mb-4">
+      <svg class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <p class="text-lg font-semibold text-ink-900">
+      {% if status_filter %}No {{ status_filter }} auctions{% else %}No auctions yet{% endif %}
+    </p>
+    <p class="text-sm text-ink-500 mt-1 max-w-md mx-auto">
+      {% if status_filter %}
+        Try a different filter or create a new auction.
+      {% else %}
+        Create your first auction to start receiving bids.
+      {% endif %}
+    </p>
+    <div class="mt-5 flex flex-wrap gap-2 justify-center">
+      {% if status_filter %}
+        <a href="{% url 'auctions:my_auctions' %}" class="btn-secondary">Clear filter</a>
+      {% endif %}
+      <a href="{% url 'auctions:auction_create' %}" class="btn-primary">+ Create auction</a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

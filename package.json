@@ -1,0 +1,14 @@
+{
+  "name": "unimarket",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "css:build": "tailwindcss -i ./static/src/css/input.css -o ./static/css/tailwind.css --minify",
+    "css:watch": "tailwindcss -i ./static/src/css/input.css -o ./static/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0"
+  }
+}

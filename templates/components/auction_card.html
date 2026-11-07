@@ -1,0 +1,51 @@
+{% load humanize %}
+{% with auction.variant.product.images.first as img %}
+<a href="{% url 'auctions:auction_detail' auction.pk %}" class="group flex flex-col bg-white rounded-xl border border-ink-200 overflow-hidden hover:shadow-lg hover:border-orange-200 transition">
+
+  {# Image #}
+  <div class="relative aspect-square bg-ink-100 overflow-hidden">
+    {% if img %}
+      <img src="{{ img.image.url }}" alt="{{ auction.title }}" class="w-full h-full object-cover transition duration-300 group-hover:scale-105">
+    {% else %}
+      <div class="w-full h-full flex items-center justify-center text-ink-400 text-xs">No image</div>
+    {% endif %}
+
+    {# Live badge #}
+    <div class="absolute top-2 left-2 flex items-center gap-1 bg-red-600 text-white text-[10px] font-bold rounded px-2 py-1">
+      <span class="relative flex h-1.5 w-1.5">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+      </span>
+      LIVE
+    </div>
+
+    {# Bid count badge #}
+    {% if auction.bids.count %}
+      <div class="absolute top-2 right-2 bg-white/95 text-ink-900 text-[10px] font-semibold rounded px-2 py-1">
+        {{ auction.bids.count }} bid{{ auction.bids.count|pluralize }}
+      </div>
+    {% endif %}
+  </div>
+
+  {# Info #}
+  <div class="p-3 flex flex-col flex-1">
+    <p class="text-[10px] font-medium text-orange-600 uppercase tracking-wide">{{ auction.variant.product.category.name }}</p>
+    <h3 class="text-sm font-medium text-ink-900 truncate mt-1 group-hover:text-orange-600 transition">{{ auction.title }}</h3>
+
+    <div class="mt-2 flex items-baseline gap-1">
+      <p class="text-base font-bold text-ink-900">{{ auction.currency }} {{ auction.current_price|floatformat:2|intcomma }}</p>
+      <span class="text-[10px] text-ink-500 uppercase tracking-wide">current</span>
+    </div>
+
+    <div class="mt-auto pt-2 flex items-center justify-between text-xs">
+      <span class="flex items-center gap-1 text-ink-500">
+        <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        {{ auction.ends_at|date:"M d, H:i" }}
+      </span>
+      {% if auction.status == 'live' %}
+        <span class="text-orange-600 font-medium group-hover:underline">Bid now →</span>
+      {% endif %}
+    </div>
+  </div>
+</a>
+{% endwith %}

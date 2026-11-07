@@ -1,0 +1,73 @@
+<footer class="border-t border-ink-200 bg-white mt-16">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <div class="grid gap-8 md:grid-cols-4">
+
+      {# ── Brand ────────────────────────────────────── #}
+      <div>
+        <a href="/" class="flex items-center gap-2 mb-3">
+          <span class="h-8 w-8 rounded-lg bg-orange-500 flex items-center justify-center">
+            <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+            </svg>
+          </span>
+          <span class="text-lg font-bold text-ink-900">UniMarket</span>
+        </a>
+        <p class="text-sm text-ink-500 leading-relaxed">
+          Everything you need. All in one place. Zambia's marketplace for retail, wholesale, and B2B trade.
+        </p>
+      </div>
+
+      {# ── Marketplace ──────────────────────────────── #}
+      <div>
+        <p class="text-xs font-semibold text-ink-900 uppercase tracking-wide mb-3">Marketplace</p>
+        <ul class="space-y-2 text-sm text-ink-500">
+          <li><a href="{% url 'catalogue:browse' %}" class="hover:text-orange-600 transition">Browse products</a></li>
+          <li><a href="{% url 'auctions:auction_list' %}" class="hover:text-orange-600 transition">Live auctions</a></li>
+          <li><a href="{% url 'wholesale:open_rfqs' %}" class="hover:text-orange-600 transition">Open RFQs</a></li>
+          <li><a href="{% url 'catalogue:browse' %}?sort=newest" class="hover:text-orange-600 transition">New arrivals</a></li>
+        </ul>
+      </div>
+
+      {# ── Sell ─────────────────────────────────────── #}
+      <div>
+        <p class="text-xs font-semibold text-ink-900 uppercase tracking-wide mb-3">Sell on UniMarket</p>
+        <ul class="space-y-2 text-sm text-ink-500">
+          <li><a href="{% url 'vendors:become_seller' %}" class="hover:text-orange-600 transition">Open a store</a></li>
+          <li><a href="{% url 'vendors:dashboard' %}" class="hover:text-orange-600 transition">Seller dashboard</a></li>
+          <li><a href="{% url 'catalogue:product_create' %}" class="hover:text-orange-600 transition">Add a product</a></li>
+          <li><a href="{% url 'auctions:auction_create' %}" class="hover:text-orange-600 transition">Start an auction</a></li>
+        </ul>
+      </div>
+
+      {# ── Support ──────────────────────────────────── #}
+      <div>
+        <p class="text-xs font-semibold text-ink-900 uppercase tracking-wide mb-3">Help & support</p>
+        <ul class="space-y-2 text-sm text-ink-500">
+          <li><a href="#" class="hover:text-orange-600 transition">Buyer help center</a></li>
+          <li><a href="#" class="hover:text-orange-600 transition">Seller help center</a></li>
+          <li><a href="#" class="hover:text-orange-600 transition">Shipping & returns</a></li>
+          <li><a href="#" class="hover:text-orange-600 transition">Contact us</a></li>
+        </ul>
+      </div>
+
+    </div>
+
+    {# ── Bottom bar ───────────────────────────────────── #}
+    <div class="mt-10 pt-6 border-t border-ink-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-ink-500">
+      <p>&copy; {% now "Y" %} UniMarket. All rights reserved.</p>
+      <div class="flex items-center gap-4">
+        <a href="#" class="hover:text-orange-600 transition">Terms</a>
+        <a href="#" class="hover:text-orange-600 transition">Privacy</a>
+        <span class="text-ink-300">|</span>
+        <span class="inline-flex items-center gap-1">
+          <svg class="h-3 w-3 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          Secure payments
+        </span>
+      </div>
+    </div>
+
+  </div>
+</footer>

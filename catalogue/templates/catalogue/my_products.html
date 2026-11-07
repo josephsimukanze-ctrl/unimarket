@@ -1,0 +1,188 @@
+
+{% extends "base.html" %}
+{% block title %}My products — UniMarket{% endblock %}
+{% block content %}
+
+{# ── Header ────────────────────────────────────────────── #}
+<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-ink-900 tracking-tight">My products</h1>
+    <p class="text-sm text-ink-500 mt-1">{{ store.name }} · manage your listings</p>
+  </div>
+  <a href="{% url 'catalogue:product_create' %}" class="btn-primary">+ Add product</a>
+</div>
+
+{# ── Stats ────────────────────────────────────────────── #}
+{% if stats.total %}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+
+    <a href="{% url 'catalogue:my_products' %}"
+       class="bg-white rounded-xl border {% if not status_filter %}border-orange-300{% else %}border-ink-200{% endif %} p-4 hover:shadow-sm transition">
+      <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Total</p>
+      <p class="text-2xl font-bold text-ink-900 mt-1">{{ stats.total }}</p>
+    </a>
+
+    <a href="?status=active"
+       class="bg-white rounded-xl border {% if status_filter == 'active' %}border-orange-300{% else %}border-ink-200{% endif %} p-4 hover:shadow-sm transition">
+      <div class="flex items-center gap-1.5">
+        <span class="h-2 w-2 rounded-full bg-green-500"></span>
+        <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Active</p>
+      </div>
+      <p class="text-2xl font-bold text-green-600 mt-1">{{ stats.active }}</p>
+    </a>
+
+    <a href="?status=draft"
+       class="bg-white rounded-xl border {% if status_filter == 'draft' %}border-orange-300{% else %}border-ink-200{% endif %} p-4 hover:shadow-sm transition">
+      <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Drafts</p>
+      <p class="text-2xl font-bold text-ink-600 mt-1">{{ stats.draft }}</p>
+    </a>
+
+    <a href="?status=pending"
+       class="bg-white rounded-xl border {% if status_filter == 'pending' %}border-orange-300{% else %}border-ink-200{% endif %} p-4 hover:shadow-sm transition">
+      <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Pending</p>
+      <p class="text-2xl font-bold text-amber-600 mt-1">{{ stats.pending }}</p>
+    </a>
+  </div>
+{% endif %}
+
+{# ── Product list ─────────────────────────────────────── #}
+{% if products %}
+
+  {# Desktop: table #}
+  <div class="hidden md:block bg-white rounded-xl border border-ink-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-ink-50 text-left text-xs uppercase tracking-wide text-ink-500">
+        <tr>
+          <th class="px-4 py-3 font-medium">Product</th>
+          <th class="px-4 py-3 font-medium">Category</th>
+          <th class="px-4 py-3 font-medium">Price</th>
+          <th class="px-4 py-3 font-medium">Stock</th>
+          <th class="px-4 py-3 font-medium">Status</th>
+          <th class="px-4 py-3 font-medium text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for product in products %}
+          {% with product.variants.first as variant %}
+          <tr class="hover:bg-orange-50/30 transition">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-ink-100 rounded-lg overflow-hidden shrink-0">
+                  {% with product.images.first as img %}
+                    {% if img %}
+                      <img src="{{ img.image.url }}" alt="" class="w-full h-full object-cover">
+                    {% else %}
+                      <div class="w-full h-full flex items-center justify-center text-ink-400 text-[10px]">No img</div>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+                <div class="min-w-0">
+                  <p class="font-medium text-ink-900 truncate">{{ product.name }}</p>
+                  <p class="text-xs text-ink-500 truncate">{{ product.variants.count }} variant{{ product.variants.count|pluralize }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-ink-600">{{ product.category.name }}</td>
+            <td class="px-4 py-3">
+              {% if variant %}
+                <p class="font-semibold text-ink-900">{{ variant.currency }} {{ variant.price }}</p>
+              {% else %}
+                <p class="text-ink-400">—</p>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              {% if variant and variant.inventory %}
+                <span class="{% if variant.inventory.quantity == 0 %}text-red-600{% elif variant.inventory.quantity < 5 %}text-amber-600{% else %}text-green-600{% endif %} font-medium">
+                  {{ variant.inventory.quantity }}
+                </span>
+              {% else %}
+                <span class="text-ink-400">—</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              <span class="{% if product.status == 'active' %}badge-success{% elif product.status == 'pending' %}badge-warning{% elif product.status == 'draft' %}badge-neutral{% else %}badge-danger{% endif %} capitalize">{{ product.get_status_display }}</span>
+            </td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+              {% if product.status == 'active' %}
+                <a href="{% url 'catalogue:product_detail' product.slug %}" class="text-xs text-ink-600 hover:text-orange-600 font-medium mr-3">View</a>
+              {% endif %}
+              <a href="{% url 'catalogue:product_edit' product.slug %}" class="text-xs text-orange-600 hover:underline font-medium mr-3">Edit</a>
+              <a href="{% url 'catalogue:product_delete' product.slug %}" class="text-xs text-red-600 hover:underline font-medium">Delete</a>
+            </td>
+          </tr>
+          {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Mobile: card list #}
+  <div class="md:hidden space-y-3">
+    {% for product in products %}
+      {% with product.variants.first as variant %}
+        <div class="bg-white rounded-xl border border-ink-200 p-4">
+          <div class="flex gap-3">
+            <div class="w-16 h-16 bg-ink-100 rounded-lg overflow-hidden shrink-0">
+              {% with product.images.first as img %}
+                {% if img %}
+                  <img src="{{ img.image.url }}" alt="" class="w-full h-full object-cover">
+                {% else %}
+                  <div class="w-full h-full flex items-center justify-center text-ink-400 text-[10px]">No img</div>
+                {% endif %}
+              {% endwith %}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-ink-900 truncate">{{ product.name }}</p>
+              <p class="text-xs text-ink-500">{{ product.category.name }}</p>
+              {% if variant %}
+                <p class="text-sm font-semibold text-ink-900 mt-1">{{ variant.currency }} {{ variant.price }}</p>
+              {% endif %}
+            </div>
+            <span class="{% if product.status == 'active' %}badge-success{% elif product.status == 'pending' %}badge-warning{% elif product.status == 'draft' %}badge-neutral{% else %}badge-danger{% endif %} capitalize self-start text-[10px]">{{ product.get_status_display }}</span>
+          </div>
+          <div class="mt-3 pt-3 border-t border-ink-100 flex items-center justify-between">
+            <div class="text-xs text-ink-500">
+              {% if variant and variant.inventory %}
+                Stock: <span class="font-medium {% if variant.inventory.quantity == 0 %}text-red-600{% elif variant.inventory.quantity < 5 %}text-amber-600{% else %}text-green-600{% endif %}">{{ variant.inventory.quantity }}</span>
+              {% endif %}
+            </div>
+            <div class="flex gap-3 text-xs">
+              {% if product.status == 'active' %}
+                <a href="{% url 'catalogue:product_detail' product.slug %}" class="text-ink-600 font-medium">View</a>
+              {% endif %}
+              <a href="{% url 'catalogue:product_edit' product.slug %}" class="text-orange-600 font-medium">Edit</a>
+              <a href="{% url 'catalogue:product_delete' product.slug %}" class="text-red-600 font-medium">Delete</a>
+            </div>
+          </div>
+        </div>
+      {% endwith %}
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="bg-white rounded-xl border border-ink-200 p-12 text-center">
+    <div class="mx-auto h-16 w-16 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mb-4">
+      <svg class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+      </svg>
+    </div>
+    <p class="text-lg font-semibold text-ink-900">
+      {% if status_filter %}No {{ status_filter }} products{% else %}No products yet{% endif %}
+    </p>
+    <p class="text-sm text-ink-500 mt-1 max-w-md mx-auto">
+      {% if status_filter %}
+        Try a different filter or add a new product.
+      {% else %}
+        Add your first product to start selling on UniMarket.
+      {% endif %}
+    </p>
+    <div class="mt-5 flex flex-wrap gap-2 justify-center">
+      {% if status_filter %}
+        <a href="{% url 'catalogue:my_products' %}" class="btn-secondary">Clear filter</a>
+      {% endif %}
+      <a href="{% url 'catalogue:product_create' %}" class="btn-primary">+ Add product</a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,19 @@
+<a href="{% url 'auctions:auction_detail' auction.pk %}"
+   class="block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition">
+  <div class="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
+    {% with auction.variant.product.images.first as img %}
+      {% if img %}
+        <img src="{{ img.image.url }}" alt="" class="object-cover w-full h-full">
+      {% else %}
+        <span class="text-gray-400 text-sm">No image</span>
+      {% endif %}
+    {% endwith %}
+  </div>
+  <div class="p-4">
+    <h3 class="font-medium text-gray-900 truncate">{{ auction.title }}</h3>
+    <p class="mt-2 text-sm font-semibold text-brand-600">
+      {{ auction.currency }} {{ auction.current_price }}
+    </p>
+    <p class="text-xs text-gray-500 mt-1">Ends {{ auction.ends_at|date:"M d, H:i" }}</p>
+  </div>
+</a>

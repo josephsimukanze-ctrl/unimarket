@@ -1,0 +1,200 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f97316">
+  <title>{% block title %}UniMarket — Everything you need.{% endblock %}</title>
+
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+  <link rel="preconnect" href="https://rsms.me/" crossorigin>
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=6">
+
+  {# Prevent Alpine FOUC #}
+  <style>[x-cloak]{display:none!important}</style>
+
+  {# ── SAFETY NET: guaranteed ink palette ── #}
+  {# If tailwind.css is stale or ink classes fail to load, these rules keep every word visible. #}
+  <style>
+    body { color: #1e293b; }
+
+    .text-ink-900 { color: #0f172a !important; }
+    .text-ink-800 { color: #1e293b !important; }
+    .text-ink-700 { color: #334155 !important; }
+    .text-ink-600 { color: #475569 !important; }
+    .text-ink-500 { color: #64748b !important; }
+    .text-ink-400 { color: #94a3b8 !important; }
+    .text-ink-300 { color: #cbd5e1 !important; }
+    .text-ink-200 { color: #e2e8f0 !important; }
+
+    .bg-ink-50   { background-color: #f8fafc !important; }
+    .bg-ink-100  { background-color: #f1f5f9 !important; }
+    .bg-ink-200  { background-color: #e2e8f0 !important; }
+
+    .border-ink-100 { border-color: #f1f5f9 !important; }
+    .border-ink-200 { border-color: #e2e8f0 !important; }
+    .border-ink-300 { border-color: #cbd5e1 !important; }
+
+    .hover\:bg-ink-50:hover    { background-color: #f8fafc !important; }
+    .hover\:bg-ink-100:hover   { background-color: #f1f5f9 !important; }
+    .hover\:text-ink-900:hover { color: #0f172a !important; }
+    .hover\:text-ink-700:hover { color: #334155 !important; }
+    .hover\:text-ink-500:hover { color: #64748b !important; }
+
+    .text-brand-600  { color: #0284c7 !important; }
+    .text-brand-700  { color: #0369a1 !important; }
+    .bg-brand-600    { background-color: #0284c7 !important; }
+    .bg-brand-100    { background-color: #e0f2fe !important; }
+    .bg-brand-50     { background-color: #f0f9ff !important; }
+  </style>
+
+  {% block head_extra %}{% endblock %}
+</head>
+
+<body class="min-h-full flex flex-col bg-white text-ink-800 antialiased overflow-x-hidden">
+
+  {# Skip link #}
+  <a href="#main-content"
+     class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100]
+            focus:rounded-lg focus:bg-orange-500 focus:px-4 focus:py-2
+            focus:text-white focus:font-medium focus:shadow-lg">
+    Skip to content
+  </a>
+
+  {% include "components/topbar.html" %}
+  {% include "components/navbar.html" %}
+  {% include "components/megabar.html" %}
+
+  {# Flash messages #}
+  {% if messages %}
+    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6" aria-live="polite">
+      <div class="max-w-2xl mx-auto space-y-2">
+        {% for message in messages %}
+          <div x-data="{ show: true }"
+               x-show="show"
+               x-cloak
+               x-init="setTimeout(() => show = false, 6000)"
+               x-transition:enter="transition ease-out duration-200"
+               x-transition:enter-start="opacity-0 -translate-y-1"
+               x-transition:enter-end="opacity-100 translate-y-0"
+               x-transition:leave="transition ease-in duration-150"
+               x-transition:leave-start="opacity-100"
+               x-transition:leave-end="opacity-0"
+               role="alert"
+               class="rounded-xl px-4 py-3 text-sm flex items-start gap-3 shadow-sm border
+                 {% if 'error' in message.tags %}bg-red-50 text-red-800 border-red-200
+                 {% elif 'success' in message.tags %}bg-green-50 text-green-800 border-green-200
+                 {% elif 'warning' in message.tags %}bg-amber-50 text-amber-800 border-amber-200
+                 {% else %}bg-orange-50 text-orange-900 border-orange-200{% endif %}">
+            <span class="flex-1 min-w-0 break-words">{{ message }}</span>
+            <button type="button"
+                    @click="show = false"
+                    class="shrink-0 rounded p-0.5 hover:bg-black/5 focus:outline-none"
+                    aria-label="Dismiss">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# ══ PAGE SHELL ══ #}
+  <div class="flex-1 w-full min-w-0"
+       x-data="{ sidebarOpen: false }"
+       @keydown.escape.window="sidebarOpen = false">
+
+    <div class="w-full max-w-[1600px] mx-auto px-3 sm:px-5 lg:px-8 py-4 sm:py-6">
+
+      <div class="{% if not hide_sidebar %}flex gap-4 lg:gap-6{% endif %} min-w-0">
+
+        {% if not hide_sidebar %}
+          {# Desktop sidebar #}
+          <aside class="hidden lg:block w-56 xl:w-60 shrink-0">
+            <div class="sticky top-4">
+              {% include "components/sidebar.html" %}
+            </div>
+          </aside>
+        {% endif %}
+
+        {# Main content — min-w-0 prevents overflow #}
+        <main id="main-content"
+              class="min-w-0 {% if not hide_sidebar %}flex-1{% else %}w-full{% endif %}">
+
+          {% if not hide_sidebar %}
+            {# Mobile menu button — using gray-* so it never depends on ink palette #}
+            <button type="button"
+                    @click="sidebarOpen = true"
+                    class="lg:hidden inline-flex items-center gap-2 mb-4 px-3 py-2 rounded-lg
+                           border border-gray-200 bg-white text-sm font-medium text-gray-700
+                           hover:bg-gray-50 active:bg-gray-100 transition-colors">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+              </svg>
+              Categories
+            </button>
+          {% endif %}
+
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
+
+    {# ══ Mobile slide-over drawer ══ #}
+    {% if not hide_sidebar %}
+      {# Backdrop #}
+      <div x-show="sidebarOpen"
+           x-cloak
+           x-transition.opacity.duration.200ms
+           @click="sidebarOpen = false"
+           class="fixed inset-0 bg-black/50 z-40 lg:hidden"
+           aria-hidden="true"></div>
+
+      {# Drawer #}
+      <aside x-show="sidebarOpen"
+             x-cloak
+             x-transition:enter="transition transform duration-200 ease-out"
+             x-transition:enter-start="-translate-x-full"
+             x-transition:enter-end="translate-x-0"
+             x-transition:leave="transition transform duration-150 ease-in"
+             x-transition:leave-start="translate-x-0"
+             x-transition:leave-end="-translate-x-full"
+             class="fixed inset-y-0 left-0 z-50 w-[min(18rem,85vw)] bg-white shadow-2xl
+                    lg:hidden overflow-y-auto overscroll-contain"
+             role="dialog"
+             aria-modal="true"
+             aria-label="Categories menu">
+
+        {# Drawer header #}
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200
+                    bg-white sticky top-0 z-10">
+          <a href="/" class="text-lg font-bold text-orange-500 tracking-tight">UniMarket</a>
+          <button type="button"
+                  @click="sidebarOpen = false"
+                  class="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100
+                         focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  aria-label="Close menu">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {# Drawer body #}
+        <div class="p-3 sm:p-4">
+          {% include "components/sidebar.html" %}
+        </div>
+      </aside>
+    {% endif %}
+  </div>
+
+  {% include "components/footer.html" %}
+
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

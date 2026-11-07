@@ -1,0 +1,170 @@
+
+{% extends "base.html" %}
+{% block title %}Log in — UniMarket{% endblock %}
+{% block content %}
+
+<div class="max-w-md mx-auto my-12">
+
+  {# ── Header ────────────────────────────────────────── #}
+  <div class="text-center mb-8">
+    <div class="mx-auto h-14 w-14 rounded-2xl bg-orange-500 flex items-center justify-center mb-4">
+      <svg class="h-7 w-7 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+      </svg>
+    </div>
+    <h1 class="text-2xl font-bold text-ink-900 tracking-tight">Welcome back</h1>
+    <p class="text-sm text-ink-500 mt-1">Log in to continue shopping and selling.</p>
+  </div>
+
+  {# ── Card ──────────────────────────────────────────── #}
+  <div class="bg-white rounded-2xl border border-ink-200 shadow-card p-8">
+
+    {% if form.non_field_errors %}
+      <div class="mb-5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800" role="alert">
+        <div class="flex items-start gap-2">
+          <svg class="h-4 w-4 mt-0.5 text-red-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <div>
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'accounts:login' %}" class="space-y-5" novalidate id="login-form">
+      {% csrf_token %}
+      {% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}
+
+      {# Username #}
+      <div>
+        <label for="{{ form.username.id_for_label }}" class="label">Username or email</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-ink-400 pointer-events-none">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </span>
+          <input type="text"
+                 name="{{ form.username.name }}"
+                 id="{{ form.username.id_for_label }}"
+                 value="{{ form.username.value|default_if_none:'' }}"
+                 autocomplete="username"
+                 required autofocus
+                 placeholder="your-username"
+                 class="input pl-10 {% if form.username.errors %}border-red-400 focus:border-red-500{% endif %}">
+        </div>
+        {% if form.username.errors %}
+          <p class="mt-1.5 text-sm text-red-600">{{ form.username.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      {# Password #}
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label for="{{ form.password.id_for_label }}" class="label mb-0">Password</label>
+          <a href="{% url 'accounts:password_reset' %}" class="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline">
+            Forgot password?
+          </a>
+        </div>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-ink-400 pointer-events-none">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+          </span>
+          <input type="password"
+                 name="{{ form.password.name }}"
+                 id="{{ form.password.id_for_label }}"
+                 autocomplete="current-password"
+                 required
+                 placeholder="••••••••"
+                 class="input pl-10 pr-10 {% if form.password.errors %}border-red-400 focus:border-red-500{% endif %}">
+          <button type="button" id="toggle-password"
+                  class="absolute inset-y-0 right-0 flex items-center pr-3 text-ink-400 hover:text-ink-600"
+                  aria-label="Show password">
+            <svg class="h-4 w-4 eye-open" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            <svg class="h-4 w-4 eye-closed hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+            </svg>
+          </button>
+        </div>
+        {% if form.password.errors %}
+          <p class="mt-1.5 text-sm text-red-600">{{ form.password.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      {# Remember me #}
+      <label class="flex items-center gap-2.5 text-sm text-ink-600 select-none cursor-pointer">
+        <input type="checkbox" name="remember_me"
+               class="rounded border-ink-300 text-orange-500 focus:ring-orange-500">
+        Keep me logged in
+      </label>
+
+      <button type="submit" id="login-submit"
+              class="w-full rounded-lg bg-orange-500 px-4 py-3 text-white font-semibold hover:bg-orange-600 transition relative">
+        <span class="submit-text">Log in</span>
+        <span class="submit-loading hidden absolute inset-0 flex items-center justify-center">
+          <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </span>
+      </button>
+    </form>
+  </div>
+
+  {# ── Register promo ────────────────────────────────── #}
+  <div class="mt-6 rounded-xl bg-orange-50 border border-orange-200 p-5 text-center">
+    <p class="text-sm text-ink-700">
+      New to UniMarket?
+      <a href="{% url 'accounts:register' %}" class="font-semibold text-orange-600 hover:text-orange-700 hover:underline">
+        Create an account
+      </a>
+    </p>
+    <p class="text-xs text-ink-500 mt-1">Free to start. Shop or sell in minutes.</p>
+  </div>
+
+  <p class="mt-6 text-xs text-ink-500 text-center">
+    By logging in you agree to our
+    <a href="#" class="hover:underline">Terms</a> and
+    <a href="#" class="hover:underline">Privacy Policy</a>.
+  </p>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const toggleBtn = document.getElementById('toggle-password');
+    if (toggleBtn) {
+      const input = toggleBtn.closest('.relative').querySelector('input');
+      const eyeOpen = toggleBtn.querySelector('.eye-open');
+      const eyeClosed = toggleBtn.querySelector('.eye-closed');
+
+      toggleBtn.addEventListener('click', function () {
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        eyeOpen.classList.toggle('hidden', isPassword);
+        eyeClosed.classList.toggle('hidden', !isPassword);
+        toggleBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      });
+    }
+
+    const form = document.getElementById('login-form');
+    const submitBtn = document.getElementById('login-submit');
+    if (form && submitBtn) {
+      form.addEventListener('submit', function () {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+        submitBtn.querySelector('.submit-text').classList.add('invisible');
+        submitBtn.querySelector('.submit-loading').classList.remove('hidden');
+      });
+    }
+  })();
+</script>
+{% endblock %}

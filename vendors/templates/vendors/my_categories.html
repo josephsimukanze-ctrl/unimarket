@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}My categories — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .mc-back       { display:inline-flex; align-items:center; gap:.5rem; font-size:.85rem; font-weight:600; color:#374151; text-decoration:none; }
+  .mc-back:hover { color:#ea580c; }
+  .mc-title      { font-size:1.5rem; font-weight:800; color:#111827; margin:0; }
+  .mc-sub        { font-size:.85rem; color:#374151; margin-top:.25rem; }
+  .mc-btn        { display:inline-flex; align-items:center; justify-content:center; gap:.5rem; border-radius:8px; padding:.6rem 1rem; font-size:.85rem; font-weight:700; text-decoration:none; border:0; cursor:pointer; }
+  .mc-btn-primary{ background:#ea580c; color:#ffffff; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .mc-btn-primary:hover { background:#c2410c; }
+  .mc-btn-disabled { background:#f3f4f6; color:#9ca3af; cursor:not-allowed; }
+  .mc-banner     { border-radius:12px; padding:1rem; display:flex; gap:.75rem; align-items:flex-start; margin-bottom:1.5rem; }
+  .mc-banner-red   { background:#fef2f2; border:1px solid #fecaca; color:#7f1d1d; }
+  .mc-banner-amber { background:#fffbeb; border:1px solid #fde68a; color:#78350f; }
+  .mc-banner-title { font-weight:700; font-size:.9rem; }
+  .mc-banner-text  { font-size:.75rem; margin-top:.25rem; line-height:1.4; opacity:.95; }
+  .mc-stats      { display:grid; grid-template-columns:1fr; gap:.75rem; margin-bottom:1.5rem; }
+  @media (min-width:640px){ .mc-stats{ grid-template-columns:repeat(3,1fr);} }
+  .mc-stat       { background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:1rem; display:flex; align-items:center; gap:.75rem; }
+  .mc-stat-icon  { width:2.5rem; height:2.5rem; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .mc-stat-label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+  .mc-stat-num   { font-size:1.5rem; font-weight:800; line-height:1.1; margin-top:.1rem; }
+  .mc-card       { background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden; }
+  .mc-card-head  { padding:.75rem 1.25rem; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; justify-content:space-between; }
+  .mc-card-title { font-size:.85rem; font-weight:700; color:#111827; margin:0; }
+  .mc-row        { padding:1rem 1.25rem; display:flex; align-items:center; gap:.75rem; }
+  .mc-row + .mc-row { border-top:1px solid #f3f4f6; }
+  .mc-cat-img    { width:3rem; height:3rem; border-radius:8px; object-fit:cover; border:1px solid #e5e7eb; flex-shrink:0; }
+  .mc-cat-empty  { width:3rem; height:3rem; border-radius:8px; background:#f3f4f6; border:1px solid #e5e7eb; display:flex; align-items:center; justify-content:center; color:#6b7280; flex-shrink:0; }
+  .mc-cat-name   { font-weight:700; font-size:.85rem; color:#111827; }
+  .mc-cat-meta   { font-size:.75rem; color:#374151; margin-top:2px; }
+  .mc-badge      { display:inline-flex; align-items:center; gap:.25rem; font-size:.7rem; font-weight:700; padding:.25rem .6rem; border-radius:9999px; flex-shrink:0; }
+  .mc-badge-green{ background:#dcfce7; color:#166534; }
+  .mc-badge-amber{ background:#fef3c7; color:#92400e; }
+</style>
+
+<div style="max-width:56rem; margin:0 auto; padding-bottom:2rem;">
+
+  {# ── Back ── #}
+  <div style="margin-bottom:1.25rem;">
+    <a href="{% url 'vendors:dashboard' %}" class="mc-back">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Back to dashboard
+    </a>
+  </div>
+
+  {# ── Header ── #}
+  <div style="display:flex; flex-direction:column; gap:1rem; margin-bottom:1.5rem;">
+    <div style="display:flex; align-items:center; gap:.75rem;">
+      <div style="width:2.75rem; height:2.75rem; border-radius:12px; background:#ffedd5; color:#ea580c; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 11V6a3 3 0 013-3z"/>
+        </svg>
+      </div>
+      <div style="min-width:0;">
+        <h1 class="mc-title">My categories</h1>
+        <p class="mc-sub">Categories you've submitted for review. Approved ones appear in the product form.</p>
+      </div>
+    </div>
+
+    {# Add category button #}
+    <div>
+      {% if vendor.is_verified %}
+        <a href="{% url 'vendors:add_category' %}" class="mc-btn mc-btn-primary">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          Add category
+        </a>
+      {% else %}
+        <button type="button" disabled class="mc-btn mc-btn-disabled" title="Available once your account is verified">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          Add category
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Status banner ── #}
+  {% if not vendor.is_verified %}
+    <div class="mc-banner {% if vendor.is_suspended %}mc-banner-red{% else %}mc-banner-amber{% endif %}">
+      <div style="flex-shrink:0; margin-top:2px;">
+        {% if vendor.is_suspended %}
+          <svg width="20" height="20" fill="none" stroke="#b91c1c" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+          </svg>
+        {% else %}
+          <svg width="20" height="20" fill="none" stroke="#b45309" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        {% endif %}
+      </div>
+      <div style="min-width:0;">
+        <p class="mc-banner-title">
+          {% if vendor.is_suspended %}Your seller account is suspended{% else %}Your seller account is pending verification{% endif %}
+        </p>
+        <p class="mc-banner-text">
+          {% if vendor.is_suspended %}
+            Contact support if you believe this is a mistake. You can't submit categories while suspended.
+          {% else %}
+            You can submit categories once your account is verified by our team.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ── Stats ── #}
+  <div class="mc-stats">
+    <div class="mc-stat">
+      <div class="mc-stat-icon" style="background:#f3f4f6; color:#374151;">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 11V6a3 3 0 013-3z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="mc-stat-label" style="color:#4b5563;">Total</p>
+        <p class="mc-stat-num" style="color:#111827;">{{ stats.total }}</p>
+      </div>
+    </div>
+
+    <div class="mc-stat" style="background:#f0fdf4; border-color:#bbf7d0;">
+      <div class="mc-stat-icon" style="background:#dcfce7; color:#16a34a;">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <div>
+        <p class="mc-stat-label" style="color:#166534;">Approved</p>
+        <p class="mc-stat-num" style="color:#14532d;">{{ stats.active }}</p>
+      </div>
+    </div>
+
+    <div class="mc-stat" style="background:#fffbeb; border-color:#fde68a;">
+      <div class="mc-stat-icon" style="background:#fef3c7; color:#b45309;">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="mc-stat-label" style="color:#92400e;">Pending review</p>
+        <p class="mc-stat-num" style="color:#78350f;">{{ stats.pending }}</p>
+      </div>
+    </div>
+  </div>
+
+  {# ── Category list ── #}
+  {% if categories %}
+    <div class="mc-card">
+      <div class="mc-card-head">
+        <h2 class="mc-card-title">Your submissions</h2>
+        <span style="font-size:.75rem; color:#4b5563;">{{ categories|length }} total</span>
+      </div>
+
+      <div>
+        {% for cat in categories %}
+          <div class="mc-row">
+            {% if cat.image %}
+              <img src="{{ cat.image.url }}" alt="" class="mc-cat-img">
+            {% else %}
+              <div class="mc-cat-empty">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+            {% endif %}
+
+            <div style="flex:1; min-width:0;">
+              <p class="mc-cat-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                {% if cat.parent %}<span style="color:#4b5563;">{{ cat.parent.name }} →</span> {% endif %}{{ cat.name }}
+              </p>
+              <p class="mc-cat-meta">
+                Submitted {{ cat.created_at|date:"M d, Y" }}{% if cat.description %} · {{ cat.description|truncatechars:60 }}{% endif %}
+              </p>
+            </div>
+
+            {% if cat.is_active %}
+              <span class="mc-badge mc-badge-green">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Approved
+              </span>
+            {% else %}
+              <span class="mc-badge mc-badge-amber">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"/>
+                </svg>
+                Pending
+              </span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% else %}
+    {# ── Empty state ── #}
+    <div class="mc-card" style="padding:3rem 1.5rem; text-align:center;">
+      <div style="width:4rem; height:4rem; border-radius:16px; background:#fff7ed; border:1px solid #fed7aa; display:flex; align-items:center; justify-content:center; color:#ea580c; margin:0 auto 1rem;">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 11V6a3 3 0 013-3z"/>
+        </svg>
+      </div>
+      <h2 style="font-size:1.1rem; font-weight:800; color:#111827; margin:0;">No categories yet</h2>
+      <p style="font-size:.85rem; color:#374151; margin:.5rem auto 0; max-width:28rem;">
+        Submit a category to help buyers find your products. Our team reviews each submission before it goes live.
+      </p>
+
+      {% if vendor.is_verified %}
+        <div style="margin-top:1.25rem;">
+          <a href="{% url 'vendors:add_category' %}" class="mc-btn mc-btn-primary">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            Add your first category
+          </a>
+        </div>
+      {% else %}
+        <div style="margin-top:1.25rem; display:inline-flex; align-items:center; gap:.5rem; font-size:.75rem; font-weight:600; color:#92400e; background:#fffbeb; border:1px solid #fde68a; padding:.5rem .8rem; border-radius:8px;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          Available once your account is verified
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

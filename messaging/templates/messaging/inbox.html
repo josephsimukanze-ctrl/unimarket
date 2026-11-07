@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+{% block title %}Inbox — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .ib-wrap { max-width: 56rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .ib-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .ib-header {
+    display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+    gap: 0.5rem 1rem; margin-bottom: 1.5rem;
+  }
+  .ib-h1 {
+    font-size: 1.4rem; font-weight: 800;
+    color: #111827; letter-spacing: -0.01em; margin: 0;
+  }
+  @media (min-width: 640px) { .ib-h1 { font-size: 1.5rem; } }
+  .ib-sub { font-size: 0.8rem; color: #4b5563; margin: 0.25rem 0 0; }
+
+  .ib-list {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .ib-row {
+    display: flex; align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    text-decoration: none;
+    border-top: 1px solid #f3f4f6;
+    transition: background-color 0.15s;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+  .ib-row:first-child { border-top: 0; }
+  .ib-row:hover { background: #fff7ed; }
+  .ib-row-unread { background: #fffbf5; }
+
+  .ib-avatar {
+    width: 2.75rem; height: 2.75rem;
+    border-radius: 9999px;
+    background: #ffedd5; color: #c2410c;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .ib-content { flex: 1; min-width: 0; }
+
+  .ib-title-row {
+    display: flex; align-items: baseline;
+    gap: 0.4rem; flex-wrap: wrap;
+    min-width: 0;
+  }
+  .ib-username {
+    font-size: 0.85rem; font-weight: 700;
+    color: #111827; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 12rem;
+  }
+  .ib-dot { font-size: 0.7rem; color: #9ca3af; }
+  .ib-subject {
+    font-size: 0.75rem; color: #4b5563; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1; min-width: 0;
+  }
+
+  .ib-unread-pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #f97316; color: #fff;
+    font-size: 0.6rem; font-weight: 800;
+    min-width: 18px; height: 18px;
+    padding: 0 0.4rem;
+    border-radius: 9999px;
+    flex-shrink: 0;
+  }
+
+  .ib-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: #4b5563;
+    margin: 0.35rem 0 0;
+    overflow: hidden;
+    line-height: 1.4;
+    min-width: 0;
+  }
+  .ib-preview-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .ib-preview-you {
+    color: #9ca3af;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .ib-preview-empty {
+    font-style: italic;
+    color: #9ca3af;
+  }
+
+  /* Attachment indicator */
+  .ib-attach-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    flex-shrink: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #9a3412;
+    background: #fff7ed;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid #fed7aa;
+  }
+  .ib-attach-indicator svg {
+    width: 0.7rem;
+    height: 0.7rem;
+  }
+  .ib-attach-count {
+    font-size: 0.6rem;
+    font-weight: 800;
+  }
+
+  .ib-meta {
+    display: flex; flex-direction: column;
+    align-items: flex-end; gap: 0.25rem;
+    flex-shrink: 0;
+  }
+  .ib-time { font-size: 0.65rem; color: #9ca3af; white-space: nowrap; }
+  .ib-arrow { width: 1rem; height: 1rem; color: #d1d5db; flex-shrink: 0; }
+
+  @media (max-width: 480px) {
+    .ib-row { padding: 0.75rem; gap: 0.5rem; }
+    .ib-avatar { width: 2.25rem; height: 2.25rem; font-size: 0.75rem; }
+    .ib-username { font-size: 0.8rem; max-width: 8rem; }
+    .ib-subject { font-size: 0.7rem; }
+    .ib-preview { font-size: 0.75rem; }
+    .ib-time { font-size: 0.6rem; }
+    .ib-attach-indicator { font-size: 0.6rem; }
+  }
+
+  /* Empty state */
+  .ib-empty {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 2.5rem 1.25rem;
+    text-align: center;
+  }
+  @media (min-width: 640px) { .ib-empty { padding: 3rem 1.5rem; } }
+  .ib-empty-icon {
+    width: 3.5rem; height: 3.5rem;
+    border-radius: 9999px;
+    background: #fff7ed; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  @media (min-width: 640px) { .ib-empty-icon { width: 4rem; height: 4rem; } }
+  .ib-empty-title { font-size: 1rem; font-weight: 800; color: #111827; margin: 0; }
+  @media (min-width: 640px) { .ib-empty-title { font-size: 1.1rem; } }
+  .ib-empty-text {
+    font-size: 0.85rem; color: #4b5563;
+    margin: 0.5rem auto 0; max-width: 28rem; line-height: 1.5;
+  }
+  .ib-empty-cta {
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-top: 1.25rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: 10px;
+    background: #ea580c; color: #fff;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none;
+    min-height: 42px; box-sizing: border-box;
+  }
+  .ib-empty-cta:hover { background: #c2410c; }
+</style>
+
+<div class="ib-wrap">
+
+  {# ── Header ── #}
+  <div class="ib-header">
+    <div style="min-width: 0;">
+      <h1 class="ib-h1">Inbox</h1>
+      <p class="ib-sub">{{ thread_data|length }} conversation{{ thread_data|length|pluralize }}</p>
+    </div>
+  </div>
+
+  {% if thread_data %}
+    <div class="ib-list">
+      {% for row in thread_data %}
+        <a href="{% url 'messaging:thread_detail' row.thread.pk %}"
+           class="ib-row {% if row.unread %}ib-row-unread{% endif %}">
+
+          {# Avatar #}
+          <div class="ib-avatar">
+            {% if row.other %}{{ row.other.username|slice:":1"|upper }}{% else %}?{% endif %}
+          </div>
+
+          {# Content #}
+          <div class="ib-content">
+            <div class="ib-title-row">
+              <p class="ib-username">{{ row.other.username|default:"Unknown" }}</p>
+              <span class="ib-dot" aria-hidden="true">·</span>
+              <p class="ib-subject">{{ row.thread.subject|default:"(no subject)" }}</p>
+              {% if row.unread %}
+                <span class="ib-unread-pill" aria-label="{{ row.unread }} unread">{{ row.unread }}</span>
+              {% endif %}
+            </div>
+
+            {% if row.last_msg %}
+              <div class="ib-preview">
+                {% if row.last_msg.sender == user %}
+                  <span class="ib-preview-you">You:</span>
+                {% endif %}
+
+                {% if row.last_msg.has_attachments %}
+                  {# Show attachment indicator #}
+                  {% with atts=row.last_msg.attachments.all %}
+                    <span class="ib-attach-indicator" title="Attachment">
+                      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                      </svg>
+                      <span class="ib-attach-count">{{ atts|length }}</span>
+                    </span>
+
+                    {# If there's also a body, show it; otherwise show "Photo" / "Video" / "File" #}
+                    {% if row.last_msg.body %}
+                      <span class="ib-preview-text">{{ row.last_msg.body|truncatechars:100 }}</span>
+                    {% else %}
+                      {% with atts.0 as first %}
+                        {% if first.is_image %}
+                          <span class="ib-preview-text" style="font-style:italic; color:#9a3412;">Photo</span>
+                        {% elif first.is_video %}
+                          <span class="ib-preview-text" style="font-style:italic; color:#9a3412;">Video</span>
+                        {% else %}
+                          <span class="ib-preview-text" style="font-style:italic; color:#9a3412;">{{ first.original_name|default:"File"|truncatechars:24 }}</span>
+                        {% endif %}
+                      {% endwith %}
+                    {% endif %}
+                  {% endwith %}
+                {% else %}
+                  <span class="ib-preview-text">{{ row.last_msg.body|truncatechars:120 }}</span>
+                {% endif %}
+              </div>
+            {% else %}
+              <p class="ib-preview ib-preview-empty">No messages yet</p>
+            {% endif %}
+          </div>
+
+          {# Timestamp + arrow #}
+          <div class="ib-meta">
+            <p class="ib-time">{{ row.thread.updated_at|date:"M d, H:i" }}</p>
+            <svg class="ib-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+          </div>
+
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    {# ── Empty state ── #}
+    <div class="ib-empty">
+      <div class="ib-empty-icon">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+        </svg>
+      </div>
+      <p class="ib-empty-title">No conversations yet</p>
+      <p class="ib-empty-text">
+        Messages from sellers and buyers will appear here. Start a conversation by messaging a seller from any product page.
+      </p>
+      <a href="{% url 'catalogue:browse' %}" class="ib-empty-cta">Browse products</a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

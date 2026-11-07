@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}My RFQs — UniMarket{% endblock %}
+{% block content %}
+
+{# ── Header ────────────────────────────────────────────── #}
+<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-ink-900 tracking-tight">My RFQs</h1>
+    <p class="text-sm text-ink-500 mt-1">Requests for quotation you've submitted.</p>
+  </div>
+  <a href="{% url 'wholesale:rfq_create' %}" class="btn-primary">+ New RFQ</a>
+</div>
+
+{# ── Stats ────────────────────────────────────────────── #}
+{% if rfqs %}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Total</p>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900 mt-1">{{ rfqs|length }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Open</p>
+      <p class="text-xl sm:text-2xl font-bold text-amber-600 mt-1">{{ open_count|default:"—" }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Awarded</p>
+      <p class="text-xl sm:text-2xl font-bold text-green-600 mt-1">{{ awarded_count|default:"—" }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Closed</p>
+      <p class="text-xl sm:text-2xl font-bold text-ink-600 mt-1">{{ closed_count|default:"—" }}</p>
+    </div>
+  </div>
+{% endif %}
+
+{# ── RFQ list ─────────────────────────────────────────── #}
+{% if rfqs %}
+
+  {# Desktop table #}
+  <div class="hidden md:block bg-white rounded-xl border border-ink-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-ink-50 text-left text-xs uppercase tracking-wide text-ink-500">
+        <tr>
+          <th class="px-4 py-3 font-medium">RFQ</th>
+          <th class="px-4 py-3 font-medium">Status</th>
+          <th class="px-4 py-3 font-medium">Quotes</th>
+          <th class="px-4 py-3 font-medium">Deadline</th>
+          <th class="px-4 py-3 font-medium text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for rfq in rfqs %}
+          <tr class="hover:bg-orange-50/30 transition">
+            <td class="px-4 py-3">
+              <a href="{% url 'wholesale:rfq_detail' rfq.pk %}" class="font-medium text-ink-900 hover:text-orange-600 truncate block">
+                {{ rfq.title }}
+              </a>
+              <p class="text-xs text-ink-500 mt-0.5">
+                {{ rfq.category.name }} · {{ rfq.quantity }} unit{{ rfq.quantity|pluralize }}
+              </p>
+            </td>
+            <td class="px-4 py-3">
+              <span class="{% if rfq.status == 'open' %}badge-warning{% elif rfq.status == 'awarded' %}badge-success{% else %}badge-neutral{% endif %} capitalize">
+                {{ rfq.get_status_display }}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              {% if rfq.quotations.count %}
+                <span class="inline-flex items-center gap-1 font-medium text-orange-600">
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                  </svg>
+                  {{ rfq.quotations.count }} quote{{ rfq.quotations.count|pluralize }}
+                </span>
+              {% else %}
+                <span class="text-xs text-ink-400">None yet</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-ink-600 whitespace-nowrap">
+              {{ rfq.deadline|date:"M d, H:i" }}
+            </td>
+            <td class="px-4 py-3 text-right">
+              <a href="{% url 'wholesale:rfq_detail' rfq.pk %}" class="text-xs text-orange-600 hover:underline font-medium">View</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Mobile cards #}
+  <div class="md:hidden space-y-3">
+    {% for rfq in rfqs %}
+      <a href="{% url 'wholesale:rfq_detail' rfq.pk %}" class="block bg-white rounded-xl border border-ink-200 p-4 hover:border-orange-200 transition">
+        <div class="flex justify-between items-start gap-2 mb-2">
+          <p class="font-medium text-ink-900 truncate">{{ rfq.title }}</p>
+          <span class="{% if rfq.status == 'open' %}badge-warning{% elif rfq.status == 'awarded' %}badge-success{% else %}badge-neutral{% endif %} capitalize text-[10px] shrink-0">
+            {{ rfq.get_status_display }}
+          </span>
+        </div>
+        <p class="text-xs text-ink-500">{{ rfq.category.name }} · {{ rfq.quantity }} unit{{ rfq.quantity|pluralize }}</p>
+        <div class="flex justify-between items-center mt-3 pt-3 border-t border-ink-100">
+          <span class="text-xs {% if rfq.quotations.count %}text-orange-600 font-medium{% else %}text-ink-500{% endif %}">
+            {{ rfq.quotations.count }} quote{{ rfq.quotations.count|pluralize }}
+          </span>
+          <span class="text-xs text-ink-500">Ends {{ rfq.deadline|date:"M d" }}</span>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+
+{% else %}
+  {# ── Empty state ────────────────────────────────────── #}
+  <div class="bg-white rounded-xl border border-ink-200 p-12 text-center">
+    <div class="mx-auto h-16 w-16 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mb-4">
+      <svg class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+    </div>
+    <p class="text-lg font-semibold text-ink-900">No RFQs yet</p>
+    <p class="text-sm text-ink-500 mt-1 max-w-md mx-auto">
+      Submit a request for quotation and suppliers will send you their best prices.
+    </p>
+    <a href="{% url 'wholesale:rfq_create' %}" class="mt-5 inline-flex btn-primary">Create your first RFQ</a>
+  </div>
+{% endif %}
+
+{% endblock %}

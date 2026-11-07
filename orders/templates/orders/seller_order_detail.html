@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order.order_number }} — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .sd-wrap { max-width: 64rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .sd-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .sd-breadcrumb {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 0.4rem; font-size: 0.75rem; color: #6b7280;
+    margin-bottom: 1rem;
+  }
+  .sd-breadcrumb a { color: #6b7280; text-decoration: none; }
+  .sd-breadcrumb a:hover { color: #ea580c; }
+  .sd-breadcrumb .current {
+    color: #111827; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 60%;
+  }
+
+  /* ── Header card ── */
+  .sd-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  .sd-head { padding: 1.25rem; }
+  @media (min-width: 640px) { .sd-head { padding: 1.5rem; } }
+
+  .sd-head-top {
+    display: flex; flex-direction: column;
+    gap: 0.75rem; margin-bottom: 1rem;
+  }
+  @media (min-width: 640px) {
+    .sd-head-top { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+  }
+
+  .sd-label {
+    font-size: 0.65rem; font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 0;
+  }
+  .sd-title {
+    font-size: 1.25rem; font-weight: 800;
+    color: #111827; letter-spacing: -0.01em;
+    margin: 0.15rem 0 0; line-height: 1.2;
+    font-family: ui-monospace, monospace;
+    word-break: break-all;
+  }
+  @media (min-width: 640px) { .sd-title { font-size: 1.5rem; } }
+
+  .sd-sub {
+    font-size: 0.8rem; color: #4b5563;
+    margin: 0.35rem 0 0; line-height: 1.5;
+  }
+
+  /* Status badge */
+  .sd-badge {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.75rem; font-weight: 800;
+    text-transform: capitalize;
+    align-self: flex-start;
+    white-space: nowrap;
+  }
+  .sd-badge-delivered  { background: #dcfce7; color: #166534; }
+  .sd-badge-cancelled  { background: #fee2e2; color: #991b1b; }
+  .sd-badge-shipped    { background: #dbeafe; color: #1e40af; }
+  .sd-badge-processing { background: #ffedd5; color: #9a3412; }
+  .sd-badge-paid       { background: #ffedd5; color: #9a3412; }
+  .sd-badge-pending    { background: #fef3c7; color: #92400e; }
+
+  /* Timeline */
+  .sd-timeline {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.25rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #f3f4f6;
+  }
+  .sd-step { text-align: center; min-width: 0; }
+  .sd-step-dot {
+    width: 0.7rem; height: 0.7rem;
+    border-radius: 9999px;
+    margin: 0 auto 0.4rem;
+    display: block;
+  }
+  .sd-step-label {
+    font-size: 0.55rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @media (min-width: 480px) {
+    .sd-step-label { font-size: 0.6rem; letter-spacing: 0.05em; }
+    .sd-step-dot { width: 0.8rem; height: 0.8rem; }
+  }
+
+  /* ── Two-column layout ── */
+  .sd-body {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @media (min-width: 1024px) {
+    .sd-body { grid-template-columns: minmax(0, 1fr) 320px; gap: 1.5rem; }
+  }
+
+  .sd-col {
+    display: flex; flex-direction: column;
+    gap: 1rem; min-width: 0;
+  }
+
+  /* ── Inner card ── */
+  .sd-inner {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .sd-inner-pad { padding: 1rem; }
+  @media (min-width: 640px) { .sd-inner-pad { padding: 1.25rem; } }
+
+  .sd-inner-head {
+    padding: 0.75rem 1rem;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  @media (min-width: 640px) { .sd-inner-head { padding: 1rem 1.25rem; } }
+
+  .sd-h2 {
+    font-size: 0.9rem; font-weight: 800;
+    color: #111827; margin: 0;
+  }
+  .sd-count {
+    font-size: 0.7rem; font-weight: 600;
+    color: #6b7280;
+  }
+
+  /* Items */
+  .sd-items { display: flex; flex-direction: column; }
+  .sd-item {
+    display: flex; gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #f3f4f6;
+    min-width: 0;
+  }
+  @media (min-width: 640px) { .sd-item { padding: 0.85rem 1.25rem; } }
+  .sd-item:first-child { border-top: 0; }
+
+  .sd-item-thumb {
+    width: 3.5rem; height: 3.5rem;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    flex-shrink: 0;
+  }
+  .sd-item-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sd-item-thumb .empty {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: #9ca3af; font-size: 0.6rem;
+  }
+
+  .sd-item-info { flex: 1; min-width: 0; }
+  .sd-item-name {
+    font-size: 0.85rem; font-weight: 600;
+    color: #111827; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sd-item-meta {
+    font-size: 0.7rem; color: #6b7280;
+    margin: 0.2rem 0 0;
+    line-height: 1.4;
+  }
+  .sd-item-total {
+    font-size: 0.85rem; font-weight: 800;
+    color: #111827;
+    text-align: right; flex-shrink: 0;
+    margin: 0;
+  }
+
+  /* ── Status update card ── */
+  .sd-action-head {
+    display: flex; align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .sd-action-icon {
+    width: 2rem; height: 2rem;
+    border-radius: 8px;
+    background: #ffedd5; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .sd-action-title {
+    font-size: 0.85rem; font-weight: 800;
+    color: #111827; margin: 0;
+  }
+  .sd-action-sub {
+    font-size: 0.75rem; color: #4b5563;
+    margin: 0.25rem 0 0; line-height: 1.5;
+  }
+
+  .sd-actions {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+  }
+  .sd-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 0.35rem;
+    padding: 0.65rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 42px; box-sizing: border-box;
+    white-space: nowrap;
+  }
+  .sd-btn-primary { background: #f97316; color: #fff; }
+  .sd-btn-primary:hover { background: #ea580c; }
+  .sd-btn-secondary {
+    border: 1px solid #d1d5db; background: #fff; color: #374151;
+  }
+  .sd-btn-secondary:hover { background: #f9fafb; }
+
+  .sd-done {
+    background: #f0fdf4; border: 1px solid #bbf7d0;
+    color: #166534;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+
+  /* ── Right column cards ── */
+  .sd-right-title {
+    font-size: 0.65rem; font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 0 0 0.65rem;
+  }
+
+  .sd-buyer {
+    display: flex; align-items: center;
+    gap: 0.65rem; min-width: 0;
+  }
+  .sd-buyer-avatar {
+    width: 2.5rem; height: 2.5rem;
+    border-radius: 9999px;
+    background: #ffedd5; color: #c2410c;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .sd-buyer-info { flex: 1; min-width: 0; }
+  .sd-buyer-name {
+    font-size: 0.85rem; font-weight: 700;
+    color: #111827; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sd-buyer-email {
+    font-size: 0.7rem; color: #6b7280;
+    margin: 0.15rem 0 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .sd-message-btn {
+    display: block;
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.75rem; font-weight: 600;
+    color: #374151; text-decoration: none;
+    text-align: center;
+    min-height: 34px; box-sizing: border-box;
+  }
+  .sd-message-btn:hover { background: #f9fafb; }
+
+  .sd-totals {
+    display: flex; flex-direction: column;
+    gap: 0.5rem;
+  }
+  .sd-total-row {
+    display: flex; justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+  }
+  .sd-total-row span:first-child { color: #6b7280; }
+  .sd-total-row span:last-child { color: #111827; font-weight: 600; }
+  .sd-total-final {
+    display: flex; justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 0.65rem; margin-top: 0.15rem;
+    border-top: 1px solid #f3f4f6;
+    font-size: 0.95rem;
+  }
+  .sd-total-final span:first-child { font-weight: 800; color: #111827; }
+  .sd-total-final span:last-child { font-weight: 900; color: #111827; }
+
+  .sd-address {
+    font-style: normal;
+    font-size: 0.8rem;
+    color: #374151;
+    line-height: 1.55;
+    margin: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  .sd-address span { display: block; }
+  .sd-address .name { font-weight: 700; color: #111827; }
+  .sd-address .phone { margin-top: 0.35rem; color: #4b5563; }
+  .sd-address .phone strong { color: #111827; }
+
+  /* Back link */
+  .sd-back-wrap { margin-top: 1rem; }
+  .sd-back {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 0.8rem; font-weight: 700;
+    color: #374151; text-decoration: none;
+    min-height: 40px; box-sizing: border-box;
+  }
+  .sd-back:hover { background: #f9fafb; }
+</style>
+
+<div class="sd-wrap">
+
+  {# ── Breadcrumb ── #}
+  <nav class="sd-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'orders:seller_orders' %}">Incoming orders</a>
+    <span aria-hidden="true">/</span>
+    <span class="current">{{ order.order_number }}</span>
+  </nav>
+
+  {# ── Header ── #}
+  <div class="sd-card">
+    <div class="sd-head">
+
+      <div class="sd-head-top">
+        <div style="min-width: 0;">
+          <p class="sd-label">Order</p>
+          <h1 class="sd-title">{{ order.order_number }}</h1>
+          <p class="sd-sub">Placed {{ order.placed_at|date:"M d, Y · H:i" }}</p>
+        </div>
+
+        {% if order.status == 'delivered' %}
+          <span class="sd-badge sd-badge-delivered">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+            {{ order.get_status_display }}
+          </span>
+        {% elif order.status == 'cancelled' %}
+          <span class="sd-badge sd-badge-cancelled">{{ order.get_status_display }}</span>
+        {% elif order.status == 'shipped' %}
+          <span class="sd-badge sd-badge-shipped">{{ order.get_status_display }}</span>
+        {% elif order.status == 'processing' %}
+          <span class="sd-badge sd-badge-processing">{{ order.get_status_display }}</span>
+        {% elif order.status == 'paid' %}
+          <span class="sd-badge sd-badge-paid">{{ order.get_status_display }}</span>
+        {% else %}
+          <span class="sd-badge sd-badge-pending">{{ order.get_status_display }}</span>
+        {% endif %}
+      </div>
+
+      {# Progress timeline #}
+      {% if order.status != 'cancelled' %}
+        <div class="sd-timeline">
+          {% with s=order.status %}
+
+            <div class="sd-step">
+              <span class="sd-step-dot" style="background:{% if s == 'pending' or s == 'paid' or s == 'processing' or s == 'shipped' or s == 'delivered' %}#f97316{% else %}#d1d5db{% endif %};"></span>
+              <p class="sd-step-label" style="color:{% if s == 'pending' or s == 'paid' or s == 'processing' or s == 'shipped' or s == 'delivered' %}#c2410c{% else %}#6b7280{% endif %};">Placed</p>
+            </div>
+
+            <div class="sd-step">
+              <span class="sd-step-dot" style="background:{% if s == 'paid' or s == 'processing' or s == 'shipped' or s == 'delivered' %}#f97316{% else %}#d1d5db{% endif %};"></span>
+              <p class="sd-step-label" style="color:{% if s == 'paid' or s == 'processing' or s == 'shipped' or s == 'delivered' %}#c2410c{% else %}#6b7280{% endif %};">Paid</p>
+            </div>
+
+            <div class="sd-step">
+              <span class="sd-step-dot" style="background:{% if s == 'processing' or s == 'shipped' or s == 'delivered' %}#f97316{% else %}#d1d5db{% endif %};"></span>
+              <p class="sd-step-label" style="color:{% if s == 'processing' or s == 'shipped' or s == 'delivered' %}#c2410c{% else %}#6b7280{% endif %};">Processing</p>
+            </div>
+
+            <div class="sd-step">
+              <span class="sd-step-dot" style="background:{% if s == 'shipped' or s == 'delivered' %}#f97316{% else %}#d1d5db{% endif %};"></span>
+              <p class="sd-step-label" style="color:{% if s == 'shipped' or s == 'delivered' %}#c2410c{% else %}#6b7280{% endif %};">Shipped</p>
+            </div>
+
+            <div class="sd-step">
+              <span class="sd-step-dot" style="background:{% if s == 'delivered' %}#16a34a{% else %}#d1d5db{% endif %};"></span>
+              <p class="sd-step-label" style="color:{% if s == 'delivered' %}#166534{% else %}#6b7280{% endif %};">Delivered</p>
+            </div>
+
+          {% endwith %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Two-column body ── #}
+  <div class="sd-body">
+
+    {# ══ LEFT ══ #}
+    <div class="sd-col">
+
+      {# Items #}
+      <div class="sd-inner">
+        <div class="sd-inner-head">
+          <h2 class="sd-h2">Items to fulfil</h2>
+          <span class="sd-count">{{ order.items.all|length }} item{{ order.items.all|length|pluralize }}</span>
+        </div>
+        <div class="sd-items">
+          {% for item in order.items.all %}
+            <div class="sd-item">
+              <div class="sd-item-thumb">
+                {% with item.variant.product.images.first as img %}
+                  {% if img %}
+                    <img src="{{ img.image.url }}" alt="">
+                  {% else %}
+                    <div class="empty">No img</div>
+                  {% endif %}
+                {% endwith %}
+              </div>
+              <div class="sd-item-info">
+                <p class="sd-item-name">{{ item.variant.product.name }}</p>
+                <p class="sd-item-meta">SKU: {{ item.variant.sku }}</p>
+                <p class="sd-item-meta">{{ order.currency }} {{ item.unit_price }} × {{ item.quantity }}</p>
+              </div>
+              <p class="sd-item-total">{{ order.currency }} {{ item.subtotal }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Status update #}
+      <div class="sd-inner sd-inner-pad">
+        <div class="sd-action-head">
+          <div class="sd-action-icon">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div style="min-width: 0;">
+            <h2 class="sd-action-title">Update order status</h2>
+            <p class="sd-action-sub">
+              {% if order.status == "pending" %}
+                Mark this order as paid when you've received payment.
+              {% elif order.status == "paid" %}
+                Start preparing this order for delivery.
+              {% elif order.status == "processing" %}
+                Mark this order as shipped when it leaves your warehouse.
+              {% elif order.status == "shipped" %}
+                Confirm delivery when the buyer has received the order.
+              {% else %}
+                No further status changes available for this order.
+              {% endif %}
+            </p>
+          </div>
+        </div>
+
+        <div class="sd-actions">
+          {% if order.status == "pending" %}
+            <form method="post" action="{% url 'orders:seller_order_update_status' order.order_number %}" style="display: inline;">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="paid">
+              <button type="submit" class="sd-btn sd-btn-primary">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Mark as paid
+              </button>
+            </form>
+          {% elif order.status == "paid" %}
+            <form method="post" action="{% url 'orders:seller_order_update_status' order.order_number %}" style="display: inline;">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="processing">
+              <button type="submit" class="sd-btn sd-btn-primary">
+                Start processing
+              </button>
+            </form>
+          {% elif order.status == "processing" %}
+            <form method="post" action="{% url 'orders:seller_order_update_status' order.order_number %}" style="display: inline;">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="shipped">
+              <button type="submit" class="sd-btn sd-btn-primary">
+                Mark as shipped
+              </button>
+            </form>
+          {% elif order.status == "shipped" %}
+            <form method="post" action="{% url 'orders:seller_order_update_status' order.order_number %}" style="display: inline;">
+              {% csrf_token %}
+              <input type="hidden" name="status" value="delivered">
+              <button type="submit" class="sd-btn sd-btn-primary">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Mark as delivered
+              </button>
+            </form>
+          {% else %}
+            <div class="sd-done">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+              </svg>
+              This order is complete. No further action needed.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ══ RIGHT ══ #}
+    <div class="sd-col">
+
+      {# Buyer #}
+      <div class="sd-inner sd-inner-pad">
+        <p class="sd-right-title">Buyer</p>
+        <div class="sd-buyer">
+          <div class="sd-buyer-avatar">{{ order.buyer.username|slice:":1"|upper }}</div>
+          <div class="sd-buyer-info">
+            <p class="sd-buyer-name">{{ order.buyer.username }}</p>
+            <p class="sd-buyer-email">{{ order.buyer.email }}</p>
+          </div>
+        </div>
+        {% if order.items.first %}
+          <a href="{% url 'messaging:start_thread' order.items.first.variant.product.slug %}" class="sd-message-btn">
+            Message buyer
+          </a>
+        {% endif %}
+      </div>
+
+      {# Totals #}
+      <div class="sd-inner sd-inner-pad">
+        <h2 class="sd-h2" style="margin-bottom: 0.75rem;">Order total</h2>
+        <div class="sd-totals">
+          <div class="sd-total-row">
+            <span>Subtotal</span>
+            <span>{{ order.currency }} {{ order.subtotal }}</span>
+          </div>
+          <div class="sd-total-row">
+            <span>Shipping</span>
+            <span>{{ order.currency }} {{ order.shipping_total }}</span>
+          </div>
+          <div class="sd-total-final">
+            <span>Total</span>
+            <span>{{ order.currency }} {{ order.total }}</span>
+          </div>
+        </div>
+      </div>
+
+      {# Shipping address #}
+      {% if order.shipping_address %}
+        <div class="sd-inner sd-inner-pad">
+          <p class="sd-right-title">Ship to</p>
+          <address class="sd-address">
+            <span class="name">{{ order.shipping_address.full_name }}</span>
+            <span>{{ order.shipping_address.address_line1 }}</span>
+            {% if order.shipping_address.address_line2 %}
+              <span>{{ order.shipping_address.address_line2 }}</span>
+            {% endif %}
+            <span>{{ order.shipping_address.city }}{% if order.shipping_address.region %}, {{ order.shipping_address.region }}{% endif %}</span>
+            <span>{{ order.shipping_address.country }}</span>
+            <span class="phone">Phone: <strong>{{ order.shipping_address.phone }}</strong></span>
+          </address>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  {# ── Footer ── #}
+  <div class="sd-back-wrap">
+    <a href="{% url 'orders:seller_orders' %}" class="sd-back">
+      ← Back to incoming orders
+    </a>
+  </div>
+
+</div>
+{% endblock %}

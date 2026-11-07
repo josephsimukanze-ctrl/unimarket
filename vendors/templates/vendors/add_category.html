@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Add category — UniMarket{% endblock %}
+
+{% block content %}
+<div class="bg-ink-50 min-h-screen py-10">
+  <div class="max-w-2xl mx-auto px-4">
+
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6 text-sm text-ink-500" aria-label="Breadcrumb">
+      <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li><a href="/" class="hover:text-orange-600">Home</a></li>
+        <li class="flex items-center">
+          <svg class="w-4 h-4 mx-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+          <a href="{% url 'vendors:dashboard' %}" class="hover:text-orange-600">Seller dashboard</a>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-4 h-4 mx-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+          <span class="text-ink-900 font-medium">Add category</span>
+        </li>
+      </ol>
+    </nav>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-ink-200 p-8">
+      <h1 class="text-2xl font-bold text-ink-900 mb-2">Add category</h1>
+      <p class="text-sm text-ink-600 mb-6">
+        Submit a new sub-category with a representative image.
+        Our team will review it before it goes live.
+      </p>
+
+      {% if form.non_field_errors %}
+        <div class="mb-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <form method="post" enctype="multipart/form-data" class="space-y-5">
+        {% csrf_token %}
+
+        <!-- Parent -->
+        <div>
+          <label for="{{ form.parent.id_for_label }}" class="block text-sm font-medium text-ink-700 mb-1">
+            Parent category <span class="text-red-500">*</span>
+          </label>
+          {{ form.parent }}
+          {% if form.parent.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.parent.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Name -->
+        <div>
+          <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-ink-700 mb-1">
+            Name <span class="text-red-500">*</span>
+          </label>
+          {{ form.name }}
+          {% if form.name.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.name.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Slug -->
+        <div>
+          <label for="{{ form.slug.id_for_label }}" class="block text-sm font-medium text-ink-700 mb-1">
+            Slug
+          </label>
+          {{ form.slug }}
+          <p class="mt-1 text-xs text-ink-500">Leave blank to auto-generate from name.</p>
+          {% if form.slug.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.slug.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-ink-700 mb-1">
+            Description
+          </label>
+          {{ form.description }}
+          {% if form.description.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.description.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Image upload with preview -->
+        <div>
+          <label for="{{ form.image.id_for_label }}" class="block text-sm font-medium text-ink-700 mb-1">
+            Category image
+          </label>
+
+          <!-- Preview box -->
+          <div class="mb-3 flex items-center gap-4">
+            <div id="image-preview"
+                 class="w-24 h-24 rounded-xl bg-ink-100 border border-ink-200
+                        flex items-center justify-center overflow-hidden">
+              <svg class="w-8 h-8 text-ink-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <div class="text-xs text-ink-500">
+              Square image recommended (400×400). Max 5 MB.<br>
+              JPG, PNG, or WebP.
+            </div>
+          </div>
+
+          {{ form.image }}
+          {% if form.image.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.image.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-3 pt-2">
+          <button type="submit"
+                  class="flex-1 rounded-lg bg-orange-600 px-4 py-2.5 text-white font-medium hover:bg-orange-700 transition">
+            Submit for review
+          </button>
+          <a href="{% url 'vendors:dashboard' %}"
+             class="rounded-lg border border-ink-300 px-4 py-2.5 text-sm text-ink-700 hover:bg-ink-50 transition">
+            Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Live image preview
+  const input = document.getElementById("{{ form.image.id_for_label }}");
+  const preview = document.getElementById("image-preview");
+  if (input && preview) {
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      preview.innerHTML = `<img src="${url}" class="w-full h-full object-cover" alt="preview">`;
+    });
+  }
+</script>
+{% endblock %}

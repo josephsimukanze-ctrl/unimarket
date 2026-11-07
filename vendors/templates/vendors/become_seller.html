@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+{% block title %}Become a seller — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .bs-wrap { max-width: 42rem; margin: 0 auto; padding: 1.5rem 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .bs-wrap { padding: 2.5rem 1rem 2rem; } }
+
+  .bs-h1 {
+    font-size: 1.6rem; font-weight: 800;
+    color: #111827; letter-spacing: -0.01em;
+    margin: 0; line-height: 1.2;
+  }
+  @media (min-width: 640px) { .bs-h1 { font-size: 1.85rem; } }
+  .bs-sub {
+    font-size: 0.85rem; color: #4b5563;
+    margin: 0.5rem 0 1.5rem; line-height: 1.6;
+    max-width: 32rem;
+  }
+  @media (min-width: 640px) { .bs-sub { font-size: 0.9rem; } }
+
+  .bs-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+
+  .bs-card-head {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #f3f4f6;
+    background: #f9fafb;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  @media (min-width: 640px) { .bs-card-head { padding: 1.25rem 1.5rem; } }
+
+  .bs-head-icon {
+    width: 2.5rem; height: 2.5rem;
+    border-radius: 9999px;
+    background: #ffedd5; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .bs-head-title {
+    font-size: 0.9rem; font-weight: 800;
+    color: #111827; margin: 0;
+  }
+  .bs-head-sub {
+    font-size: 0.75rem; color: #4b5563;
+    margin: 0.15rem 0 0;
+  }
+
+  .bs-form-wrap { padding: 1.25rem; }
+  @media (min-width: 640px) { .bs-form-wrap { padding: 1.75rem; } }
+
+  .bs-field { margin-bottom: 1.25rem; }
+  .bs-field:last-of-type { margin-bottom: 0; }
+
+  .bs-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 0.35rem;
+  }
+  .bs-label-required {
+    color: #ea580c;
+    margin-left: 0.2rem;
+  }
+
+  .bs-input,
+  .bs-textarea,
+  .bs-select {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.9rem;
+    color: #111827;
+    background: #fff;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .bs-input:focus,
+  .bs-textarea:focus,
+  .bs-select:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+  .bs-textarea { resize: vertical; min-height: 6rem; }
+
+  .bs-input-error,
+  .bs-textarea-error {
+    border-color: #f87171;
+  }
+  .bs-input-error:focus,
+  .bs-textarea-error:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220,38,38,0.12);
+  }
+
+  .bs-help {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin: 0.4rem 0 0;
+    line-height: 1.5;
+  }
+  .bs-error {
+    font-size: 0.8rem;
+    color: #dc2626;
+    margin: 0.4rem 0 0;
+    line-height: 1.4;
+  }
+
+  .bs-alert {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #7f1d1d;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+  }
+
+  .bs-submit {
+    width: 100%;
+    padding: 0.85rem 1.5rem;
+    border-radius: 12px;
+    background: #f97316;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border: 0;
+    cursor: pointer;
+    min-height: 48px;
+    box-sizing: border-box;
+    position: relative;
+    transition: background-color 0.15s;
+  }
+  .bs-submit:hover:not(:disabled) { background: #ea580c; }
+  .bs-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+  .bs-submit-loading {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+  }
+  .bs-submit-loading svg {
+    width: 1.1rem; height: 1.1rem;
+    animation: bs-spin 0.8s linear infinite;
+  }
+  @keyframes bs-spin { to { transform: rotate(360deg); } }
+
+  .bs-terms {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 1.25rem;
+    line-height: 1.6;
+  }
+  .bs-terms a {
+    color: #ea580c;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .bs-terms a:hover { text-decoration: underline; }
+
+  /* Flow steps */
+  .bs-steps {
+    display: flex; align-items: center; gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .bs-step {
+    display: flex; align-items: center; gap: 0.35rem;
+    font-size: 0.7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .bs-step-num {
+    width: 1.35rem; height: 1.35rem;
+    border-radius: 9999px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 800;
+    flex-shrink: 0;
+  }
+  .bs-step-active .bs-step-num { background: #f97316; color: #fff; }
+  .bs-step-active .bs-step-label { color: #9a3412; }
+  .bs-step-idle .bs-step-num { background: #f3f4f6; color: #6b7280; }
+  .bs-step-idle .bs-step-label { color: #6b7280; }
+  .bs-step-sep {
+    flex: 1; height: 2px; min-width: 0.75rem;
+    background: #e5e7eb; border-radius: 2px;
+  }
+</style>
+
+<div class="bs-wrap">
+
+  {# Header #}
+  <div>
+    <h1 class="bs-h1">Become a seller</h1>
+    <p class="bs-sub">
+      Open your store on UniMarket and start selling across Zambia.
+      You'll pick a subscription plan next — your store goes live right after payment.
+    </p>
+  </div>
+
+  {# Steps indicator #}
+  <div class="bs-steps">
+    <div class="bs-step bs-step-active">
+      <span class="bs-step-num">1</span>
+      <span class="bs-step-label">Store details</span>
+    </div>
+    <div class="bs-step-sep"></div>
+    <div class="bs-step bs-step-idle">
+      <span class="bs-step-num">2</span>
+      <span class="bs-step-label">Choose plan</span>
+    </div>
+    <div class="bs-step-sep"></div>
+    <div class="bs-step bs-step-idle">
+      <span class="bs-step-num">3</span>
+      <span class="bs-step-label">Pay</span>
+    </div>
+  </div>
+
+  {# Card #}
+  <div class="bs-card">
+
+    <div class="bs-card-head">
+      <div class="bs-head-icon">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div style="min-width: 0;">
+        <p class="bs-head-title">Store setup</p>
+        <p class="bs-head-sub">Basic information to get your store live</p>
+      </div>
+    </div>
+
+    <div class="bs-form-wrap">
+
+      {% if form.non_field_errors %}
+        <div class="bs-alert">
+          {% for error in form.non_field_errors %}
+            <p style="margin:0;">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" class="bs-form" id="seller-form" novalidate>
+        {% csrf_token %}
+
+        {% for field in form %}
+          <div class="bs-field">
+            <label for="{{ field.id_for_label }}" class="bs-label">
+              {{ field.label }}
+              {% if field.field.required %}
+                <span class="bs-label-required">*</span>
+              {% endif %}
+            </label>
+
+            {% if field.field.widget.input_type == "textarea" %}
+              <textarea
+                name="{{ field.name }}"
+                id="{{ field.id_for_label }}"
+                rows="4"
+                class="bs-textarea {% if field.errors %}bs-textarea-error{% endif %}"
+                {% if field.field.required %}required{% endif %}
+                placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
+              >{{ field.value|default_if_none:"" }}</textarea>
+
+            {% elif field.field.widget.input_type == "select" or field.field.widget.input_type == "select-one" %}
+              <select
+                name="{{ field.name }}"
+                id="{{ field.id_for_label }}"
+                class="bs-select {% if field.errors %}bs-input-error{% endif %}"
+                {% if field.field.required %}required{% endif %}
+              >
+                {% for value, label in field.field.choices %}
+                  <option value="{{ value }}" {% if field.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>
+                    {{ label }}
+                  </option>
+                {% endfor %}
+              </select>
+
+            {% else %}
+              <input
+                type="{{ field.field.widget.input_type|default:'text' }}"
+                name="{{ field.name }}"
+                id="{{ field.id_for_label }}"
+                value="{{ field.value|default_if_none:'' }}"
+                class="bs-input {% if field.errors %}bs-input-error{% endif %}"
+                {% if field.field.required %}required{% endif %}
+                placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
+              >
+            {% endif %}
+
+            {% if field.help_text %}
+              <p class="bs-help">{{ field.help_text|safe }}</p>
+            {% endif %}
+
+            {% if field.errors %}
+              <p class="bs-error" role="alert">
+                {{ field.errors|join:", " }}
+              </p>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        <div style="padding-top: 0.5rem;">
+          <button
+            type="submit"
+            id="seller-submit"
+            class="bs-submit"
+          >
+            <span class="submit-text">Continue to plan selection →</span>
+            <span class="submit-loading" style="display:none;">
+              <svg fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25"></circle>
+                <path fill="currentColor" opacity="0.75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Preparing…
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <p class="bs-terms">
+    By creating a seller account you agree to our
+    <a href="#">Seller Terms</a>
+    and
+    <a href="#">Community Guidelines</a>.
+  </p>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var form = document.getElementById('seller-form');
+    var btn = document.getElementById('seller-submit');
+    if (!form || !btn) return;
+
+    form.addEventListener('submit', function () {
+      btn.disabled = true;
+      btn.querySelector('.submit-text').style.display = 'none';
+      btn.querySelector('.submit-loading').style.display = 'inline-flex';
+    });
+  })();
+</script>
+{% endblock %}

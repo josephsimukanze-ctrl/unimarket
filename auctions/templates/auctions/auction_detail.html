@@ -1,0 +1,770 @@
+{% extends "base.html" %}
+{% block title %}{{ auction.title }} — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .ad-wrap { max-width: 72rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .ad-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .ad-breadcrumb {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 0.4rem; font-size: 0.75rem; color: #6b7280;
+    margin-bottom: 1rem; word-break: break-word;
+  }
+  .ad-breadcrumb a { color: #6b7280; text-decoration: none; }
+  .ad-breadcrumb a:hover { color: #ea580c; }
+  .ad-breadcrumb .current { color: #111827; font-weight: 600; }
+
+  /* ── Two-column layout ── */
+  .ad-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 1024px) {
+    .ad-grid { grid-template-columns: 420px minmax(0, 1fr); gap: 2rem; }
+  }
+
+  /* ── Left column: image gallery + seller + details ── */
+  .ad-left {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  /* Main image */
+  .ad-main-img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-height: 420px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    position: relative;
+  }
+  .ad-main-img img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .ad-main-img .empty {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: #9ca3af; font-size: 0.8rem;
+  }
+  .ad-live-badge {
+    position: absolute;
+    top: 0.5rem; left: 0.5rem;
+    background: #dc2626; color: #fff;
+    font-size: 0.65rem; font-weight: 800;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    display: flex; align-items: center; gap: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .ad-live-dot {
+    width: 6px; height: 6px;
+    border-radius: 9999px;
+    background: #fff;
+    animation: ad-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes ad-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Thumbnails */
+  .ad-thumbs {
+    display: flex; gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .ad-thumbs::-webkit-scrollbar { height: 4px; }
+  .ad-thumbs::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+  .ad-thumb {
+    width: 4rem; height: 4rem;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    background: #f3f4f6;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: border-color 0.15s;
+  }
+  .ad-thumb:hover { border-color: #fdba74; }
+  .ad-thumb.is-active { border-color: #f97316; }
+  .ad-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+
+  /* Seller + details cards */
+  .ad-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.85rem;
+    min-width: 0;
+  }
+  .ad-card-title {
+    font-size: 0.7rem; font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 0 0 0.65rem;
+  }
+
+  .ad-seller {
+    display: flex; align-items: center; gap: 0.5rem;
+    min-width: 0;
+  }
+  .ad-seller-avatar {
+    width: 2rem; height: 2rem;
+    border-radius: 9999px;
+    background: #ffedd5; color: #c2410c;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 800;
+    flex-shrink: 0;
+  }
+  .ad-seller-name {
+    font-size: 0.85rem; font-weight: 700;
+    color: #111827; text-decoration: none;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: block;
+  }
+  .ad-seller-name:hover { color: #ea580c; }
+
+  .ad-seller-message {
+    display: block; text-align: center;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.75rem; font-weight: 600;
+    color: #374151; text-decoration: none;
+    min-height: 32px; box-sizing: border-box;
+  }
+  .ad-seller-message:hover { background: #f9fafb; }
+
+  .ad-details-list {
+    display: flex; flex-direction: column;
+    gap: 0.5rem; font-size: 0.8rem;
+    margin: 0;
+  }
+  .ad-details-row {
+    display: flex; justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .ad-details-row dt { color: #6b7280; flex-shrink: 0; }
+  .ad-details-row dd {
+    font-weight: 600; color: #111827;
+    text-align: right; margin: 0;
+    overflow: hidden; text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .ad-details-row dd.green { color: #16a34a; }
+
+  /* ── Right column ── */
+  .ad-right {
+    display: flex; flex-direction: column;
+    gap: 1rem; min-width: 0;
+  }
+
+  .ad-status-row {
+    display: flex; flex-wrap: wrap;
+    gap: 0.5rem; margin-bottom: 0.65rem;
+  }
+  .ad-badge {
+    display: inline-flex; align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.7rem; font-weight: 800;
+    text-transform: capitalize;
+    white-space: nowrap;
+  }
+  .ad-badge-live      { background: #dcfce7; color: #166534; }
+  .ad-badge-ended     { background: #f3f4f6; color: #374151; }
+  .ad-badge-cancelled { background: #fee2e2; color: #991b1b; }
+  .ad-badge-pending   { background: #fef3c7; color: #92400e; }
+  .ad-badge-info      { background: #dbeafe; color: #1e40af; }
+  .ad-badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 9999px;
+    background: #16a34a;
+    animation: ad-pulse 1.4s ease-in-out infinite;
+  }
+
+  .ad-title {
+    font-size: 1.35rem; font-weight: 800;
+    color: #111827; letter-spacing: -0.01em;
+    margin: 0; line-height: 1.25;
+    word-break: break-word;
+  }
+  @media (min-width: 640px) { .ad-title { font-size: 1.5rem; } }
+
+  .ad-subtitle {
+    font-size: 0.8rem; color: #4b5563;
+    margin: 0.35rem 0 0; line-height: 1.5;
+  }
+  .ad-subtitle a { color: #6b7280; text-decoration: none; }
+  .ad-subtitle a:hover { color: #ea580c; }
+
+  /* Bid panel */
+  .ad-bid-panel {
+    background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+    border-radius: 16px;
+    padding: 1.25rem;
+    color: #fff;
+  }
+  @media (min-width: 640px) { .ad-bid-panel { padding: 1.5rem; } }
+
+  .ad-bid-panel-top {
+    display: flex; flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .ad-bid-label {
+    font-size: 0.65rem; font-weight: 800;
+    color: #fb923c;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 0;
+  }
+  .ad-bid-amount {
+    font-size: 1.75rem; font-weight: 900;
+    margin: 0.25rem 0 0;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  @media (min-width: 640px) { .ad-bid-amount { font-size: 2rem; } }
+
+  .ad-bid-ends {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .ad-bid-ends-label {
+    font-size: 0.65rem; color: rgba(255,255,255,0.6);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 0;
+  }
+  .ad-bid-ends-value {
+    font-size: 0.85rem; font-weight: 700;
+    font-family: ui-monospace, monospace;
+    margin: 0.25rem 0 0;
+  }
+
+  .ad-bid-meta {
+    display: flex; flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.75);
+    margin-top: 0.5rem;
+  }
+  .ad-bid-meta-item {
+    display: inline-flex; align-items: center;
+    gap: 0.35rem;
+  }
+  .ad-bid-meta-item svg {
+    width: 0.9rem; height: 0.9rem;
+    flex-shrink: 0;
+  }
+  .ad-bid-meta-item.bin { color: #fdba74; }
+
+  /* Bid form */
+  .ad-bid-form {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+  @media (min-width: 640px) { .ad-bid-form { padding: 1.25rem; } }
+
+  .ad-label {
+    display: block;
+    font-size: 0.8rem; font-weight: 700;
+    color: #374151; margin-bottom: 0.35rem;
+  }
+
+  .ad-input-wrap { position: relative; }
+  .ad-input-prefix {
+    position: absolute;
+    left: 0.85rem; top: 50%; transform: translateY(-50%);
+    font-size: 0.8rem; font-weight: 600;
+    color: #6b7280; pointer-events: none;
+  }
+  .ad-input {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0.7rem 0.75rem 0.7rem 3.25rem;
+    font-size: 1rem; font-weight: 700;
+    color: #111827; background: #fff;
+    outline: none; font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .ad-input:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+
+  .ad-min-hint {
+    font-size: 0.75rem; color: #6b7280;
+    margin: 0.5rem 0 0;
+  }
+  .ad-min-hint strong { color: #111827; }
+
+  .ad-bid-btn {
+    display: block;
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 10px;
+    background: #f97316;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border: 0;
+    cursor: pointer;
+    min-height: 44px;
+    box-sizing: border-box;
+    transition: background-color 0.15s;
+  }
+  .ad-bid-btn:hover { background: #ea580c; }
+
+  .ad-guest-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+  .ad-guest-text {
+    font-size: 0.85rem; color: #374151;
+    margin: 0 0 0.75rem;
+  }
+  .ad-guest-btn {
+    display: block; width: 100%;
+    padding: 0.65rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    min-height: 42px; box-sizing: border-box;
+  }
+  .ad-guest-btn-primary { background: #f97316; color: #fff; }
+  .ad-guest-btn-primary:hover { background: #ea580c; }
+  .ad-guest-btn-secondary {
+    border: 1px solid #d1d5db; background: #fff; color: #374151;
+    margin-top: 0.5rem;
+  }
+  .ad-guest-btn-secondary:hover { background: #f9fafb; }
+
+  /* Watch button */
+  .ad-watch-btn {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.5rem; width: 100%;
+    padding: 0.65rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 0.85rem; font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    min-height: 44px; box-sizing: border-box;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .ad-watch-btn:hover { border-color: #fdba74; color: #ea580c; }
+  .ad-watch-btn.watched { color: #ea580c; border-color: #fdba74; background: #fff7ed; }
+  .ad-watch-btn svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+
+  /* Sold by (mobile) */
+  .ad-mobile-seller {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.75rem;
+  }
+  @media (min-width: 1024px) { .ad-mobile-seller { display: none; } }
+  .ad-mobile-seller-title {
+    font-size: 0.65rem; font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 0 0 0.5rem;
+  }
+
+  /* Mobile details */
+  .ad-mobile-details {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+  @media (min-width: 1024px) { .ad-mobile-details { display: none; } }
+
+  /* Bid history */
+  .ad-history {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .ad-history-head {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 0.85rem; font-weight: 800;
+    color: #111827;
+    margin: 0;
+  }
+  .ad-history-list { margin: 0; padding: 0; list-style: none; }
+  .ad-history-row {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #f3f4f6;
+    min-width: 0;
+  }
+  .ad-history-row:first-child { border-top: 0; }
+  .ad-history-avatar {
+    width: 2rem; height: 2rem;
+    border-radius: 9999px;
+    background: #f3f4f6; color: #374151;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .ad-history-info { flex: 1; min-width: 0; }
+  .ad-history-name {
+    font-size: 0.85rem; font-weight: 600;
+    color: #111827; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .ad-history-time {
+    font-size: 0.7rem; color: #6b7280;
+    margin: 0.15rem 0 0;
+  }
+  .ad-history-amount {
+    font-size: 0.85rem; font-weight: 800;
+    color: #111827; margin: 0;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 480px) {
+    .ad-title { font-size: 1.15rem; }
+    .ad-bid-amount { font-size: 1.5rem; }
+    .ad-history-row { padding: 0.65rem 0.85rem; gap: 0.5rem; }
+  }
+</style>
+
+<div class="ad-wrap">
+
+  {# ── Breadcrumb ── #}
+  <nav class="ad-breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a>
+    <span aria-hidden="true">/</span>
+    <a href="{% url 'auctions:auction_list' %}">Auctions</a>
+    <span aria-hidden="true">/</span>
+    <span class="current">{{ auction.title }}</span>
+  </nav>
+
+  <div class="ad-grid">
+
+    {# ══ LEFT: Image gallery + seller + details (desktop) ══ #}
+    <div class="ad-left">
+
+      {# Main image #}
+      <div class="ad-main-img">
+        {% with auction.variant.product.images.first as img %}
+          {% if img %}
+            <img id="main-auction-image" src="{{ img.image.url }}" alt="{{ auction.title }}">
+          {% else %}
+            <div class="empty">No image available</div>
+          {% endif %}
+        {% endwith %}
+
+        {% if auction.status == 'live' %}
+          <span class="ad-live-badge">
+            <span class="ad-live-dot"></span>
+            Live
+          </span>
+        {% endif %}
+      </div>
+
+      {# Thumbnails #}
+      {% with auction.variant.product.images.all as all_images %}
+        {% if all_images|length > 1 %}
+          <div class="ad-thumbs" role="tablist" aria-label="Product images">
+            {% for image in all_images %}
+              <button type="button"
+                      class="ad-thumb {% if forloop.first %}is-active{% endif %}"
+                      data-src="{{ image.image.url }}"
+                      aria-label="View image {{ forloop.counter }}">
+                <img src="{{ image.image.url }}" alt="">
+              </button>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {# Seller card (desktop) #}
+      <div class="ad-card" style="display: none;" id="seller-desktop">
+        <p class="ad-card-title">Sold by</p>
+        <div class="ad-seller">
+          <div class="ad-seller-avatar">{{ auction.variant.product.store.name|slice:":1"|upper }}</div>
+          <div style="flex: 1; min-width: 0;">
+            <a href="{% url 'catalogue:store_detail' auction.variant.product.store.slug %}" class="ad-seller-name">
+              {{ auction.variant.product.store.name }}
+            </a>
+          </div>
+        </div>
+        {% if user.is_authenticated and user != auction.variant.product.store.vendor.user %}
+          <a href="{% url 'messaging:start_thread' auction.variant.product.slug %}" class="ad-seller-message">
+            Message
+          </a>
+        {% endif %}
+      </div>
+
+      {# Auction details (desktop) #}
+      <div class="ad-card" style="display: none;" id="details-desktop">
+        <p class="ad-card-title">Details</p>
+        <dl class="ad-details-list">
+          <div class="ad-details-row">
+            <dt>Starting</dt>
+            <dd>{{ auction.currency }} {{ auction.starting_price }}</dd>
+          </div>
+          {% if auction.reserve_price %}
+            <div class="ad-details-row">
+              <dt>Reserve</dt>
+              <dd class="{% if auction.current_price >= auction.reserve_price %}green{% endif %}">
+                {% if auction.current_price >= auction.reserve_price %}Met{% else %}Not met{% endif %}
+              </dd>
+            </div>
+          {% endif %}
+          <div class="ad-details-row">
+            <dt>Ends</dt>
+            <dd>{{ auction.ends_at|date:"M d, H:i" }}</dd>
+          </div>
+        </dl>
+      </div>
+
+    </div>
+
+    {# ══ RIGHT: Title + bid panel + form + history ══ #}
+    <div class="ad-right">
+
+      {# Status + title #}
+      <div>
+        <div class="ad-status-row">
+          <span class="ad-badge
+            {% if auction.status == 'live' %}ad-badge-live
+            {% elif auction.status == 'ended' %}ad-badge-ended
+            {% elif auction.status == 'cancelled' %}ad-badge-cancelled
+            {% else %}ad-badge-pending{% endif %}">
+            {% if auction.status == 'live' %}<span class="ad-badge-dot"></span>{% endif %}
+            {{ auction.get_status_display }}
+          </span>
+
+          {% if auction.buy_it_now_price %}
+            <span class="ad-badge ad-badge-info">Buy It Now available</span>
+          {% endif %}
+        </div>
+
+        <h1 class="ad-title">{{ auction.title }}</h1>
+        <p class="ad-subtitle">
+          <a href="{% url 'catalogue:browse' %}?category={{ auction.variant.product.category.slug }}">
+            {{ auction.variant.product.category.name }}
+          </a>
+          · {{ auction.variant.product.name }}
+        </p>
+      </div>
+
+      {# Bid panel #}
+      <div class="ad-bid-panel">
+        <div class="ad-bid-panel-top">
+          <div>
+            <p class="ad-bid-label">Current bid</p>
+            <p class="ad-bid-amount">{{ auction.currency }} {{ auction.current_price }}</p>
+          </div>
+          <div class="ad-bid-ends">
+            <p class="ad-bid-ends-label">Ends</p>
+            <p class="ad-bid-ends-value">{{ auction.ends_at|date:"M d, H:i" }}</p>
+          </div>
+        </div>
+
+        <div class="ad-bid-meta">
+          <span class="ad-bid-meta-item">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            {{ auction.bids.count }} bid{{ auction.bids.count|pluralize }}
+          </span>
+
+          {% if auction.buy_it_now_price %}
+            <span class="ad-bid-meta-item bin">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              BIN {{ auction.currency }} {{ auction.buy_it_now_price }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Bid form / guest prompt / ended #}
+      {% if auction.status == "live" %}
+        {% if user.is_authenticated %}
+          <form method="post" class="ad-bid-form">
+            {% csrf_token %}
+            <label for="bid-amount" class="ad-label">Your bid</label>
+            <div class="ad-input-wrap">
+              <span class="ad-input-prefix">{{ auction.currency }}</span>
+              <input type="number" id="bid-amount" name="amount"
+                     step="0.01" min="{{ auction.current_price }}"
+                     value="{{ auction.current_price }}"
+                     class="ad-input">
+            </div>
+            <p class="ad-min-hint">
+              Minimum next bid: <strong>{{ auction.currency }} {{ auction.current_price }}</strong>
+            </p>
+            <button type="submit" class="ad-bid-btn">Place bid</button>
+          </form>
+        {% else %}
+          <div class="ad-guest-panel">
+            <p class="ad-guest-text">Log in to place a bid on this auction.</p>
+            <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="ad-guest-btn ad-guest-btn-primary">
+              Log in to bid
+            </a>
+            <a href="{% url 'accounts:register' %}" class="ad-guest-btn ad-guest-btn-secondary">
+              Create an account
+            </a>
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="ad-guest-panel" style="text-align: center;">
+          <p style="font-size: 0.85rem; font-weight: 600; color: #374151; margin: 0;">
+            This auction is no longer accepting bids.
+          </p>
+        </div>
+      {% endif %}
+
+      {# Watchlist #}
+      {% if user.is_authenticated %}
+        <form method="post" action="{% url 'auctions:toggle_watch' auction.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="ad-watch-btn {% if watched %}watched{% endif %}">
+            <svg fill="{% if watched %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+            {% if watched %}In your watchlist{% else %}Add to watchlist{% endif %}
+          </button>
+        </form>
+      {% endif %}
+
+      {# Seller + details (mobile) #}
+      <div class="ad-mobile-seller">
+        <p class="ad-mobile-seller-title">Sold by</p>
+        <div class="ad-seller">
+          <div class="ad-seller-avatar">{{ auction.variant.product.store.name|slice:":1"|upper }}</div>
+          <div style="flex: 1; min-width: 0;">
+            <a href="{% url 'catalogue:store_detail' auction.variant.product.store.slug %}" class="ad-seller-name">
+              {{ auction.variant.product.store.name }}
+            </a>
+          </div>
+          {% if user.is_authenticated and user != auction.variant.product.store.vendor.user %}
+            <a href="{% url 'messaging:start_thread' auction.variant.product.slug %}" class="ad-seller-message" style="margin-top: 0; width: auto; padding: 0.35rem 0.65rem;">
+              Message
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="ad-mobile-details">
+        <p class="ad-card-title">Auction details</p>
+        <dl class="ad-details-list">
+          <div class="ad-details-row">
+            <dt>Starting price</dt>
+            <dd>{{ auction.currency }} {{ auction.starting_price }}</dd>
+          </div>
+          {% if auction.reserve_price %}
+            <div class="ad-details-row">
+              <dt>Reserve</dt>
+              <dd class="{% if auction.current_price >= auction.reserve_price %}green{% endif %}">
+                {% if auction.current_price >= auction.reserve_price %}Met ✓{% else %}Not met{% endif %}
+              </dd>
+            </div>
+          {% endif %}
+          <div class="ad-details-row">
+            <dt>Started</dt>
+            <dd>{{ auction.starts_at|date:"M d, H:i" }}</dd>
+          </div>
+          <div class="ad-details-row">
+            <dt>Ends</dt>
+            <dd>{{ auction.ends_at|date:"M d, H:i" }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      {# Bid history #}
+      {% if top_bid %}
+        <div class="ad-history">
+          <h2 class="ad-history-head">Bid history</h2>
+          <ul class="ad-history-list">
+            {% for bid in auction.bids.all|slice:":5" %}
+              <li class="ad-history-row">
+                <div class="ad-history-avatar">{{ bid.bidder.username|slice:":1"|upper }}</div>
+                <div class="ad-history-info">
+                  <p class="ad-history-name">{{ bid.bidder.username }}</p>
+                  <p class="ad-history-time">{{ bid.placed_at|date:"M d, H:i" }}</p>
+                </div>
+                <p class="ad-history-amount">{{ auction.currency }} {{ bid.amount }}</p>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  var mainImg = document.getElementById('main-auction-image');
+  var thumbnails = document.querySelectorAll('.ad-thumb');
+
+  if (!mainImg || !thumbnails.length) return;
+
+  thumbnails.forEach(function (thumb) {
+    thumb.addEventListener('click', function () {
+      mainImg.src = thumb.dataset.src;
+
+      thumbnails.forEach(function (t) {
+        t.classList.remove('is-active');
+      });
+      thumb.classList.add('is-active');
+    });
+  });
+})();
+
+// Show desktop-only cards on large screens
+(function () {
+  var sellerDesktop = document.getElementById('seller-desktop');
+  var detailsDesktop = document.getElementById('details-desktop');
+  function checkWidth() {
+    var isDesktop = window.innerWidth >= 1024;
+    if (sellerDesktop) sellerDesktop.style.display = isDesktop ? 'block' : 'none';
+    if (detailsDesktop) detailsDesktop.style.display = isDesktop ? 'block' : 'none';
+  }
+  checkWidth();
+  window.addEventListener('resize', checkWidth);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,620 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — UniMarket{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+
+  {# ── Back navigation ───────────────────────────────────── #}
+  <div class="mb-5">
+    <a href="{% url 'catalogue:my_products' %}"
+       class="inline-flex items-center gap-2 text-sm text-ink-500 hover:text-orange-600 transition">
+      <span>←</span> Back to my products
+    </a>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 lg:gap-8">
+
+    {# ══ MAIN FORM ════════════════════════════════════════ #}
+    <div class="bg-white rounded-2xl border border-ink-200 shadow-sm p-5 sm:p-7 lg:p-8">
+
+      <div class="mb-7">
+        <div class="flex items-center gap-3">
+          <div class="h-11 w-11 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-ink-900">{{ title }}</h1>
+            <p class="text-sm text-ink-500 mt-1">Create a professional product listing on UniMarket.</p>
+          </div>
+        </div>
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" enctype="multipart/form-data" id="product-form" class="space-y-8">
+        {% csrf_token %}
+
+        {# ── 1. PRODUCT DETAILS ───────────────────────────── #}
+        <section>
+          <div class="flex items-center gap-3 mb-5">
+            <span class="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold text-sm">1</span>
+            <div>
+              <h2 class="font-bold text-ink-900">Product information</h2>
+              <p class="text-xs text-ink-500">Tell buyers what you are selling.</p>
+            </div>
+          </div>
+
+          <div class="space-y-5">
+            <div>
+              <label for="{{ form.name.id_for_label }}" class="label">
+                Product name <span class="text-red-500">*</span>
+              </label>
+              {{ form.name }}
+              {% if form.name.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.name.errors|join:", " }}</p>{% endif %}
+            </div>
+
+            {# ── Category + "add category" shortcut ── #}
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="{{ form.category.id_for_label }}" class="label mb-0">
+                  Category <span class="text-red-500">*</span>
+                </label>
+                <a href="{% url 'vendors:add_category' %}"
+                   class="text-xs font-semibold text-orange-600 hover:text-orange-700 transition inline-flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                  </svg>
+                  Add category
+                </a>
+              </div>
+              {{ form.category }}
+              <p class="mt-1.5 text-xs text-ink-500">
+                Only approved categories appear here. Missing one? Use <strong>Add category</strong> above — we'll review it.
+              </p>
+              {% if form.category.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.category.errors|join:", " }}</p>{% endif %}
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-1.5">
+                <label for="{{ form.description.id_for_label }}" class="label mb-0">
+                  Product description <span class="text-red-500">*</span>
+                </label>
+                <span class="text-xs text-ink-400" id="description-count">0 characters</span>
+              </div>
+              {{ form.description }}
+              {% if form.description.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.description.errors|join:", " }}</p>{% endif %}
+              <p class="mt-1.5 text-xs text-ink-500">
+                Include the product's condition, specifications, features and other important details.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {# ── 2. PRODUCT PHOTOS ────────────────────────────── #}
+        <section class="pt-7 border-t border-ink-100">
+          <div class="flex items-center gap-3 mb-5">
+            <span class="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold text-sm">2</span>
+            <div class="min-w-0 flex-1">
+              <h2 class="font-bold text-ink-900">Product photos</h2>
+              <p class="text-xs text-ink-500">Show buyers exactly what they are purchasing.</p>
+            </div>
+            <span class="text-xs font-semibold text-ink-500 bg-ink-100 px-2.5 py-1 rounded-full">2–8 photos</span>
+          </div>
+
+          <label for="id_images" id="image-dropzone"
+                 class="block border-2 border-dashed border-ink-300 hover:border-orange-400 rounded-2xl p-6 sm:p-9 text-center cursor-pointer transition bg-ink-50 hover:bg-orange-50/50">
+            <div class="mx-auto w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-orange-500">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <p class="mt-4 text-sm font-semibold text-ink-800">Click to upload or drag photos here</p>
+            <p class="mt-1 text-xs text-ink-500">JPG, JPEG, PNG or WEBP</p>
+            <p class="mt-2 text-xs text-ink-400">Maximum 5 MB per photo · Up to 8 photos</p>
+
+            <input type="file" name="images" id="id_images"
+                   accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                   multiple class="sr-only">
+          </label>
+
+          <div class="flex flex-wrap items-center justify-between gap-3 mt-3">
+            <div>
+              <p id="image-count" class="text-xs text-ink-500" aria-live="polite">No new photos selected</p>
+              <p id="image-message" class="text-xs mt-1" aria-live="polite"></p>
+            </div>
+            <button type="button" id="clear-images"
+                    class="hidden text-xs font-semibold text-red-600 hover:text-red-700">
+              Remove newly selected photos
+            </button>
+          </div>
+
+          <div id="image-preview" class="hidden mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+
+          {# Existing product images #}
+          {% if product %}
+            {% with product.images.all as existing %}
+              {% if existing %}
+                <div class="mt-6 pt-5 border-t border-ink-100">
+                  <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-semibold text-ink-800">Existing product photos</h3>
+                    <span class="text-xs text-ink-500">{{ existing|length }} saved</span>
+                  </div>
+                  <div id="existing-images" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" data-existing-count="{{ existing|length }}">
+                    {% for img in existing %}
+                      <div class="relative aspect-square rounded-xl overflow-hidden bg-ink-100 border border-ink-200" data-existing-image data-url="{{ img.image.url }}">
+                        <img src="{{ img.image.url }}" alt="Existing product photo {{ forloop.counter }}"
+                             class="w-full h-full object-cover" loading="lazy">
+                        {% if img.is_primary %}
+                          <span class="absolute top-2 left-2 bg-orange-500 text-white text-[9px] font-bold rounded-md px-2 py-1">MAIN PHOTO</span>
+                        {% endif %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <p class="mt-3 text-xs text-ink-500">Existing photos will remain attached when you upload additional photos.</p>
+                </div>
+              {% endif %}
+            {% endwith %}
+          {% endif %}
+
+          {% if form.images.errors %}<p class="mt-2 text-sm text-red-600">{{ form.images.errors|join:", " }}</p>{% endif %}
+        </section>
+
+        {# ── 3. PRICING ───────────────────────────────────── #}
+        <section class="pt-7 border-t border-ink-100">
+          <div class="flex items-center gap-3 mb-5">
+            <span class="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold text-sm">3</span>
+            <div>
+              <h2 class="font-bold text-ink-900">Pricing and inventory</h2>
+              <p class="text-xs text-ink-500">Set your product's selling price and stock information.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label for="{{ form.sku.id_for_label }}" class="label">Product SKU</label>
+              {{ form.sku }}
+              <p class="mt-1.5 text-xs text-ink-500">Unique product identification code.</p>
+              {% if form.sku.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.sku.errors|join:", " }}</p>{% endif %}
+            </div>
+
+            <div>
+              <label for="{{ form.currency.id_for_label }}" class="label">Currency</label>
+              {{ form.currency }}
+              {% if form.currency.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.currency.errors|join:", " }}</p>{% endif %}
+            </div>
+
+            <div>
+              <label for="{{ form.price.id_for_label }}" class="label">
+                Selling price <span class="text-red-500">*</span>
+              </label>
+              <div class="relative">
+                <span id="currency-prefix"
+                      class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-semibold text-ink-500 pointer-events-none">
+                  {% if form.currency.value %}{{ form.currency.value }}{% else %}ZMW{% endif %}
+                </span>
+                {{ form.price }}
+              </div>
+              {% if form.price.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.price.errors|join:", " }}</p>{% endif %}
+            </div>
+
+            <div>
+              <label for="{{ form.status.id_for_label }}" class="label">Listing status</label>
+              {{ form.status }}
+              <p class="mt-1.5 text-xs text-ink-500">Choose whether buyers can see this product.</p>
+              {% if form.status.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.status.errors|join:", " }}</p>{% endif %}
+            </div>
+
+            {# ── Stock quantity ── #}
+            <div class="sm:col-span-2">
+              <label for="{{ form.stock_quantity.id_for_label }}" class="label">
+                Stock quantity <span class="text-red-500">*</span>
+              </label>
+              <div class="relative">
+                <input type="number"
+                       name="{{ form.stock_quantity.name }}"
+                       id="{{ form.stock_quantity.id_for_label }}"
+                       value="{{ form.stock_quantity.value|default_if_none:'0' }}"
+                       min="0"
+                       step="1"
+                       required
+                       class="input pr-16">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-xs font-medium text-ink-500 pointer-events-none">
+                  units
+                </span>
+              </div>
+              <p class="mt-1.5 text-xs text-ink-500">
+                How many units do you have available for sale? Set to 0 if out of stock.
+              </p>
+              {% if form.stock_quantity.errors %}
+                <p class="mt-1.5 text-sm text-red-600">{{ form.stock_quantity.errors|join:", " }}</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mt-6 p-4 rounded-xl bg-ink-50 border border-ink-100">
+            <h3 class="text-sm font-semibold text-ink-900 mb-4">Selling options</h3>
+            <div class="space-y-4">
+              <label class="flex items-start gap-3 cursor-pointer">
+                {{ form.is_auctionable }}
+                <span>
+                  <span class="block text-sm font-medium text-ink-800">Allow auctions</span>
+                  <span class="block text-xs text-ink-500 mt-0.5">Allow this product to be listed for competitive bidding.</span>
+                </span>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer">
+                {{ form.is_wholesale }}
+                <span>
+                  <span class="block text-sm font-medium text-ink-800">Allow wholesale orders</span>
+                  <span class="block text-xs text-ink-500 mt-0.5">Make this product available to bulk and wholesale buyers.</span>
+                </span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        {# ── ACTIONS ──────────────────────────────────────── #}
+        <div class="pt-6 border-t border-ink-100 flex flex-col-reverse sm:flex-row gap-3">
+          <a href="{% url 'catalogue:my_products' %}"
+             class="sm:w-auto w-full text-center rounded-xl border border-ink-300 bg-white px-6 py-3 text-sm font-semibold text-ink-700 hover:bg-ink-50 transition">
+            Cancel
+          </a>
+          <button type="submit" id="submit-button"
+                  class="sm:flex-1 w-full rounded-xl bg-orange-500 px-6 py-3 text-sm font-bold text-white hover:bg-orange-600 active:bg-orange-700 transition shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
+            <span id="submit-text">Save product</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {# ══ SIDEBAR ══════════════════════════════════════════ #}
+    <aside class="space-y-5 lg:sticky lg:top-6 self-start">
+
+      <div class="bg-white rounded-2xl border border-ink-200 p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-bold text-ink-900">Live preview</h3>
+          <span class="text-[10px] font-semibold uppercase tracking-wide text-orange-600 bg-orange-50 px-2 py-1 rounded-full">Preview</span>
+        </div>
+
+        <div class="w-full max-w-[160px] mx-auto aspect-square rounded-lg overflow-hidden bg-ink-100 border border-ink-200 relative">
+          <img id="preview-image"
+               src="{% if product and product.images.first %}{{ product.images.first.image.url }}{% endif %}"
+               alt="Product preview"
+               class="{% if not product or not product.images.first %}hidden{% endif %} w-full h-full object-cover">
+
+          <div id="preview-empty"
+               class="{% if product and product.images.first %}hidden{% endif %} w-full h-full flex flex-col items-center justify-center text-ink-400">
+            <svg class="w-10 h-10 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <span class="text-xs">Product image</span>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <h4 id="preview-title" class="font-semibold text-sm text-ink-900 break-words">
+            {% if product %}{{ product.name }}{% else %}Product name{% endif %}
+          </h4>
+          <p class="mt-2 text-lg font-bold text-ink-900">
+            <span id="preview-currency">{% if product and product.variants.first %}{{ product.variants.first.currency }}{% else %}ZMW{% endif %}</span>
+            <span id="preview-price">{% if product and product.variants.first %}{{ product.variants.first.price }}{% else %}0.00{% endif %}</span>
+          </p>
+          <p class="mt-1 text-xs text-ink-500">Product listing preview</p>
+        </div>
+      </div>
+
+      <div class="bg-orange-50 border border-orange-200 rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-orange-600">✦</span>
+          <h3 class="text-sm font-bold text-ink-900">Listing tips</h3>
+        </div>
+        <ul class="space-y-3 text-xs text-ink-700">
+          <li class="flex gap-2"><span class="text-green-600 font-bold">✓</span> Use clear, high-quality product photos.</li>
+          <li class="flex gap-2"><span class="text-green-600 font-bold">✓</span> Write a descriptive and accurate product name.</li>
+          <li class="flex gap-2"><span class="text-green-600 font-bold">✓</span> Include specifications and product condition.</li>
+          <li class="flex gap-2"><span class="text-green-600 font-bold">✓</span> Set a competitive and realistic price.</li>
+          <li class="flex gap-2"><span class="text-green-600 font-bold">✓</span> Keep your stock and product information updated.</li>
+        </ul>
+      </div>
+
+      <div class="bg-ink-900 rounded-2xl p-5 text-white">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-orange-400 mb-2">Publishing information</p>
+        <p class="text-xs text-white/80 leading-relaxed">
+          Check your product information before publishing. Make sure your photos, pricing and description are accurate. Products marked as active may become visible to buyers.
+        </p>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  const input = document.getElementById('id_images');
+  const dropzone = document.getElementById('image-dropzone');
+  const preview = document.getElementById('image-preview');
+  const countEl = document.getElementById('image-count');
+  const messageEl = document.getElementById('image-message');
+  const clearBtn = document.getElementById('clear-images');
+
+  const previewImage = document.getElementById('preview-image');
+  const previewEmpty = document.getElementById('preview-empty');
+
+  const form = document.getElementById('product-form');
+  const submitButton = document.getElementById('submit-button');
+  const submitText = document.getElementById('submit-text');
+
+  if (!input || !dropzone || !preview) return;
+
+  const MAX_IMAGES = 8;
+  const MIN_IMAGES = 2;
+  const MAX_SIZE = 5 * 1024 * 1024;
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+  let selectedFiles = [];
+  let previewUrls = [];
+
+  const existingImagesEl = document.querySelector('[data-existing-count]');
+  const existingImages = existingImagesEl ? parseInt(existingImagesEl.dataset.existingCount, 10) || 0 : 0;
+
+  const defaultPreviewSrc = previewImage && !previewImage.classList.contains('hidden')
+    ? previewImage.src
+    : '';
+
+  function showMessage(message, type) {
+    messageEl.textContent = message;
+    messageEl.className = 'text-xs mt-1';
+    if (type === 'error') messageEl.classList.add('text-red-600');
+    else if (type === 'success') messageEl.classList.add('text-green-600');
+    else messageEl.classList.add('text-ink-500');
+  }
+
+  function releasePreviewUrls() {
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    previewUrls = [];
+  }
+
+  function syncFiles() {
+    const transfer = new DataTransfer();
+    selectedFiles.forEach(file => transfer.items.add(file));
+    input.files = transfer.files;
+  }
+
+  function render() {
+    releasePreviewUrls();
+    preview.innerHTML = '';
+
+    const totalImages = existingImages + selectedFiles.length;
+    clearBtn.classList.toggle('hidden', selectedFiles.length === 0);
+
+    if (selectedFiles.length === 0) {
+      countEl.textContent = existingImages
+        ? existingImages + ' existing photo(s) saved'
+        : 'No photos selected';
+    } else {
+      countEl.textContent = totalImages + ' of ' + MAX_IMAGES + ' total photos';
+    }
+
+    if (totalImages < MIN_IMAGES) {
+      countEl.className = 'text-xs font-medium text-amber-600';
+      showMessage('Add at least ' + (MIN_IMAGES - totalImages) + ' more photo(s).', 'info');
+    } else if (totalImages >= MAX_IMAGES) {
+      countEl.className = 'text-xs font-medium text-green-600';
+      showMessage('Maximum photo limit reached.', 'success');
+    } else {
+      countEl.className = 'text-xs font-medium text-green-600';
+      showMessage((MAX_IMAGES - totalImages) + ' additional photo(s) can be uploaded.', 'success');
+    }
+
+    if (selectedFiles.length === 0) {
+      preview.classList.add('hidden');
+      if (defaultPreviewSrc) {
+        previewImage.src = defaultPreviewSrc;
+        previewImage.classList.remove('hidden');
+        previewEmpty.classList.add('hidden');
+      } else {
+        previewImage.classList.add('hidden');
+        previewEmpty.classList.remove('hidden');
+      }
+      return;
+    }
+
+    preview.classList.remove('hidden');
+
+    selectedFiles.forEach((file, index) => {
+      const url = URL.createObjectURL(file);
+      previewUrls.push(url);
+
+      const card = document.createElement('div');
+      card.className = 'relative aspect-square rounded-xl overflow-hidden bg-ink-100 border border-ink-200 group';
+
+      const image = document.createElement('img');
+      image.src = url;
+      image.alt = 'Selected product photo ' + (index + 1);
+      image.className = 'w-full h-full object-cover';
+
+      const number = document.createElement('span');
+      number.className = 'absolute bottom-2 left-2 bg-black/70 text-white text-[10px] font-semibold rounded px-2 py-1';
+      number.textContent = 'Photo ' + (existingImages + index + 1);
+
+      card.appendChild(image);
+
+      if (index === 0 && existingImages === 0) {
+        const main = document.createElement('span');
+        main.className = 'absolute top-2 left-2 bg-orange-500 text-white text-[9px] font-bold rounded px-2 py-1';
+        main.textContent = 'MAIN';
+        card.appendChild(main);
+      }
+
+      card.appendChild(number);
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'absolute top-2 right-2 w-7 h-7 rounded-full bg-black/75 text-white text-lg flex items-center justify-center hover:bg-red-600 transition';
+      remove.textContent = '×';
+      remove.setAttribute('aria-label', 'Remove photo ' + (index + 1));
+
+      remove.addEventListener('click', function () {
+        selectedFiles.splice(index, 1);
+        syncFiles();
+        render();
+      });
+
+      card.appendChild(remove);
+      preview.appendChild(card);
+    });
+
+    // Update the live preview to the first selected file
+    const firstUrl = URL.createObjectURL(selectedFiles[0]);
+    previewUrls.push(firstUrl);
+    previewImage.src = firstUrl;
+    previewImage.classList.remove('hidden');
+    previewEmpty.classList.add('hidden');
+  }
+
+  function addFiles(fileList) {
+    const incoming = Array.from(fileList);
+    const remaining = MAX_IMAGES - existingImages - selectedFiles.length;
+
+    if (remaining <= 0) {
+      showMessage('You have reached the maximum of ' + MAX_IMAGES + ' photos.', 'error');
+      return;
+    }
+
+    let added = 0;
+    let rejected = 0;
+    let lastRejectReason = '';
+
+    incoming.forEach(file => {
+      if (!ALLOWED_TYPES.includes(file.type)) { rejected++; lastRejectReason = 'Wrong file type: ' + file.name; return; }
+      if (file.size > MAX_SIZE) { rejected++; lastRejectReason = 'File too large: ' + file.name; return; }
+      if (existingImages + selectedFiles.length >= MAX_IMAGES) { rejected++; lastRejectReason = 'Limit reached'; return; }
+      const duplicate = selectedFiles.some(existing =>
+        existing.name === file.name && existing.size === file.size && existing.lastModified === file.lastModified
+      );
+      if (duplicate) { rejected++; lastRejectReason = 'Duplicate: ' + file.name; return; }
+      selectedFiles.push(file);
+      added++;
+    });
+
+    syncFiles();
+    render();
+
+    if (rejected > 0) {
+      showMessage(added + ' added · ' + rejected + ' skipped. ' + lastRejectReason, 'error');
+    } else if (added > 0) {
+      showMessage(added + ' photo(s) added.', 'success');
+    }
+  }
+
+  input.addEventListener('change', function () {
+    const incoming = Array.from(input.files);
+    input.value = '';
+    addFiles(incoming);
+  });
+
+  ['dragenter', 'dragover'].forEach(evt => {
+    dropzone.addEventListener(evt, e => {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.add('border-orange-500', 'bg-orange-50');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(evt => {
+    dropzone.addEventListener(evt, e => {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.remove('border-orange-500', 'bg-orange-50');
+    });
+  });
+
+  dropzone.addEventListener('drop', function (e) {
+    addFiles(Array.from(e.dataTransfer.files));
+  });
+
+  clearBtn.addEventListener('click', function () {
+    selectedFiles = [];
+    syncFiles();
+    render();
+  });
+
+  // Live previews
+  const nameInput = document.getElementById('id_name');
+  const priceInput = document.getElementById('id_price');
+  const currencyInput = document.getElementById('id_currency');
+  const descriptionInput = document.getElementById('id_description');
+
+  const previewTitle = document.getElementById('preview-title');
+  const previewPrice = document.getElementById('preview-price');
+  const previewCurrency = document.getElementById('preview-currency');
+  const currencyPrefix = document.getElementById('currency-prefix');
+  const descriptionCount = document.getElementById('description-count');
+
+  if (nameInput && previewTitle) {
+    function updateName() { previewTitle.textContent = nameInput.value.trim() || 'Product name'; }
+    nameInput.addEventListener('input', updateName);
+    updateName();
+  }
+
+  if (priceInput && previewPrice) {
+    function updatePrice() {
+      const value = Number(priceInput.value);
+      previewPrice.textContent = !priceInput.value || !Number.isFinite(value)
+        ? '0.00'
+        : value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    priceInput.addEventListener('input', updatePrice);
+    updatePrice();
+  }
+
+  if (currencyInput && previewCurrency && currencyPrefix) {
+    function updateCurrency() {
+      const currency = currencyInput.value || 'ZMW';
+      previewCurrency.textContent = currency;
+      currencyPrefix.textContent = currency;
+    }
+    currencyInput.addEventListener('input', updateCurrency);
+    currencyInput.addEventListener('change', updateCurrency);
+    updateCurrency();
+  }
+
+  if (descriptionInput && descriptionCount) {
+    function updateDescCount() { descriptionCount.textContent = descriptionInput.value.length + ' characters'; }
+    descriptionInput.addEventListener('input', updateDescCount);
+    updateDescCount();
+  }
+
+  // Image count summary in the sidebar (optional hook for future use)
+  const sidebarCount = document.getElementById('sidebar-image-count');
+
+  form.addEventListener('submit', function (event) {
+    const totalImages = existingImages + selectedFiles.length;
+
+    if (totalImages < MIN_IMAGES) {
+      event.preventDefault();
+      showMessage('Please upload at least ' + MIN_IMAGES + ' product photos.', 'error');
+      dropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    if (totalImages > MAX_IMAGES) {
+      event.preventDefault();
+      showMessage('You cannot upload more than ' + MAX_IMAGES + ' photos.', 'error');
+      return;
+    }
+
+    submitButton.disabled = true;
+    submitText.textContent = 'Saving product...';
+  });
+
+  render();
+})();
+</script>
+{% endblock %}

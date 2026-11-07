@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+{% block title %}My orders — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  /* ── Wrap ── */
+  .mo-wrap {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 0 0.75rem 2rem;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .mo-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  /* ── Cards ── */
+  .mo-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  .mo-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .mo-h1 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  @media (min-width: 640px) { .mo-h1 { font-size: 1.5rem; } }
+  .mo-sub {
+    font-size: 0.8rem;
+    color: #374151;
+    margin: 0.25rem 0 0;
+  }
+  @media (min-width: 640px) { .mo-sub { font-size: 0.85rem; } }
+
+  .mo-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #ea580c;
+    color: #fff;
+    padding: 0.6rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    min-height: 40px;
+    box-sizing: border-box;
+  }
+  .mo-btn-primary:hover { background: #c2410c; }
+
+  /* ── Stats grid ── */
+  .mo-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (min-width: 768px) {
+    .mo-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+  }
+
+  .mo-stat {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.85rem;
+    min-width: 0;
+  }
+  @media (min-width: 640px) { .mo-stat { padding: 1rem; } }
+
+  .mo-stat-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mo-stat-num {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin: 0.25rem 0 0;
+    color: #111827;
+  }
+  @media (min-width: 640px) { .mo-stat-num { font-size: 1.5rem; } }
+
+  /* ── Order list ── */
+  .mo-orders {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .mo-order {
+    display: block;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    transition: box-shadow 0.15s, border-color 0.15s;
+    text-decoration: none;
+    overflow: hidden;
+  }
+  .mo-order:hover {
+    border-color: #fdba74;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Order header strip */
+  .mo-order-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid #f3f4f6;
+    background: #f9fafb;
+  }
+  @media (min-width: 640px) { .mo-order-head { padding: 0.75rem 1.25rem; } }
+
+  .mo-order-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+  .mo-order-num {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    word-break: break-all;
+  }
+  @media (min-width: 480px) { .mo-order-num { font-size: 0.8rem; } }
+  .mo-order-date {
+    font-size: 0.7rem;
+    color: #4b5563;
+    margin: 0;
+  }
+  @media (min-width: 480px) { .mo-order-date { font-size: 0.75rem; } }
+
+  /* Status badge */
+  .mo-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  @media (min-width: 480px) { .mo-badge { font-size: 0.65rem; padding: 0.25rem 0.65rem; } }
+  .mo-badge-amber  { background: #fef3c7; color: #92400e; }
+  .mo-badge-orange { background: #ffedd5; color: #9a3412; }
+  .mo-badge-blue   { background: #dbeafe; color: #1e40af; }
+  .mo-badge-green  { background: #dcfce7; color: #166534; }
+  .mo-badge-red    { background: #fee2e2; color: #991b1b; }
+
+  /* Order body — stacks on phone, row layout on desktop */
+  .mo-order-body {
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+  @media (min-width: 640px) {
+    .mo-order-body {
+      flex-direction: row;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+    }
+  }
+
+  /* Thumbnail stack */
+  .mo-thumbs {
+    display: flex;
+    flex-shrink: 0;
+  }
+  .mo-thumb {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 8px;
+    background: #f3f4f6;
+    overflow: hidden;
+    border: 2px solid #fff;
+    flex-shrink: 0;
+  }
+  @media (min-width: 480px) { .mo-thumb { width: 3rem; height: 3rem; } }
+  .mo-thumb + .mo-thumb { margin-left: -0.5rem; }
+  .mo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mo-thumb-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e5e7eb;
+    color: #374151;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  /* Details */
+  .mo-details {
+    flex: 1;
+    min-width: 0;
+  }
+  .mo-product-names {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @media (min-width: 480px) { .mo-product-names { font-size: 0.9rem; } }
+  .mo-product-names .more { color: #6b7280; font-weight: 400; }
+
+  .mo-vendor-line {
+    font-size: 0.7rem;
+    color: #4b5563;
+    margin: 0.25rem 0 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @media (min-width: 480px) { .mo-vendor-line { font-size: 0.75rem; } }
+  .mo-vendor-line strong { color: #111827; }
+
+  /* Price column — horizontal on mobile, right-aligned on desktop */
+  .mo-price-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+  @media (min-width: 640px) {
+    .mo-price-row { flex-direction: row; }
+  }
+
+  .mo-price-label {
+    font-size: 0.7rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin: 0;
+  }
+  .mo-price-value {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+  }
+  @media (min-width: 640px) { .mo-price-value { text-align: right; } }
+
+  /* Empty state */
+  .mo-empty {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 2.5rem 1.25rem;
+    text-align: center;
+  }
+  @media (min-width: 640px) { .mo-empty { padding: 3rem 1.5rem; } }
+  .mo-empty-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 9999px;
+    background: #fff7ed;
+    color: #ea580c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  @media (min-width: 640px) { .mo-empty-icon { width: 4rem; height: 4rem; } }
+  .mo-empty-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+  }
+  @media (min-width: 640px) { .mo-empty-title { font-size: 1.1rem; } }
+  .mo-empty-text {
+    font-size: 0.85rem;
+    color: #374151;
+    margin: 0.5rem auto 0;
+    max-width: 28rem;
+    line-height: 1.5;
+  }
+</style>
+
+<div class="mo-wrap">
+
+  {# ── Header ── #}
+  <div class="mo-header">
+    <div style="min-width: 0;">
+      <h1 class="mo-h1">My orders</h1>
+      <p class="mo-sub">Track your purchases and delivery status.</p>
+    </div>
+    <a href="{% url 'catalogue:browse' %}" class="mo-btn-primary">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+      Continue shopping
+    </a>
+  </div>
+
+  {# ── Stats ── #}
+  {% if orders %}
+    <div class="mo-stats">
+      <div class="mo-stat">
+        <p class="mo-stat-label">Total</p>
+        <p class="mo-stat-num">{{ orders|length }}</p>
+      </div>
+      <div class="mo-stat" style="background:#fffbeb; border-color:#fde68a;">
+        <p class="mo-stat-label" style="color:#92400e;">In progress</p>
+        <p class="mo-stat-num" style="color:#78350f;">{{ in_progress_count }}</p>
+      </div>
+      <div class="mo-stat" style="background:#f0fdf4; border-color:#bbf7d0;">
+        <p class="mo-stat-label" style="color:#166534;">Delivered</p>
+        <p class="mo-stat-num" style="color:#14532d;">{{ delivered_count }}</p>
+      </div>
+      <div class="mo-stat" style="background:#fef2f2; border-color:#fecaca;">
+        <p class="mo-stat-label" style="color:#991b1b;">Cancelled</p>
+        <p class="mo-stat-num" style="color:#7f1d1d;">{{ cancelled_count }}</p>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ── Order list ── #}
+  {% if orders %}
+    <div class="mo-orders">
+      {% for order in orders %}
+        <a href="{% url 'orders:order_detail' order.order_number %}" class="mo-order">
+
+          {# Header strip #}
+          <div class="mo-order-head">
+            <div class="mo-order-meta">
+              <p class="mo-order-num">{{ order.order_number }}</p>
+              <span style="color:#9ca3af;" aria-hidden="true">·</span>
+              <p class="mo-order-date">Placed {{ order.placed_at|date:"M d, Y" }}</p>
+            </div>
+            <span class="mo-badge
+              {% if order.status == 'delivered' %}mo-badge-green
+              {% elif order.status == 'cancelled' %}mo-badge-red
+              {% elif order.status == 'shipped' %}mo-badge-blue
+              {% elif order.status == 'paid' or order.status == 'processing' %}mo-badge-orange
+              {% else %}mo-badge-amber{% endif %}">
+              {{ order.get_status_display }}
+            </span>
+          </div>
+
+          {# Body #}
+          <div class="mo-order-body">
+
+            {# Thumbnails #}
+            <div class="mo-thumbs">
+              {% for item in order.items.all|slice:":3" %}
+                <div class="mo-thumb">
+                  {% with item.variant.product.images.first as img %}
+                    {% if img %}
+                      <img src="{{ img.image.url }}" alt="">
+                    {% else %}
+                      <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:.6rem;">—</div>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+              {% endfor %}
+              {% if order.items.all|length > 3 %}
+                <div class="mo-thumb mo-thumb-more">
+                  +{{ order.items.all|length|add:"-3" }}
+                </div>
+              {% endif %}
+            </div>
+
+            {# Details #}
+            <div class="mo-details">
+              <p class="mo-product-names">
+                {% for item in order.items.all|slice:":2" %}
+                  {{ item.variant.product.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+                {% if order.items.all|length > 2 %}<span class="more"> + more</span>{% endif %}
+              </p>
+              <p class="mo-vendor-line">
+                From <strong>{{ order.vendor.display_name }}</strong> · {{ order.items.all|length }} item{{ order.items.all|length|pluralize }}
+              </p>
+            </div>
+
+            {# Price #}
+            <div class="mo-price-row">
+              <p class="mo-price-label">Total</p>
+              <p class="mo-price-value">{{ order.currency }} {{ order.total }}</p>
+            </div>
+
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    {# ── Empty state ── #}
+    <div class="mo-empty">
+      <div class="mo-empty-icon">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+        </svg>
+      </div>
+      <p class="mo-empty-title">No orders yet</p>
+      <p class="mo-empty-text">
+        Once you place an order, it will appear here so you can track its delivery.
+      </p>
+      <a href="{% url 'catalogue:browse' %}" class="mo-btn-primary" style="margin-top:1.25rem;">
+        Start shopping
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

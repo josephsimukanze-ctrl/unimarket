@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}Platform report — UniMarket{% endblock %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto">
+
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-ink-900 tracking-tight">Platform report</h1>
+      <p class="text-sm text-ink-500 mt-1">Staff-only · last {{ days }} days</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="?days=7" class="px-3 py-1.5 rounded-lg text-sm {% if days == 7 %}bg-orange-500 text-white{% else %}bg-white border border-ink-200 text-ink-700 hover:bg-ink-50{% endif %}">7 days</a>
+      <a href="?days=30" class="px-3 py-1.5 rounded-lg text-sm {% if days == 30 %}bg-orange-500 text-white{% else %}bg-white border border-ink-200 text-ink-700 hover:bg-ink-50{% endif %}">30 days</a>
+      <a href="?days=90" class="px-3 py-1.5 rounded-lg text-sm {% if days == 90 %}bg-orange-500 text-white{% else %}bg-white border border-ink-200 text-ink-700 hover:bg-ink-50{% endif %}">90 days</a>
+    </div>
+  </div>
+
+  {# KPI #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <div class="flex items-start justify-between mb-1">
+        <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">GMV</p>
+        {% if data.gmv_change.direction %}
+          <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full
+            {% if data.gmv_change.direction == 'up' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+            {% if data.gmv_change.direction == 'up' %}↑{% else %}↓{% endif %} {{ data.gmv_change.value }}%
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900">ZMW {{ data.total_gmv }}</p>
+      <p class="text-xs text-ink-500 mt-0.5">delivered</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <div class="flex items-start justify-between mb-1">
+        <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Orders</p>
+        {% if data.orders_change.direction %}
+          <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full
+            {% if data.orders_change.direction == 'up' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+            {% if data.orders_change.direction == 'up' %}↑{% else %}↓{% endif %} {{ data.orders_change.value }}%
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900">{{ data.total_orders }}</p>
+      <p class="text-xs text-ink-500 mt-0.5">{{ data.delivered }} delivered</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <div class="flex items-start justify-between mb-1">
+        <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Payments</p>
+        {% if data.payments_change.direction %}
+          <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full
+            {% if data.payments_change.direction == 'up' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+            {% if data.payments_change.direction == 'up' %}↑{% else %}↓{% endif %} {{ data.payments_change.value }}%
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900">ZMW {{ data.payments_total }}</p>
+      <p class="text-xs text-ink-500 mt-0.5">{{ data.payment_count }} txns</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Vendors</p>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900 mt-1">{{ data.active_vendors }}</p>
+      <p class="text-xs text-ink-500 mt-0.5">+{{ data.new_vendors }} new</p>
+    </div>
+  </div>
+
+  {# Second row #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Products</p>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900 mt-1">{{ data.active_products }}</p>
+      <p class="text-xs text-ink-500 mt-0.5">active listings</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">In progress</p>
+      <p class="text-xl sm:text-2xl font-bold text-amber-600 mt-1">{{ data.in_progress }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Cancelled</p>
+      <p class="text-xl sm:text-2xl font-bold text-red-600 mt-1">{{ data.cancelled }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Disputes</p>
+      <p class="text-xl sm:text-2xl font-bold {% if data.open_disputes %}text-red-600{% else %}text-green-600{% endif %} mt-1">{{ data.open_disputes }}</p>
+    </div>
+  </div>
+
+  {# GMV trend #}
+  <div class="bg-white rounded-xl border border-ink-200 p-5 mb-4">
+    <h2 class="font-bold text-ink-900 mb-4">GMV trend</h2>
+    <div class="relative h-72">
+      <canvas id="gmvChart"></canvas>
+    </div>
+  </div>
+
+  {# Top vendors + payment methods #}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    <div class="bg-white rounded-xl border border-ink-200 p-5">
+      <h2 class="font-bold text-ink-900 mb-4">Top vendors</h2>
+      {% if data.top_vendors %}
+        <ol class="space-y-2">
+          {% for v in data.top_vendors %}
+            <li class="flex items-center gap-3 text-sm">
+              <span class="h-6 w-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-bold shrink-0">{{ forloop.counter }}</span>
+              <span class="flex-1 truncate text-ink-900">{{ v.vendor__display_name }}</span>
+              <span class="text-ink-600 text-xs">{{ v.order_count }} orders</span>
+              <span class="font-semibold text-ink-900">ZMW {{ v.revenue }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="text-sm text-ink-500">No sales in this period.</p>
+      {% endif %}
+    </div>
+
+    <div class="bg-white rounded-xl border border-ink-200 p-5">
+      <h2 class="font-bold text-ink-900 mb-4">Payment methods</h2>
+      {% if data.method_labels %}
+        <div class="relative h-64">
+          <canvas id="adminPaymentChart"></canvas>
+        </div>
+      {% else %}
+        <div class="h-64 flex items-center justify-center text-sm text-ink-500">
+          No payments recorded.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ data.gmv_labels|json_script:"gmv-labels" }}
+{{ data.gmv_data|json_script:"gmv-data" }}
+{{ data.method_labels|json_script:"admin-method-labels" }}
+{{ data.method_data|json_script:"admin-method-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const ORANGE = 'rgb(249, 115, 22)';
+  const ORANGE_LIGHT = 'rgba(249, 115, 22, 0.15)';
+  const INK = 'rgb(100, 116, 139)';
+
+  // GMV line chart
+  const gmvLabels = JSON.parse(document.getElementById('gmv-labels').textContent);
+  const gmvData = JSON.parse(document.getElementById('gmv-data').textContent);
+  const gmvEl = document.getElementById('gmvChart');
+  if (gmvEl) {
+    new Chart(gmvEl, {
+      type: 'line',
+      data: {
+        labels: gmvLabels,
+        datasets: [{
+          label: 'GMV (ZMW)',
+          data: gmvData,
+          borderColor: ORANGE,
+          backgroundColor: ORANGE_LIGHT,
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: ORANGE,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              label: (c) => 'ZMW ' + Number(c.parsed.y).toLocaleString(undefined, { minimumFractionDigits: 2 })
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: INK, maxRotation: 0, autoSkip: true, maxTicksLimit: 8, font: { size: 11 } } },
+          y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.15)' }, ticks: { color: INK, font: { size: 11 }, callback: (v) => 'ZMW ' + v.toLocaleString() } }
+        }
+      }
+    });
+  }
+
+  // Admin payment methods doughnut
+  const mLabels = JSON.parse(document.getElementById('admin-method-labels').textContent);
+  const mData = JSON.parse(document.getElementById('admin-method-data').textContent);
+  const mEl = document.getElementById('adminPaymentChart');
+  if (mEl && mLabels.length) {
+    new Chart(mEl, {
+      type: 'doughnut',
+      data: {
+        labels: mLabels,
+        datasets: [{
+          data: mData,
+          backgroundColor: [
+            'rgba(249, 115, 22, 0.8)',
+            'rgba(14, 165, 233, 0.8)',
+            'rgba(34, 197, 94, 0.8)',
+            'rgba(168, 85, 247, 0.8)',
+            'rgba(234, 179, 8, 0.8)',
+            'rgba(100, 116, 139, 0.8)'
+          ],
+          borderWidth: 2,
+          borderColor: '#fff',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 }, color: INK, usePointStyle: true, pointStyle: 'circle' } },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: { label: (c) => c.label + ': ZMW ' + Number(c.parsed).toLocaleString(undefined, { minimumFractionDigits: 2 }) }
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

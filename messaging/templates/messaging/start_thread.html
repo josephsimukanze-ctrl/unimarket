@@ -1,0 +1,514 @@
+{% extends "base.html" %}
+{% block title %}Message seller — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .ms-wrap { max-width: 42rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .ms-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .ms-back {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.85rem; font-weight: 600;
+    color: #4b5563; text-decoration: none;
+    margin-bottom: 1rem;
+  }
+  .ms-back:hover { color: #ea580c; }
+
+  .ms-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .ms-card { padding: 1.75rem; } }
+
+  /* Header */
+  .ms-header {
+    display: flex; align-items: flex-start;
+    gap: 0.75rem; margin-bottom: 1.25rem;
+  }
+  .ms-icon {
+    width: 2.75rem; height: 2.75rem;
+    border-radius: 12px;
+    background: #ffedd5; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ms-title {
+    font-size: 1.15rem; font-weight: 800;
+    color: #111827; margin: 0; line-height: 1.25;
+  }
+  @media (min-width: 640px) { .ms-title { font-size: 1.25rem; } }
+  .ms-sub {
+    font-size: 0.8rem; color: #4b5563;
+    margin: 0.35rem 0 0; line-height: 1.4;
+    word-break: break-word;
+  }
+  .ms-sub strong { color: #111827; font-weight: 700; }
+
+  /* Product preview */
+  .ms-product {
+    display: flex; gap: 0.75rem;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-bottom: 1.25rem;
+    align-items: center;
+  }
+  .ms-product-img {
+    width: 3.5rem; height: 3.5rem;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f3f4f6;
+    flex-shrink: 0;
+  }
+  .ms-product-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ms-product-img .empty {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: #9ca3af; font-size: 0.65rem;
+  }
+  .ms-product-info { flex: 1; min-width: 0; }
+  .ms-product-name {
+    font-size: 0.85rem; font-weight: 600;
+    color: #111827; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .ms-product-price {
+    font-size: 0.85rem; font-weight: 700;
+    color: #ea580c; margin: 0.25rem 0 0;
+  }
+
+  /* Form */
+  .ms-form { display: flex; flex-direction: column; gap: 1rem; }
+
+  .ms-label {
+    display: block;
+    font-size: 0.85rem; font-weight: 700;
+    color: #374151; margin-bottom: 0.35rem;
+  }
+  .ms-required { color: #dc2626; }
+
+  .ms-input, .ms-textarea {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem; color: #111827;
+    background: #fff; outline: none;
+    font-family: inherit;
+  }
+  .ms-input:focus, .ms-textarea:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+  .ms-textarea { resize: vertical; min-height: 8rem; }
+
+  .ms-help {
+    font-size: 0.7rem; color: #6b7280;
+    margin: 0.35rem 0 0; line-height: 1.4;
+  }
+  .ms-error {
+    font-size: 0.8rem; color: #dc2626;
+    margin: 0.35rem 0 0;
+  }
+
+  /* Attachment widget */
+  .ms-attach-row {
+    display: flex; align-items: center;
+    gap: 0.5rem; flex-wrap: wrap;
+    margin-top: 0.35rem;
+  }
+  .ms-attach-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    border-radius: 8px;
+    font-size: 0.75rem; font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+  }
+  .ms-attach-btn:hover { background: #f9fafb; }
+  .ms-attach-count {
+    font-size: 0.7rem; color: #6b7280; margin: 0;
+  }
+  .ms-clear-btn {
+    font-size: 0.7rem; font-weight: 700;
+    color: #dc2626; background: none; border: 0;
+    cursor: pointer;
+  }
+  .ms-clear-btn:hover { text-decoration: underline; }
+
+  .ms-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(5rem, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  .ms-preview:empty { display: none; }
+
+  .ms-tile {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+  }
+  .ms-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ms-tile video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .ms-tile .file-badge {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 0.25rem; text-align: center;
+    color: #6b7280; font-size: 0.6rem; font-weight: 600;
+    word-break: break-all; overflow: hidden;
+  }
+  .ms-tile .file-ext {
+    font-size: 0.75rem; font-weight: 800;
+    color: #ea580c; margin-bottom: 0.25rem;
+  }
+  .ms-tile .video-badge {
+    position: absolute;
+    bottom: 0.25rem; left: 0.25rem;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    font-size: 0.55rem; font-weight: 800;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+  }
+  .ms-tile-remove {
+    position: absolute; top: 0.25rem; right: 0.25rem;
+    width: 1.5rem; height: 1.5rem;
+    border-radius: 9999px;
+    background: rgba(0,0,0,0.7);
+    color: #fff; border: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; line-height: 1; padding: 0;
+  }
+  .ms-tile-remove:hover { background: #dc2626; }
+
+  /* Actions */
+  .ms-actions {
+    display: flex; flex-direction: column-reverse;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f3f4f6;
+    margin-top: 0.5rem;
+  }
+  @media (min-width: 640px) { .ms-actions { flex-direction: row; } }
+
+  .ms-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.7rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 42px; box-sizing: border-box;
+    width: 100%;
+  }
+  @media (min-width: 640px) {
+    .ms-btn-secondary { width: auto; }
+    .ms-btn-primary { flex: 1; width: auto; }
+  }
+  .ms-btn-primary { background: #f97316; color: #fff; }
+  .ms-btn-primary:hover { background: #ea580c; }
+  .ms-btn-secondary {
+    border: 1px solid #d1d5db; background: #fff; color: #374151;
+  }
+  .ms-btn-secondary:hover { background: #f9fafb; }
+
+  /* Field error banner */
+  .ms-error-banner {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #7f1d1d;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+  .ms-error-banner p { margin: 0; }
+</style>
+
+<div class="ms-wrap">
+
+  {# ── Back ── #}
+  <a href="{% url 'catalogue:product_detail' product.slug %}" class="ms-back">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to product
+  </a>
+
+  {# ── Card ── #}
+  <div class="ms-card">
+
+    {# Header #}
+    <div class="ms-header">
+      <div class="ms-icon">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+        </svg>
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <h1 class="ms-title">Message seller</h1>
+        <p class="ms-sub">
+          About <strong>{{ product.name }}</strong> — to <strong>{{ vendor_user.username }}</strong>
+        </p>
+      </div>
+    </div>
+
+    {# Product preview #}
+    <div class="ms-product">
+      <div class="ms-product-img">
+        {% with product.images.first as img %}
+          {% if img %}
+            <img src="{{ img.image.url }}" alt="">
+          {% else %}
+            <div class="empty">—</div>
+          {% endif %}
+        {% endwith %}
+      </div>
+      <div class="ms-product-info">
+        <p class="ms-product-name">{{ product.name }}</p>
+        {% with product.variants.first as variant %}
+          {% if variant %}
+            <p class="ms-product-price">{{ variant.currency }} {{ variant.price }}</p>
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+
+    {# Errors #}
+    {% if form.non_field_errors %}
+      <div class="ms-error-banner">
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="ms-form" id="message-form">
+      {% csrf_token %}
+
+      {# Subject #}
+      <div>
+        <label for="{{ form.subject.id_for_label }}" class="ms-label">
+          Subject <span class="ms-required">*</span>
+        </label>
+        {{ form.subject }}
+        {% if form.subject.errors %}
+          <p class="ms-error">{{ form.subject.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      {# Message body #}
+      <div>
+        <label for="{{ form.body.id_for_label }}" class="ms-label">
+          Message <span class="ms-required">*</span>
+        </label>
+        {{ form.body }}
+        {% if form.body.errors %}
+          <p class="ms-error">{{ form.body.errors|join:", " }}</p>
+        {% endif %}
+        <p class="ms-help">
+          Ask about availability, shipping, condition, or bulk pricing.
+        </p>
+      </div>
+
+      {# ── Attachments ── #}
+      <div>
+        <label class="ms-label">
+          Attachments <span style="color:#6b7280;font-weight:400;">(optional)</span>
+        </label>
+
+        <div class="ms-attach-row">
+          <label for="id_attachments" class="ms-attach-btn">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+            </svg>
+            Attach
+          </label>
+
+          <input type="file"
+                 name="attachments"
+                 id="id_attachments"
+                 multiple
+                 accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf"
+                 class="sr-only">
+
+          <p id="attach-count" class="ms-attach-count">No files selected</p>
+
+          <button type="button" id="clear-attachments" class="ms-clear-btn" style="display:none;">
+            Remove all
+          </button>
+        </div>
+
+        <div id="attachment-preview" class="ms-preview"></div>
+
+        {% if form.attachments.errors %}
+          <p class="ms-error">{{ form.attachments.errors|join:", " }}</p>
+        {% endif %}
+
+        <p class="ms-help">
+          Photos, videos, or PDFs. Max 5 files, 20 MB each.
+        </p>
+      </div>
+
+      {# Actions #}
+      <div class="ms-actions">
+        <a href="{% url 'catalogue:product_detail' product.slug %}" class="ms-btn ms-btn-secondary">
+          Cancel
+        </a>
+        <button type="submit" class="ms-btn ms-btn-primary">
+          Send message →
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  var input = document.getElementById('id_attachments');
+  var countEl = document.getElementById('attach-count');
+  var clearBtn = document.getElementById('clear-attachments');
+  var preview = document.getElementById('attachment-preview');
+
+  if (!input) return;
+
+  var MAX_FILES = 5;
+  var MAX_SIZE = 20 * 1024 * 1024;
+  var ALLOWED = [
+    'image/jpeg','image/png','image/webp','image/gif',
+    'video/mp4','video/webm','video/quicktime',
+    'application/pdf',
+  ];
+
+  var selectedFiles = [];
+  var previewUrls = [];
+
+  function showCount() {
+    if (selectedFiles.length === 0) {
+      countEl.textContent = 'No files selected';
+      clearBtn.style.display = 'none';
+    } else {
+      countEl.textContent = selectedFiles.length + ' of ' + MAX_FILES + ' file(s)';
+      clearBtn.style.display = 'inline';
+    }
+  }
+
+  function clearUrls() {
+    previewUrls.forEach(function (u) { URL.revokeObjectURL(u); });
+    previewUrls = [];
+  }
+
+  function syncInput() {
+    var dt = new DataTransfer();
+    selectedFiles.forEach(function (f) { dt.items.add(f); });
+    input.files = dt.files;
+  }
+
+  function render() {
+    clearUrls();
+    preview.innerHTML = '';
+
+    selectedFiles.forEach(function (file, i) {
+      var tile = document.createElement('div');
+      tile.className = 'ms-tile';
+
+      if (file.type.indexOf('image/') === 0) {
+        var url = URL.createObjectURL(file);
+        previewUrls.push(url);
+        var img = document.createElement('img');
+        img.src = url;
+        img.alt = file.name;
+        tile.appendChild(img);
+      } else if (file.type.indexOf('video/') === 0) {
+        var vurl = URL.createObjectURL(file);
+        previewUrls.push(vurl);
+        var video = document.createElement('video');
+        video.src = vurl;
+        video.muted = true;
+        video.preload = 'metadata';
+        tile.appendChild(video);
+
+        var badge = document.createElement('span');
+        badge.className = 'video-badge';
+        badge.textContent = 'VIDEO';
+        tile.appendChild(badge);
+      } else {
+        var ext = (file.name.split('.').pop() || 'FILE').toUpperCase();
+        var box = document.createElement('div');
+        box.className = 'file-badge';
+        box.innerHTML = '<span class="file-ext">' + ext + '</span><span>' + file.name + '</span>';
+        tile.appendChild(box);
+      }
+
+      var remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'ms-tile-remove';
+      remove.innerHTML = '×';
+      remove.setAttribute('aria-label', 'Remove ' + file.name);
+      remove.addEventListener('click', function () {
+        selectedFiles.splice(i, 1);
+        syncInput();
+        render();
+      });
+      tile.appendChild(remove);
+
+      preview.appendChild(tile);
+    });
+
+    showCount();
+  }
+
+  function addFiles(list) {
+    var incoming = Array.prototype.slice.call(list);
+    var added = 0, skipped = 0;
+
+    incoming.forEach(function (file) {
+      if (selectedFiles.length >= MAX_FILES) { skipped++; return; }
+      if (ALLOWED.indexOf(file.type) === -1) { skipped++; return; }
+      if (file.size > MAX_SIZE) { skipped++; return; }
+      var dup = selectedFiles.some(function (f) {
+        return f.name === file.name && f.size === file.size;
+      });
+      if (dup) { skipped++; return; }
+      selectedFiles.push(file);
+      added++;
+    });
+
+    syncInput();
+    render();
+
+    if (skipped > 0) {
+      countEl.textContent = added + ' added, ' + skipped + ' skipped (limit or type)';
+    }
+  }
+
+  input.addEventListener('change', function () {
+    var files = Array.prototype.slice.call(input.files);
+    input.value = '';
+    addFiles(files);
+  });
+
+  clearBtn.addEventListener('click', function () {
+    selectedFiles = [];
+    syncInput();
+    render();
+  });
+
+  showCount();
+})();
+</script>
+{% endblock %}

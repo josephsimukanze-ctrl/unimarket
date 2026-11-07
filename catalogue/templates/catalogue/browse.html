@@ -1,0 +1,287 @@
+
+{% extends "base.html" %}
+{% block title %}Browse — UniMarket{% endblock %}
+{% block content %}
+
+{# ── Header ────────────────────────────────────────────── #}
+<div class="mb-6">
+  <nav class="flex items-center gap-1.5 text-xs text-ink-500 mb-2">
+    <a href="/" class="hover:text-orange-600">Home</a>
+    <span>/</span>
+    <span class="text-ink-700">Browse</span>
+    {% if active_category %}
+      <span>/</span>
+      <span class="text-ink-700 truncate">{{ active_category.name }}</span>
+    {% endif %}
+  </nav>
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-ink-900 tracking-tight">
+        {% if active_category %}{{ active_category.name }}{% elif query %}Results for "{{ query }}"{% else %}All products{% endif %}
+      </h1>
+      <p class="text-sm text-ink-500 mt-1">
+        {{ products|length }} product{{ products|length|pluralize }}
+        {% if active_category %} in {{ active_category.name }}{% endif %}
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 lg:gap-8">
+
+  {# ══ LEFT: Category sidebar (desktop) ══════════════════════ #}
+  <aside class="hidden lg:block">
+    <div class="sticky top-24 space-y-3">
+
+      {# Categories #}
+      <div class="bg-white rounded-xl border border-ink-200 p-4">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-semibold text-ink-500 uppercase tracking-wide">Categories</p>
+          {% if active_category or query %}
+            <a href="{% url 'catalogue:browse' %}" class="text-[10px] text-orange-600 hover:underline font-medium">Clear</a>
+          {% endif %}
+        </div>
+        <ul class="space-y-0.5 text-sm">
+          <li>
+            <a href="{% url 'catalogue:browse' %}{% if query %}?q={{ query }}{% endif %}"
+               class="flex items-center justify-between rounded-lg px-3 py-2 transition
+                 {% if not active_category %}bg-orange-50 text-orange-700 font-medium
+                 {% else %}text-ink-700 hover:bg-ink-50{% endif %}">
+              <span>All products</span>
+              <span class="text-xs {% if not active_category %}text-orange-600{% else %}text-ink-400{% endif %}">{{ total_products }}</span>
+            </a>
+          </li>
+          {% for cat in categories %}
+            <li>
+              <a href="{% url 'catalogue:browse' %}?category={{ cat.slug }}{% if query %}&q={{ query }}{% endif %}"
+                 class="flex items-center justify-between rounded-lg px-3 py-2 transition
+                   {% if active_category.id == cat.id %}bg-orange-50 text-orange-700 font-medium
+                   {% else %}text-ink-700 hover:bg-ink-50{% endif %}">
+                <span class="truncate">{{ cat.name }}</span>
+                {% if cat.product_count %}
+                  <span class="text-xs {% if active_category.id == cat.id %}text-orange-600{% else %}text-ink-400{% endif %}">{{ cat.product_count }}</span>
+                {% endif %}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      {# Price range #}
+      <div class="bg-white rounded-xl border border-ink-200 p-4">
+        <p class="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-3">Price range</p>
+        <form method="get" class="space-y-2">
+          {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+          {% if active_category %}<input type="hidden" name="category" value="{{ active_category.slug }}">{% endif %}
+          <input type="hidden" name="sort" value="{{ sort }}">
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-ink-500 uppercase">Min</label>
+              <input type="number" name="min_price" min="0" value="{{ request.GET.min_price }}"
+                     placeholder="0" class="input text-sm py-1.5">
+            </div>
+            <div>
+              <label class="text-[10px] text-ink-500 uppercase">Max</label>
+              <input type="number" name="max_price" min="0" value="{{ request.GET.max_price }}"
+                     placeholder="Any" class="input text-sm py-1.5">
+            </div>
+          </div>
+          <button type="submit" class="w-full btn-secondary btn-sm">Apply</button>
+        </form>
+      </div>
+
+    </div>
+  </aside>
+
+  {# ══ RIGHT: Product grid ═══════════════════════════════════ #}
+  <div class="min-w-0">
+
+    {# ── Search + sort toolbar ─────────────────────────── #}
+    <div class="flex flex-col sm:flex-row gap-2 sm:items-center mb-4">
+
+      {# Mobile filter toggle #}
+      <button type="button" id="mobile-filter-toggle"
+              class="lg:hidden inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-ink-200 bg-white text-sm font-medium text-ink-700">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+        </svg>
+        Filters
+        {% if active_category or query %}<span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span>{% endif %}
+      </button>
+
+      {# Search #}
+      <form method="get" class="flex-1 flex gap-2">
+        <input type="text" name="q" value="{{ query }}" placeholder="Search products..."
+               class="input flex-1">
+        {% if active_category %}<input type="hidden" name="category" value="{{ active_category.slug }}">{% endif %}
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <button class="btn-primary px-4">Search</button>
+      </form>
+
+      {# Sort #}
+      <form method="get" class="shrink-0">
+        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+        {% if active_category %}<input type="hidden" name="category" value="{{ active_category.slug }}">{% endif %}
+        <select name="sort" onchange="this.form.submit()"
+                class="w-full sm:w-auto rounded-lg border border-ink-200 px-3 py-2 text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-100 outline-none">
+          <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest</option>
+          <option value="price_low" {% if sort == 'price_low' %}selected{% endif %}>Price: Low → High</option>
+          <option value="price_high" {% if sort == 'price_high' %}selected{% endif %}>Price: High → Low</option>
+          <option value="name" {% if sort == 'name' %}selected{% endif %}>Name A–Z</option>
+        </select>
+      </form>
+    </div>
+
+    {# ── Active filter chips ───────────────────────────── #}
+    {% if active_category or query or request.GET.min_price or request.GET.max_price %}
+      <div class="flex flex-wrap gap-2 mb-4">
+        {% if active_category %}
+          <a href="{% url 'catalogue:browse' %}{% if query %}?q={{ query }}{% endif %}"
+             class="inline-flex items-center gap-1 rounded-full bg-orange-50 text-orange-700 text-xs font-medium px-3 py-1 hover:bg-orange-100">
+            {{ active_category.name }}
+            <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </a>
+        {% endif %}
+        {% if query %}
+          <a href="{% url 'catalogue:browse' %}{% if active_category %}?category={{ active_category.slug }}{% endif %}"
+             class="inline-flex items-center gap-1 rounded-full bg-ink-100 text-ink-700 text-xs font-medium px-3 py-1 hover:bg-ink-200">
+            "{{ query }}"
+            <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </a>
+        {% endif %}
+        {% if request.GET.min_price or request.GET.max_price %}
+          <span class="inline-flex items-center gap-1 rounded-full bg-ink-100 text-ink-700 text-xs font-medium px-3 py-1">
+            Price: {{ request.GET.min_price|default:"0" }} – {{ request.GET.max_price|default:"∞" }}
+          </span>
+        {% endif %}
+        <a href="{% url 'catalogue:browse' %}" class="text-xs text-ink-500 hover:text-orange-600 font-medium self-center">Clear all</a>
+      </div>
+    {% endif %}
+
+    {# ── Products ──────────────────────────────────────── #}
+    {% if products %}
+      <div class="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+        {% for product in products %}
+          {% include "components/product_card.html" with product=product %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="bg-white rounded-xl border border-ink-200 p-12 text-center">
+        <div class="mx-auto h-16 w-16 rounded-full bg-ink-100 text-ink-400 flex items-center justify-center mb-4">
+          <svg class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+          </svg>
+        </div>
+        <p class="text-lg font-semibold text-ink-900">No products found</p>
+        <p class="text-sm text-ink-500 mt-1 max-w-md mx-auto">
+          {% if active_category or query %}
+            Try a different search or clear the filters.
+          {% else %}
+            No products are listed yet. Check back soon.
+          {% endif %}
+        </p>
+        <div class="mt-5 flex flex-wrap gap-2 justify-center">
+          {% if active_category or query %}
+            <a href="{% url 'catalogue:browse' %}" class="btn-secondary">Clear filters</a>
+          {% endif %}
+          <a href="{% url 'catalogue:browse' %}" class="btn-primary">Browse all</a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ══ Mobile filter drawer (hidden by default) ═══════════════ #}
+<div id="mobile-filter-overlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden"
+     onclick="closeMobileFilters()"></div>
+<aside id="mobile-filter-drawer"
+       class="fixed top-0 left-0 bottom-0 z-50 w-72 max-w-[85vw] bg-white shadow-2xl overflow-y-auto -translate-x-full transition-transform duration-200 lg:hidden">
+  <div class="p-4 border-b border-ink-100 flex items-center justify-between sticky top-0 bg-white z-10">
+    <h2 class="font-bold text-ink-900">Filters</h2>
+    <button type="button" onclick="closeMobileFilters()"
+            class="p-1 rounded hover:bg-ink-100" aria-label="Close filters">
+      <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="p-4 space-y-4">
+    {# Categories #}
+    <div>
+      <p class="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-2">Categories</p>
+      <ul class="space-y-0.5 text-sm">
+        <li>
+          <a href="{% url 'catalogue:browse' %}{% if query %}?q={{ query }}{% endif %}"
+             class="block rounded-lg px-3 py-2 {% if not active_category %}bg-orange-50 text-orange-700 font-medium{% else %}text-ink-700 hover:bg-ink-50{% endif %}">
+            All products
+          </a>
+        </li>
+        {% for cat in categories %}
+          <li>
+            <a href="{% url 'catalogue:browse' %}?category={{ cat.slug }}{% if query %}&q={{ query }}{% endif %}"
+               class="flex items-center justify-between rounded-lg px-3 py-2 {% if active_category.id == cat.id %}bg-orange-50 text-orange-700 font-medium{% else %}text-ink-700 hover:bg-ink-50{% endif %}">
+              <span class="truncate">{{ cat.name }}</span>
+              {% if cat.product_count %}<span class="text-xs text-ink-400">{{ cat.product_count }}</span>{% endif %}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    {# Price range #}
+    <div class="pt-4 border-t border-ink-100">
+      <p class="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-2">Price range</p>
+      <form method="get" class="space-y-2">
+        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+        {% if active_category %}<input type="hidden" name="category" value="{{ active_category.slug }}">{% endif %}
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <div class="grid grid-cols-2 gap-2">
+          <input type="number" name="min_price" min="0" value="{{ request.GET.min_price }}" placeholder="Min" class="input text-sm py-1.5">
+          <input type="number" name="max_price" min="0" value="{{ request.GET.max_price }}" placeholder="Max" class="input text-sm py-1.5">
+        </div>
+        <button type="submit" class="w-full btn-primary btn-sm">Apply</button>
+      </form>
+    </div>
+
+    <div class="pt-4 border-t border-ink-100">
+      <a href="{% url 'catalogue:browse' %}" class="block text-center btn-secondary btn-sm">Clear all filters</a>
+    </div>
+  </div>
+</aside>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ── Mobile filter drawer ──────────────────────────────
+  const toggle = document.getElementById('mobile-filter-toggle');
+  const drawer = document.getElementById('mobile-filter-drawer');
+  const overlay = document.getElementById('mobile-filter-overlay');
+
+  function openMobileFilters() {
+    if (!drawer) return;
+    drawer.classList.remove('-translate-x-full');
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeMobileFilters() {
+    if (!drawer) return;
+    drawer.classList.add('-translate-x-full');
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  if (toggle) toggle.addEventListener('click', openMobileFilters);
+
+  // Close on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeMobileFilters();
+  });
+
+  // Expose for inline handler
+  window.closeMobileFilters = closeMobileFilters;
+</script>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Open RFQs — UniMarket{% endblock %}
+{% block content %}
+
+{# ── Header ────────────────────────────────────────────── #}
+<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-ink-900 tracking-tight">Open RFQs</h1>
+    <p class="text-sm text-ink-500 mt-1">
+      Buyers looking for suppliers.
+      {% if rfqs %}{{ rfqs|length }} request{{ rfqs|length|pluralize }} match your business.{% endif %}
+    </p>
+  </div>
+  <a href="{% url 'wholesale:my_rfqs' %}" class="btn-secondary">My RFQs</a>
+</div>
+
+{# ── Filter tabs ───────────────────────────────────────── #}
+{% if rfqs %}
+  <div class="flex flex-wrap gap-2 mb-4">
+    <a href="{% url 'wholesale:open_rfqs' %}"
+       class="px-3 py-1.5 rounded-full text-sm transition {% if not request.GET.category %}bg-orange-500 text-white{% else %}bg-white border border-ink-200 text-ink-700 hover:bg-ink-50{% endif %}">
+      All categories
+    </a>
+    {% for cat in active_categories %}
+      <a href="?category={{ cat.slug }}"
+         class="px-3 py-1.5 rounded-full text-sm transition {% if request.GET.category == cat.slug %}bg-orange-500 text-white{% else %}bg-white border border-ink-200 text-ink-700 hover:bg-ink-50{% endif %}">
+        {{ cat.name }}
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{# ── RFQ list ──────────────────────────────────────────── #}
+{% if rfqs %}
+  <div class="space-y-3">
+    {% for rfq in rfqs %}
+      <a href="{% url 'wholesale:rfq_detail' rfq.pk %}"
+         class="block bg-white rounded-xl border border-ink-200 p-4 sm:p-5 hover:border-orange-200 hover:shadow-md transition">
+
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+
+          {# Left: title + metadata #}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 class="font-semibold text-ink-900">{{ rfq.title }}</h2>
+              {% if rfq.deadline|date:"U" %}
+                {% with days_left=rfq.deadline|timeuntil %}
+                  {% if days_left %}
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full
+                      {% if 'minutes' in days_left or 'minute' in days_left or 'hour' in days_left %}bg-red-100 text-red-700
+                      {% elif 'day' in days_left and '2' not in days_left and '3' not in days_left and '4' not in days_left and '5' not in days_left and '6' not in days_left and '7' not in days_left %}bg-amber-100 text-amber-700
+                      {% else %}bg-ink-100 text-ink-600{% endif %}">
+                      Ends {{ days_left }}
+                    </span>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
+            </div>
+
+            <p class="text-sm text-ink-600 mt-1">
+              {{ rfq.category.name }}
+              · <span class="font-medium text-ink-800">{{ rfq.quantity }} unit{{ rfq.quantity|pluralize }}</span>
+            </p>
+
+            {% if rfq.target_price %}
+              <p class="text-xs text-ink-500 mt-0.5">Target price: {{ rfq.target_price }} per unit</p>
+            {% endif %}
+          </div>
+
+          {# Right: quote count + deadline #}
+          <div class="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-1 shrink-0">
+            {% if rfq.quotations.count %}
+              <span class="inline-flex items-center gap-1 text-sm font-medium text-orange-600">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                {{ rfq.quotations.count }} quote{{ rfq.quotations.count|pluralize }}
+              </span>
+            {% else %}
+              <span class="text-xs text-orange-600 font-medium bg-orange-50 px-2 py-1 rounded-full">
+                Be the first to quote
+              </span>
+            {% endif %}
+            <p class="text-xs text-ink-500">{{ rfq.deadline|date:"M d, H:i" }}</p>
+          </div>
+
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+
+{% else %}
+  {# ── Empty state ────────────────────────────────────── #}
+  <div class="bg-white rounded-xl border border-ink-200 p-12 text-center">
+    <div class="mx-auto h-16 w-16 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center mb-4">
+      <svg class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+      </svg>
+    </div>
+    <p class="text-lg font-semibold text-ink-900">No open RFQs</p>
+    <p class="text-sm text-ink-500 mt-1 max-w-md mx-auto">
+      There are no open requests for quotation right now. Check back soon, or browse the marketplace.
+    </p>
+    <a href="{% url 'catalogue:browse' %}" class="mt-5 inline-flex btn-primary">Browse marketplace</a>
+  </div>
+{% endif %}
+
+{% endblock %}

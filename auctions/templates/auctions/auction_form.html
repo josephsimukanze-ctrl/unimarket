@@ -1,0 +1,539 @@
+{% extends "base.html" %}
+
+{% block title %}Create auction — UniMarket{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-6xl mx-auto">
+
+  <div class="mb-6">
+    <a href="{% url 'auctions:my_auctions' %}"
+       class="inline-flex items-center gap-2 text-sm text-ink-500 hover:text-orange-600 transition">
+      ← Back to my auctions
+    </a>
+  </div>
+
+  <div class="grid gap-8 lg:grid-cols-[1fr_340px]">
+
+    <div class="bg-white rounded-2xl border border-ink-200 shadow-sm overflow-hidden">
+
+      <div class="px-6 py-5 border-b border-ink-100 md:px-8">
+        <h1 class="text-2xl font-bold text-ink-900">Create auction</h1>
+        <p class="text-sm text-ink-500 mt-1">
+          Select a product, upload multiple photos and configure your auction.
+        </p>
+      </div>
+
+      <div class="p-6 md:p-8">
+
+        {% if form.non_field_errors %}
+        <div class="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+          {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <form method="post"
+              enctype="multipart/form-data"
+              class="space-y-8"
+              id="auction-form">
+
+          {% csrf_token %}
+
+          <!-- PRODUCT -->
+          <section>
+            <div class="flex items-center gap-3 mb-5">
+              <span class="h-8 w-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold">1</span>
+              <h2 class="font-semibold text-ink-900">Product information</h2>
+            </div>
+
+            <div class="space-y-5">
+
+              <div>
+                <label for="{{ form.variant.id_for_label }}" class="label">
+                  {{ form.variant.label }}
+                </label>
+                {{ form.variant }}
+                {% for error in form.variant.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ error }}</p>
+                {% endfor %}
+              </div>
+
+              <div>
+                <label for="{{ form.title.id_for_label }}" class="label">
+                  {{ form.title.label }}
+                </label>
+                {{ form.title }}
+                {% for error in form.title.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ error }}</p>
+                {% endfor %}
+              </div>
+
+            </div>
+          </section>
+
+          <!-- MULTIPLE IMAGES -->
+          <section class="pt-6 border-t border-ink-100">
+
+            <div class="flex items-center justify-between gap-3 mb-5">
+              <div class="flex items-center gap-3">
+                <span class="h-8 w-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold">2</span>
+                <h2 class="font-semibold text-ink-900">Product photos</h2>
+              </div>
+              <span class="text-xs text-ink-500">3–8 photos</span>
+            </div>
+
+            <div id="image-dropzone"
+                 class="border-2 border-dashed border-ink-300 rounded-2xl p-8 text-center bg-ink-50 hover:bg-orange-50 hover:border-orange-400 transition cursor-pointer">
+
+              <input type="file"
+                     name="images"
+                     id="id_images"
+                     accept="image/jpeg,image/png,image/webp"
+                     multiple
+                     class="hidden">
+
+              <div class="flex flex-col items-center pointer-events-none">
+                <div class="h-14 w-14 rounded-full bg-white shadow flex items-center justify-center mb-4">
+                  <svg class="w-7 h-7 text-orange-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L7 9m5-5l5 5M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/>
+                  </svg>
+                </div>
+
+                <p class="font-semibold text-ink-800">
+                  Click or drag photos here
+                </p>
+
+                <p class="text-xs text-ink-500 mt-2">
+                  JPG, PNG or WEBP · Minimum 3 · Maximum 8
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between mt-3">
+              <p id="image-count" class="text-xs text-ink-500">
+                No photos selected
+              </p>
+
+              <button type="button"
+                      id="clear-images"
+                      class="text-xs text-red-600 hover:text-red-700 hidden">
+                Remove all
+              </button>
+            </div>
+
+                        <div id="image-preview"
+                 class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2 mt-4 max-w-2xl">
+            </div>
+            <p class="text-xs text-ink-500 mt-3">
+              The first photo will be used as the primary auction image.
+              You can remove individual photos before submitting.
+            </p>
+
+            <div id="image-error"
+                 class="hidden mt-3 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+            </div>
+
+            {% if form.instance.pk %}
+            <div class="mt-5">
+              <p class="text-sm font-semibold mb-3">Existing images</p>
+              <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                {% for image in form.instance.variant.product.images.all %}
+                <div class="aspect-square rounded-xl overflow-hidden border border-ink-200">
+                  <img src="{{ image.image.url }}"
+                       alt="Product image"
+                       class="w-full h-full object-cover">
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+          </section>
+
+          <!-- PRICING -->
+          <section class="pt-6 border-t border-ink-100">
+
+            <div class="flex items-center gap-3 mb-5">
+              <span class="h-8 w-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold">3</span>
+              <h2 class="font-semibold text-ink-900">Auction pricing</h2>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-5">
+
+              <div>
+                <label for="{{ form.starting_price.id_for_label }}" class="label">
+                  Starting price
+                </label>
+
+                <input type="number"
+                       step="0.01"
+                       min="0.01"
+                       name="{{ form.starting_price.name }}"
+                       id="{{ form.starting_price.id_for_label }}"
+                       value="{{ form.starting_price.value|default_if_none:'' }}"
+                       required
+                       placeholder="0.00"
+                       class="input"
+                       data-preview="price">
+
+                {% for error in form.starting_price.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ error }}</p>
+                {% endfor %}
+              </div>
+
+              <div>
+                <label for="{{ form.currency.id_for_label }}" class="label">
+                  Currency
+                </label>
+                {{ form.currency }}
+                {% for error in form.currency.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ error }}</p>
+                {% endfor %}
+              </div>
+
+              <div>
+                <label for="{{ form.reserve_price.id_for_label }}" class="label">
+                  Reserve price (optional)
+                </label>
+                {{ form.reserve_price }}
+                {% for error in form.reserve_price.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ error }}</p>
+                {% endfor %}
+              </div>
+
+              <div>
+                <label for="{{ form.buy_it_now_price.id_for_label }}" class="label">
+                  Buy It Now price (optional)
+                </label>
+                {{ form.buy_it_now_price }}
+                {% for error in form.buy_it_now_price.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ error }}</p>
+                {% endfor %}
+              </div>
+
+            </div>
+          </section>
+
+          <!-- SCHEDULE -->
+          <section class="pt-6 border-t border-ink-100">
+
+            <div class="flex items-center gap-3 mb-5">
+              <span class="h-8 w-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold">4</span>
+              <h2 class="font-semibold text-ink-900">Auction schedule</h2>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-5">
+
+              <div>
+                <label for="{{ form.starts_at.id_for_label }}" class="label">
+                  Start date and time
+                </label>
+                {{ form.starts_at }}
+                {% for error in form.starts_at.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ error }}</p>
+                {% endfor %}
+              </div>
+
+              <div>
+                <label for="{{ form.ends_at.id_for_label }}" class="label">
+                  End date and time
+                </label>
+                {{ form.ends_at }}
+                {% for error in form.ends_at.errors %}
+                <p class="text-sm text-red-600 mt-1">{{ error }}</p>
+                {% endfor %}
+              </div>
+
+            </div>
+          </section>
+
+          <!-- ACTIONS -->
+          <div class="pt-6 border-t border-ink-100 flex flex-col-reverse sm:flex-row gap-3">
+
+            <a href="{% url 'auctions:my_auctions' %}"
+               class="btn-secondary text-center py-3 sm:px-6">
+              Cancel
+            </a>
+
+            <button type="submit"
+                    id="auction-submit"
+                    class="rounded-xl bg-orange-500 px-6 py-3 text-white font-semibold hover:bg-orange-600 transition sm:flex-1">
+              Create auction
+            </button>
+
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside class="space-y-4 lg:sticky lg:top-6 self-start">
+
+         <div class="bg-white rounded-xl border border-ink-200 p-3 shadow-sm">
+
+        <p class="text-[10px] uppercase tracking-wide text-ink-500 font-semibold mb-2">
+          Auction preview
+        </p>
+
+        <div class="bg-ink-50 rounded-lg p-2.5 flex gap-2.5 items-start">
+
+          <div class="w-16 h-16 shrink-0 bg-ink-100 rounded-md overflow-hidden">
+            <img id="main-image-preview"
+                 src=""
+                 alt="Auction preview"
+                 class="hidden w-full h-full object-cover">
+
+            <div id="empty-main-image"
+                 class="h-full flex items-center justify-center text-ink-400 text-[9px] text-center px-1">
+              No image
+            </div>
+          </div>
+
+          <div class="min-w-0 flex-1">
+            <p id="preview-title" class="text-xs font-medium text-ink-900 line-clamp-2 leading-snug">
+              Your auction title
+            </p>
+            <p class="text-sm font-bold text-ink-900 mt-1">
+              <span id="preview-currency">ZMW</span>
+              <span id="preview-price">0.00</span>
+            </p>
+            <p class="text-[10px] text-ink-500">Starting price</p>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="bg-orange-50 border border-orange-200 rounded-2xl p-5">
+
+        <h3 class="font-semibold text-ink-900 mb-3">
+          Tips for a successful auction
+        </h3>
+
+        <ul class="space-y-3 text-sm text-ink-700">
+          <li>✓ Upload multiple clear product photos.</li>
+          <li>✓ Use a descriptive auction title.</li>
+          <li>✓ Set a competitive starting price.</li>
+          <li>✓ Add a reserve price when necessary.</li>
+          <li>✓ Choose a suitable auction duration.</li>
+        </ul>
+
+      </div>
+
+      <div class="bg-ink-900 rounded-2xl p-5 text-white">
+        <p class="text-orange-400 font-semibold text-xs uppercase mb-2">
+          Important
+        </p>
+        <p class="text-sm text-white/80 leading-relaxed">
+          Review your product information, photos, prices and auction dates before publishing.
+        </p>
+      </div>
+
+    </aside>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+
+  const input = document.getElementById('id_images');
+  const dropzone = document.getElementById('image-dropzone');
+  const preview = document.getElementById('image-preview');
+  const count = document.getElementById('image-count');
+  const error = document.getElementById('image-error');
+  const clearBtn = document.getElementById('clear-images');
+  const mainImage = document.getElementById('main-image-preview');
+  const emptyImage = document.getElementById('empty-main-image');
+
+  if (!input) return;
+
+  let selectedFiles = [];
+
+  function showError(message) {
+    error.textContent = message;
+    error.classList.remove('hidden');
+  }
+
+  function hideError() {
+    error.textContent = '';
+    error.classList.add('hidden');
+  }
+
+  function syncFiles() {
+    const dataTransfer = new DataTransfer();
+
+    selectedFiles.forEach(file => dataTransfer.items.add(file));
+    input.files = dataTransfer.files;
+  }
+
+  function renderImages() {
+    preview.innerHTML = '';
+    hideError();
+
+    count.textContent = selectedFiles.length + ' of 8 photos selected';
+    clearBtn.classList.toggle('hidden', selectedFiles.length === 0);
+
+    if (selectedFiles.length === 0) {
+      mainImage.classList.add('hidden');
+      mainImage.src = '';
+      emptyImage.classList.remove('hidden');
+      return;
+    }
+
+    selectedFiles.forEach((file, index) => {
+
+      const url = URL.createObjectURL(file);
+
+      const card = document.createElement('div');
+      card.className = 'relative aspect-square rounded-xl overflow-hidden border border-ink-200 group';
+
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Product photo ' + (index + 1);
+      img.className = 'w-full h-full object-cover';
+
+      img.onload = () => URL.revokeObjectURL(url);
+
+      const badge = document.createElement('span');
+      badge.className = 'absolute top-2 left-2 bg-orange-500 text-white text-[9px] font-bold rounded px-2 py-1';
+      badge.textContent = index === 0 ? 'PRIMARY' : 'PHOTO ' + (index + 1);
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = '×';
+      remove.setAttribute('aria-label', 'Remove photo ' + (index + 1));
+      remove.className = 'absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 text-white hover:bg-red-600 text-lg';
+
+      remove.addEventListener('click', function () {
+        selectedFiles.splice(index, 1);
+        syncFiles();
+        renderImages();
+      });
+
+      card.append(img, badge, remove);
+      preview.appendChild(card);
+    });
+
+    const firstUrl = URL.createObjectURL(selectedFiles[0]);
+    mainImage.src = firstUrl;
+    mainImage.onload = () => URL.revokeObjectURL(firstUrl);
+    mainImage.classList.remove('hidden');
+    emptyImage.classList.add('hidden');
+  }
+
+  function addFiles(files) {
+    hideError();
+
+    const validFiles = Array.from(files);
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+
+    for (const file of validFiles) {
+      if (!allowed.includes(file.type)) {
+        showError('Only JPG, PNG and WEBP images are allowed.');
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        showError('Each image must be 5MB or smaller.');
+        return;
+      }
+    }
+
+    const combined = [...selectedFiles, ...validFiles];
+
+    if (combined.length > 8) {
+      showError('You can upload a maximum of 8 images.');
+      return;
+    }
+
+    selectedFiles = combined;
+    syncFiles();
+    renderImages();
+  }
+
+  dropzone.addEventListener('click', () => input.click());
+
+  input.addEventListener('change', function () {
+    addFiles(this.files);
+  });
+
+  ['dragenter', 'dragover'].forEach(event => {
+    dropzone.addEventListener(event, e => {
+      e.preventDefault();
+      dropzone.classList.add('border-orange-500', 'bg-orange-50');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(event => {
+    dropzone.addEventListener(event, e => {
+      e.preventDefault();
+      dropzone.classList.remove('border-orange-500', 'bg-orange-50');
+    });
+  });
+
+  dropzone.addEventListener('drop', e => {
+    addFiles(e.dataTransfer.files);
+  });
+
+  clearBtn.addEventListener('click', function () {
+    selectedFiles = [];
+    syncFiles();
+    renderImages();
+  });
+
+  // Live title preview
+  const title = document.getElementById('id_title');
+  const previewTitle = document.getElementById('preview-title');
+
+  if (title) {
+    title.addEventListener('input', function () {
+      previewTitle.textContent = this.value.trim() || 'Your auction title';
+    });
+  }
+
+  // Live pricing preview
+  const price = document.getElementById('id_starting_price');
+  const currency = document.getElementById('id_currency');
+
+  function updatePrice() {
+    document.getElementById('preview-price').textContent =
+      price && price.value ? Number(price.value).toFixed(2) : '0.00';
+
+    document.getElementById('preview-currency').textContent =
+      currency ? currency.value : 'ZMW';
+  }
+
+  if (price) price.addEventListener('input', updatePrice);
+  if (currency) currency.addEventListener('change', updatePrice);
+
+  // Validate images before submission
+  const form = document.getElementById('auction-form');
+  const submit = document.getElementById('auction-submit');
+
+  form.addEventListener('submit', function (e) {
+
+    if (selectedFiles.length < 3 || selectedFiles.length > 8) {
+      e.preventDefault();
+      showError('Please select between 3 and 8 product images.');
+      document.getElementById('image-dropzone').scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+      return;
+    }
+
+    syncFiles();
+    submit.disabled = true;
+    submit.textContent = 'Creating auction...';
+    submit.classList.add('opacity-70', 'cursor-not-allowed');
+
+  });
+
+  renderImages();
+  updatePrice();
+
+})();
+</script>
+{% endblock %}

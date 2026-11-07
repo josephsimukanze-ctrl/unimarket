@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+{% block title %}Seller report — UniMarket{% endblock %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto">
+
+  {# ── Header ────────────────────────────────────────────── #}
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-ink-900 tracking-tight">Seller report</h1>
+      <p class="text-sm text-ink-500 mt-1">{{ vendor.display_name }} · last {{ days }} days</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="?days=7" class="px-3 py-1.5 rounded-lg text-sm {% if days == 7 %}bg-orange-500 text-white{% else %}bg-white border border-ink-200 text-ink-700 hover:bg-ink-50{% endif %}">7 days</a>
+      <a href="?days=30" class="px-3 py-1.5 rounded-lg text-sm {% if days == 30 %}bg-orange-500 text-white{% else %}bg-white border border-ink-200 text-ink-700 hover:bg-ink-50{% endif %}">30 days</a>
+      <a href="?days=90" class="px-3 py-1.5 rounded-lg text-sm {% if days == 90 %}bg-orange-500 text-white{% else %}bg-white border border-ink-200 text-ink-700 hover:bg-ink-50{% endif %}">90 days</a>
+    </div>
+  </div>
+
+  {# ── KPI cards ─────────────────────────────────────────── #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+
+    {# Revenue #}
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <div class="flex items-start justify-between mb-1">
+        <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Revenue</p>
+        {% if data.revenue_change.direction %}
+          <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full
+            {% if data.revenue_change.direction == 'up' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+            {% if data.revenue_change.direction == 'up' %}↑{% else %}↓{% endif %} {{ data.revenue_change.value }}%
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900">ZMW {{ data.revenue }}</p>
+      <p class="text-xs text-ink-500 mt-0.5">delivered orders</p>
+    </div>
+
+    {# Orders #}
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <div class="flex items-start justify-between mb-1">
+        <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Orders</p>
+        {% if data.orders_change.direction %}
+          <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full
+            {% if data.orders_change.direction == 'up' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+            {% if data.orders_change.direction == 'up' %}↑{% else %}↓{% endif %} {{ data.orders_change.value }}%
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900">{{ data.total_orders }}</p>
+      <p class="text-xs text-ink-500 mt-0.5">{{ data.delivered }} delivered</p>
+    </div>
+
+    {# Avg order #}
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <div class="flex items-start justify-between mb-1">
+        <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Avg order</p>
+        {% if data.avg_change.direction %}
+          <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full
+            {% if data.avg_change.direction == 'up' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+            {% if data.avg_change.direction == 'up' %}↑{% else %}↓{% endif %} {{ data.avg_change.value }}%
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900">ZMW {{ data.avg_order_value }}</p>
+      <p class="text-xs text-ink-500 mt-0.5">per order</p>
+    </div>
+
+    {# Disputes #}
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-[10px] sm:text-xs font-medium text-ink-500 uppercase tracking-wide">Open disputes</p>
+      <p class="text-xl sm:text-2xl font-bold {% if data.disputes_open %}text-red-600{% else %}text-green-600{% endif %} mt-1">{{ data.disputes_open }}</p>
+      <p class="text-xs text-ink-500 mt-0.5">{% if data.disputes_open %}needs response{% else %}all clear{% endif %}</p>
+    </div>
+  </div>
+
+  {# ── Revenue trend ─────────────────────────────────────── #}
+  <div class="bg-white rounded-xl border border-ink-200 p-5 mb-4">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div>
+        <h2 class="font-bold text-ink-900">Revenue trend</h2>
+        <p class="text-xs text-ink-500">Daily revenue from delivered orders</p>
+      </div>
+      <div class="text-right">
+        <p class="text-lg font-bold text-orange-600">ZMW {{ data.revenue }}</p>
+        <p class="text-[10px] text-ink-500 uppercase tracking-wide">Last {{ days }} days</p>
+      </div>
+    </div>
+    <div class="relative" style="height: 300px;">
+      <canvas id="revenueChart"></canvas>
+      <div id="revenueChartEmpty" class="hidden absolute inset-0 flex items-center justify-center text-sm text-ink-500 bg-white/80">
+        No revenue in this period.
+      </div>
+    </div>
+  </div>
+
+  {# ── Two column: top products + payment methods ────────── #}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+
+    <div class="bg-white rounded-xl border border-ink-200 p-5">
+      <h2 class="font-bold text-ink-900 mb-4">Top products by revenue</h2>
+      {% if data.top_products %}
+        <div class="relative" style="height: 260px;">
+          <canvas id="topProductsChart"></canvas>
+        </div>
+      {% else %}
+        <div style="height: 260px;" class="flex items-center justify-center text-sm text-ink-500">
+          No sales in this period.
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="bg-white rounded-xl border border-ink-200 p-5">
+      <h2 class="font-bold text-ink-900 mb-4">Payment methods</h2>
+      {% if data.method_labels %}
+        <div class="relative" style="height: 260px;">
+          <canvas id="paymentMethodChart"></canvas>
+        </div>
+      {% else %}
+        <div style="height: 260px;" class="flex items-center justify-center text-sm text-ink-500">
+          No payments recorded.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Order status breakdown ────────────────────────────── #}
+  <div class="bg-white rounded-xl border border-ink-200 p-5">
+    <h2 class="font-bold text-ink-900 mb-4">Order status breakdown</h2>
+    <div class="space-y-3">
+      <div>
+        <div class="flex justify-between text-sm mb-1">
+          <span class="text-ink-700">In progress</span>
+          <span class="font-semibold text-ink-900">{{ data.in_progress }}</span>
+        </div>
+        <div class="h-2 bg-ink-100 rounded-full overflow-hidden">
+          {% if data.total_orders %}
+            <div class="h-full bg-amber-500 transition-all" style="width: {% widthratio data.in_progress data.total_orders 100 %}%"></div>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="flex justify-between text-sm mb-1">
+          <span class="text-ink-700">Delivered</span>
+          <span class="font-semibold text-ink-900">{{ data.delivered }}</span>
+        </div>
+        <div class="h-2 bg-ink-100 rounded-full overflow-hidden">
+          {% if data.total_orders %}
+            <div class="h-full bg-green-500 transition-all" style="width: {% widthratio data.delivered data.total_orders 100 %}%"></div>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="flex justify-between text-sm mb-1">
+          <span class="text-ink-700">Cancelled</span>
+          <span class="font-semibold text-ink-900">{{ data.cancelled }}</span>
+        </div>
+        <div class="h-2 bg-ink-100 rounded-full overflow-hidden">
+          {% if data.total_orders %}
+            <div class="h-full bg-red-500 transition-all" style="width: {% widthratio data.cancelled data.total_orders 100 %}%"></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ data.trend_labels|json_script:"trend-labels" }}
+{{ data.trend_data|json_script:"trend-data" }}
+{{ data.method_labels|json_script:"method-labels" }}
+{{ data.method_data|json_script:"method-data" }}
+
+{% if data.top_products %}
+<script id="top-products-data" type="application/json">
+[
+  {% for p in data.top_products %}
+  {"name": "{{ p.variant__product__name|escapejs }}", "revenue": {{ p.revenue }}}{% if not forloop.last %},{% endif %}
+  {% endfor %}
+]
+</script>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  if (typeof Chart === 'undefined') {
+    console.error('[reports] Chart.js failed to load from CDN');
+    return;
+  }
+
+  const ORANGE = 'rgb(249, 115, 22)';
+  const ORANGE_LIGHT = 'rgba(249, 115, 22, 0.15)';
+  const INK = 'rgb(100, 116, 139)';
+
+  // ── Revenue line chart ───────────────────────────────
+  try {
+    const tlEl = document.getElementById('trend-labels');
+    const tdEl = document.getElementById('trend-data');
+    const revCtx = document.getElementById('revenueChart');
+    const emptyEl = document.getElementById('revenueChartEmpty');
+
+    if (tlEl && tdEl && revCtx) {
+      const labels = JSON.parse(tlEl.textContent);
+      const values = JSON.parse(tdEl.textContent);
+
+      const maxValue = Math.max(...values);
+      const hasData = maxValue > 0;
+
+      if (!hasData && emptyEl) {
+        emptyEl.classList.remove('hidden');
+      }
+
+      // Compute nice axis max (round up to a nice number)
+      let suggestedMax;
+      if (maxValue === 0) {
+        suggestedMax = 100;
+      } else if (maxValue <= 100) {
+        suggestedMax = Math.ceil(maxValue / 20) * 20;
+      } else if (maxValue <= 1000) {
+        suggestedMax = Math.ceil(maxValue / 100) * 100;
+      } else {
+        suggestedMax = Math.ceil(maxValue / 500) * 500;
+      }
+
+      new Chart(revCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Revenue (ZMW)',
+            data: values,
+            borderColor: ORANGE,
+            backgroundColor: ORANGE_LIGHT,
+            borderWidth: 3,
+            fill: true,
+            tension: 0.25,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            pointBackgroundColor: ORANGE,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointHitRadius: 20,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              padding: 12,
+              cornerRadius: 8,
+              titleFont: { size: 12, weight: '600' },
+              bodyFont: { size: 13 },
+              callbacks: {
+                label: (c) => 'ZMW ' + Number(c.parsed.y).toLocaleString(undefined, { minimumFractionDigits: 2 })
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: INK, maxRotation: 0, autoSkip: true, maxTicksLimit: 10, font: { size: 11 } }
+            },
+            y: {
+              beginAtZero: true,
+              suggestedMax: suggestedMax,
+              grid: { color: 'rgba(148, 163, 184, 0.15)' },
+              ticks: {
+                color: INK,
+                font: { size: 11 },
+                stepSize: suggestedMax / 4,
+                callback: (v) => 'ZMW ' + Number(v).toLocaleString()
+              }
+            }
+          }
+        }
+      });
+    }
+  } catch (e) { console.error('[reports] revenue chart:', e); }
+
+  // ── Top products bar chart ───────────────────────────
+  try {
+    const tpEl = document.getElementById('top-products-data');
+    const tpCtx = document.getElementById('topProductsChart');
+
+    if (tpEl && tpCtx) {
+      const topProducts = JSON.parse(tpEl.textContent);
+      new Chart(tpCtx, {
+        type: 'bar',
+        data: {
+          labels: topProducts.map(p => p.name),
+          datasets: [{
+            label: 'Revenue (ZMW)',
+            data: topProducts.map(p => parseFloat(p.revenue)),
+            backgroundColor: 'rgba(249, 115, 22, 0.75)',
+            hoverBackgroundColor: ORANGE,
+            borderRadius: 6,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#0f172a', padding: 12, cornerRadius: 8,
+              callbacks: { label: (c) => 'ZMW ' + Number(c.parsed.x).toLocaleString(undefined, { minimumFractionDigits: 2 }) }
+            }
+          },
+          scales: {
+            x: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.15)' }, ticks: { color: INK, font: { size: 11 }, callback: (v) => 'ZMW ' + v.toLocaleString() } },
+            y: { grid: { display: false }, ticks: { color: INK, font: { size: 11 }, callback: function (v) { const l = this.getLabelForValue(v); return l.length > 20 ? l.substr(0, 20) + '…' : l; } } }
+          }
+        }
+      });
+    }
+  } catch (e) { console.error('[reports] top products chart:', e); }
+
+  // ── Payment methods doughnut ─────────────────────────
+  try {
+    const mLabels = document.getElementById('method-labels');
+    const mData = document.getElementById('method-data');
+    const pcCtx = document.getElementById('paymentMethodChart');
+
+    if (mLabels && mData && pcCtx) {
+      const labels = JSON.parse(mLabels.textContent);
+      const values = JSON.parse(mData.textContent);
+
+      if (labels.length && values.length) {
+        new Chart(pcCtx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: ['rgba(249,115,22,0.85)','rgba(14,165,233,0.85)','rgba(34,197,94,0.85)','rgba(168,85,247,0.85)','rgba(234,179,8,0.85)','rgba(100,116,139,0.85)'],
+              borderWidth: 2, borderColor: '#fff',
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, cutout: '60%',
+            plugins: {
+              legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 }, color: INK, usePointStyle: true, pointStyle: 'circle' } },
+              tooltip: {
+                backgroundColor: '#0f172a', padding: 12, cornerRadius: 8,
+                callbacks: { label: (c) => c.label + ': ZMW ' + Number(c.parsed).toLocaleString(undefined, { minimumFractionDigits: 2 }) }
+              }
+            }
+          }
+        });
+      }
+    }
+  } catch (e) { console.error('[reports] payment chart:', e); }
+
+})();
+</script>
+{% endblock %}

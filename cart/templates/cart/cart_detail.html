@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Your cart — UniMarket{% endblock %}
+{% block content %}
+
+<div class="mb-8">
+  <h1 class="text-2xl font-bold text-ink-900 tracking-tight">Your cart</h1>
+  {% if items %}
+    <p class="section-subtitle">{{ items|length }} item{{ items|length|pluralize }} in your cart</p>
+  {% endif %}
+</div>
+
+{% if items %}
+  <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
+
+    <div class="card divide-y divide-ink-100">
+      {% for item in items %}
+        <div class="p-4 sm:p-5 flex gap-4">
+          <a href="{% url 'catalogue:product_detail' item.variant.product.slug %}"
+             class="w-20 h-20 sm:w-24 sm:h-24 bg-ink-100 rounded-xl overflow-hidden flex-shrink-0">
+            {% with item.variant.product.images.first as img %}
+              {% if img %}
+                <img src="{{ img.image.url }}" alt="{{ item.variant.product.name }}" class="w-full h-full object-cover">
+              {% else %}
+                <div class="w-full h-full flex items-center justify-center text-ink-400 text-xs">No image</div>
+              {% endif %}
+            {% endwith %}
+          </a>
+
+          <div class="flex-1 min-w-0 flex flex-col">
+            <div class="flex justify-between gap-3">
+              <div class="min-w-0">
+                <a href="{% url 'catalogue:product_detail' item.variant.product.slug %}"
+                   class="font-medium text-ink-900 hover:text-brand-600 truncate block">
+                  {{ item.variant.product.name }}
+                </a>
+                <p class="text-xs text-ink-500 mt-0.5">
+                  SKU: {{ item.variant.sku }}
+                  {% if item.variant.product.store %} · {{ item.variant.product.store.name }}{% endif %}
+                </p>
+              </div>
+              <p class="text-sm font-semibold text-ink-900 whitespace-nowrap">
+                {{ item.variant.currency }} {{ item.subtotal }}
+              </p>
+            </div>
+
+            <p class="text-xs text-ink-500 mt-1">
+              {{ item.variant.currency }} {{ item.variant.price }} each
+            </p>
+
+            <div class="mt-auto pt-3 flex items-center justify-between gap-2">
+              <form method="post" action="{% url 'cart:cart_update' item.id %}" class="flex items-center rounded-lg border border-ink-200 overflow-hidden">
+                {% csrf_token %}
+                <button type="submit" name="quantity" value="{{ item.quantity|add:'-1' }}"
+                        class="px-2.5 py-1.5 text-ink-600 hover:bg-ink-50" aria-label="Decrease">−</button>
+                <input type="number" name="quantity" value="{{ item.quantity }}" min="1"
+                       class="w-12 border-0 text-center text-sm focus:ring-0 focus:outline-none bg-white">
+                <button type="submit" name="quantity" value="{{ item.quantity|add:'1' }}"
+                        class="px-2.5 py-1.5 text-ink-600 hover:bg-ink-50" aria-label="Increase">+</button>
+              </form>
+
+              <form method="post" action="{% url 'cart:cart_remove' item.id %}">
+                {% csrf_token %}
+                <button type="submit" class="text-xs text-red-600 hover:text-red-700 font-medium">Remove</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <aside class="lg:sticky lg:top-24 h-fit">
+      <div class="card p-6">
+        <h2 class="section-title mb-4">Order summary</h2>
+
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-ink-600">Subtotal</span>
+            <span class="font-medium text-ink-900">{{ currency }} {{ total }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-ink-600">Shipping</span>
+            <span class="text-ink-500">calculated at checkout</span>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-ink-100 flex justify-between font-semibold text-base">
+          <span>Estimated total</span>
+          <span>{{ currency }} {{ total }}</span>
+        </div>
+
+        <a href="{% url 'orders:checkout' %}" class="mt-5 btn-primary w-full">Proceed to checkout</a>
+        <a href="{% url 'catalogue:browse' %}" class="mt-2 btn-ghost w-full">Continue shopping</a>
+      </div>
+
+      <p class="mt-4 text-xs text-ink-500 text-center">
+        Secure checkout · Buyer protection
+      </p>
+    </aside>
+  </div>
+
+{% else %}
+  <div class="card p-12 text-center">
+    <div class="mx-auto h-16 w-16 rounded-full bg-ink-100 text-ink-400 flex items-center justify-center mb-4">
+      <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+      </svg>
+    </div>
+    <p class="text-lg font-semibold text-ink-900">Your cart is empty</p>
+    <p class="text-sm text-ink-500 mt-1">Browse the marketplace to find something you love.</p>
+    <a href="{% url 'catalogue:browse' %}" class="mt-5 inline-flex btn-primary">Browse products</a>
+  </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Watchlist — UniMarket{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-6">My watchlist</h1>
+
+{% if items %}
+  <div class="grid gap-4 grid-cols-2 md:grid-cols-4">
+    {% for item in items %}
+      <a href="{% url 'catalogue:product_detail' item.product.slug %}"
+         class="block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition">
+        <div class="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
+          {% with item.product.images.first as img %}
+            {% if img %}
+              <img src="{{ img.image.url }}" alt="" class="object-cover w-full h-full">
+            {% else %}
+              <span class="text-gray-400 text-sm">No image</span>
+            {% endif %}
+          {% endwith %}
+        </div>
+        <div class="p-4">
+          <h3 class="font-medium text-gray-900 truncate">{{ item.product.name }}</h3>
+          <p class="text-xs text-gray-500 mt-1">Added {{ item.created_at|date:"M d, Y" }}</p>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="bg-white rounded-xl border border-gray-200 p-8 text-center">
+    <p class="text-gray-600 mb-4">Your watchlist is empty.</p>
+    <a href="{% url 'auctions:auction_list' %}"
+       class="inline-block rounded-lg bg-brand-600 px-4 py-2 text-white text-sm font-medium hover:bg-brand-700">
+      Browse auctions
+    </a>
+  </div>
+{% endif %}
+{% endblock %}

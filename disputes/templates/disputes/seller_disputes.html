@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+{% block title %}Disputes — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .sd-wrap { max-width: 72rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .sd-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .sd-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .sd-header { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+  }
+
+  .sd-h1 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  @media (min-width: 640px) { .sd-h1 { font-size: 1.5rem; } }
+
+  .sd-sub {
+    font-size: 0.8rem;
+    color: #374151;
+    margin: 0.35rem 0 0;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  @media (min-width: 640px) { .sd-sub { font-size: 0.85rem; } }
+  .sd-sub strong { color: #111827; font-weight: 700; }
+
+  .sd-header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+  .sd-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    min-height: 40px;
+    box-sizing: border-box;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .sd-btn-secondary {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #374151;
+  }
+  .sd-btn-secondary:hover { background: #f9fafb; }
+
+  /* Stats */
+  .sd-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (min-width: 768px) { .sd-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; } }
+
+  .sd-stat {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.85rem;
+    min-width: 0;
+  }
+  @media (min-width: 640px) { .sd-stat { padding: 1rem; } }
+  .sd-stat-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sd-stat-num {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin: 0.25rem 0 0;
+    color: #111827;
+  }
+  @media (min-width: 640px) { .sd-stat-num { font-size: 1.5rem; } }
+
+  /* Tabs — horizontal scroll on phone */
+  .sd-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.25rem;
+  }
+  .sd-tabs::-webkit-scrollbar { display: none; }
+  .sd-tab {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: background-color 0.15s;
+  }
+  .sd-tab-active { background: #f97316; color: #fff; }
+  .sd-tab-idle   { background: #fff; border: 1px solid #e5e7eb; color: #374151; }
+  .sd-tab-idle:hover { background: #f9fafb; }
+
+  /* Card list */
+  .sd-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  .sd-card {
+    display: block;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem;
+    text-decoration: none;
+    transition: box-shadow 0.15s, border-color 0.15s;
+    overflow: hidden;
+  }
+  .sd-card:hover { border-color: #fdba74; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+
+  .sd-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  @media (min-width: 640px) {
+    .sd-card-body { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+  }
+
+  .sd-card-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sd-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .sd-icon-gray   { background: #f3f4f6; color: #4b5563; }
+  .sd-icon-red    { background: #fee2e2; color: #dc2626; }
+  .sd-icon-green  { background: #dcfce7; color: #16a34a; }
+  .sd-icon-amber  { background: #fef3c7; color: #b45309; }
+  .sd-icon-orange { background: #ffedd5; color: #ea580c; }
+
+  .sd-card-info { flex: 1; min-width: 0; }
+
+  .sd-reason {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sd-buyer-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    min-width: 0;
+  }
+  .sd-buyer-avatar {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    background: #ffedd5;
+    color: #c2410c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .sd-buyer-text {
+    font-size: 0.75rem;
+    color: #4b5563;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .sd-buyer-text strong { color: #111827; font-weight: 700; }
+
+  .sd-date {
+    font-size: 0.65rem;
+    color: #6b7280;
+    margin: 0.5rem 0 0;
+  }
+
+  .sd-card-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  @media (min-width: 640px) { .sd-card-right { justify-content: flex-end; } }
+
+  .sd-urgent {
+    font-size: 0.6rem;
+    font-weight: 800;
+    padding: 0.25rem 0.55rem;
+    border-radius: 9999px;
+    background: #fee2e2;
+    color: #991b1b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .sd-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.3rem 0.65rem;
+    border-radius: 9999px;
+    text-transform: capitalize;
+    white-space: nowrap;
+  }
+  .sd-badge-gray   { background: #f3f4f6; color: #374151; }
+  .sd-badge-red    { background: #fee2e2; color: #991b1b; }
+  .sd-badge-green  { background: #dcfce7; color: #166534; }
+  .sd-badge-orange { background: #ffedd5; color: #9a3412; }
+  .sd-badge-amber  { background: #fef3c7; color: #92400e; }
+
+  .sd-arrow {
+    width: 1rem;
+    height: 1rem;
+    color: #9ca3af;
+    display: none;
+  }
+  @media (min-width: 640px) { .sd-arrow { display: block; } }
+
+  /* Empty state */
+  .sd-empty {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 2.5rem 1.25rem;
+    text-align: center;
+  }
+  @media (min-width: 640px) { .sd-empty { padding: 3rem 1.5rem; } }
+  .sd-empty-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 9999px;
+    background: #f0fdf4;
+    color: #16a34a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  @media (min-width: 640px) { .sd-empty-icon { width: 4rem; height: 4rem; } }
+  .sd-empty-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+  }
+  @media (min-width: 640px) { .sd-empty-title { font-size: 1.1rem; } }
+  .sd-empty-text {
+    font-size: 0.85rem;
+    color: #374151;
+    margin: 0.5rem auto 0;
+    max-width: 28rem;
+    line-height: 1.5;
+  }
+</style>
+
+<div class="sd-wrap">
+
+  {# ── Header ── #}
+  <div class="sd-header">
+    <div style="min-width: 0;">
+      <h1 class="sd-h1">Disputes</h1>
+      <p class="sd-sub">
+        <strong>{{ vendor.display_name }}</strong>
+        {% if disputes %} · {{ disputes|length }} dispute{{ disputes|length|pluralize }} on your orders{% endif %}
+      </p>
+    </div>
+    <div class="sd-header-actions">
+      <a href="{% url 'vendors:dashboard' %}" class="sd-btn sd-btn-secondary">← Dashboard</a>
+      <a href="{% url 'orders:seller_orders' %}" class="sd-btn sd-btn-secondary">Orders</a>
+    </div>
+  </div>
+
+  {# ── Stats ── #}
+  {% if disputes %}
+    <div class="sd-stats">
+      <div class="sd-stat">
+        <p class="sd-stat-label">Total</p>
+        <p class="sd-stat-num">{{ disputes|length }}</p>
+      </div>
+      <div class="sd-stat" style="background:#fef2f2; border-color:#fecaca;">
+        <p class="sd-stat-label" style="color:#991b1b;">Needs response</p>
+        <p class="sd-stat-num" style="color:#7f1d1d;">{{ needs_response_count|default:"0" }}</p>
+      </div>
+      <div class="sd-stat" style="background:#fff7ed; border-color:#fed7aa;">
+        <p class="sd-stat-label" style="color:#9a3412;">Under review</p>
+        <p class="sd-stat-num" style="color:#7c2d12;">{{ review_count|default:"0" }}</p>
+      </div>
+      <div class="sd-stat" style="background:#f0fdf4; border-color:#bbf7d0;">
+        <p class="sd-stat-label" style="color:#166534;">Resolved</p>
+        <p class="sd-stat-num" style="color:#14532d;">{{ resolved_count|default:"0" }}</p>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ── Filter tabs ── #}
+  {% if disputes %}
+    <div class="sd-tabs" role="tablist">
+      <a href="{% url 'disputes:seller_disputes' %}" role="tab"
+         class="sd-tab {% if not request.GET.status %}sd-tab-active{% else %}sd-tab-idle{% endif %}">
+        All
+      </a>
+      <a href="?status=open" role="tab"
+         class="sd-tab {% if request.GET.status == 'open' %}sd-tab-active{% else %}sd-tab-idle{% endif %}">
+        Open
+      </a>
+      <a href="?status=under_review" role="tab"
+         class="sd-tab {% if request.GET.status == 'under_review' %}sd-tab-active{% else %}sd-tab-idle{% endif %}">
+        Under review
+      </a>
+      <a href="?status=resolved_seller" role="tab"
+         class="sd-tab {% if request.GET.status == 'resolved_seller' %}sd-tab-active{% else %}sd-tab-idle{% endif %}">
+        Resolved in my favor
+      </a>
+      <a href="?status=closed" role="tab"
+         class="sd-tab {% if request.GET.status == 'closed' %}sd-tab-active{% else %}sd-tab-idle{% endif %}">
+        Closed
+      </a>
+    </div>
+  {% endif %}
+
+  {# ── List ── #}
+  {% if disputes %}
+    <div class="sd-list">
+      {% for d in disputes %}
+        <a href="{% url 'disputes:dispute_detail' d.pk %}" class="sd-card">
+          <div class="sd-card-body">
+
+            {# Left #}
+            <div class="sd-card-left">
+              <div class="sd-icon
+                {% if d.status == 'closed' %}sd-icon-gray
+                {% elif d.status == 'resolved_buyer' %}sd-icon-red
+                {% elif d.status == 'resolved_seller' %}sd-icon-green
+                {% elif d.status == 'under_review' %}sd-icon-orange
+                {% else %}sd-icon-amber{% endif %}">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+              </div>
+
+              <div class="sd-card-info">
+                <p class="sd-reason">{{ d.reason }}</p>
+
+                <div class="sd-buyer-row">
+                  <div class="sd-buyer-avatar">{{ d.opened_by.username|slice:":1"|upper }}</div>
+                  <p class="sd-buyer-text">
+                    <strong>{{ d.opened_by.username }}</strong>
+                    · Order <strong>{{ d.order.order_number }}</strong>
+                    · {{ d.order.currency }} {{ d.order.total }}
+                  </p>
+                </div>
+
+                <p class="sd-date">Opened {{ d.created_at|date:"M d, Y" }}</p>
+              </div>
+            </div>
+
+            {# Right #}
+            <div class="sd-card-right">
+              {% if d.status == 'open' and not d.resolution_notes %}
+                <span class="sd-urgent">Respond now</span>
+              {% endif %}
+              <span class="sd-badge
+                {% if d.status == 'closed' %}sd-badge-gray
+                {% elif d.status == 'resolved_buyer' %}sd-badge-red
+                {% elif d.status == 'resolved_seller' %}sd-badge-green
+                {% elif d.status == 'under_review' %}sd-badge-orange
+                {% else %}sd-badge-amber{% endif %}">
+                {{ d.get_status_display }}
+              </span>
+              <svg class="sd-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+              </svg>
+            </div>
+
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    {# ── Empty state ── #}
+    <div class="sd-empty">
+      <div class="sd-empty-icon">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+      </div>
+      <p class="sd-empty-title">No disputes</p>
+      <p class="sd-empty-text">
+        Great — you haven't had any disputes on your orders. Keep up the excellent service.
+      </p>
+      <a href="{% url 'vendors:dashboard' %}" class="sd-btn sd-btn-secondary" style="margin-top:1.25rem;">
+        Back to dashboard
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}UniMarket — Big Deals. Bigger Savings.{% endblock %}
+{% block content %}
+
+<div class="grid grid-cols-1 lg:grid-cols-[260px_1fr_280px] gap-4 mb-8">
+
+  {# ── Left: Categories sidebar ─────────────────────────── #}
+  <aside class="hidden lg:block bg-white rounded-lg border border-ink-200 p-2">
+    <ul class="text-sm">
+      {% for cat in categories %}
+        <li>
+          <a href="{% url 'catalogue:browse' %}?category={{ cat.slug }}"
+             class="flex items-center gap-3 px-3 py-2 rounded hover:bg-orange-50 hover:text-orange-600">
+            <svg class="h-4 w-4 text-ink-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            {{ cat.name }}
+          </a>
+        </li>
+      {% empty %}
+        <li class="px-3 py-2 text-ink-500">No categories yet</li>
+      {% endfor %}
+    </ul>
+    <a href="{% url 'catalogue:browse' %}" class="flex items-center gap-1 px-3 py-2 text-xs text-orange-600 hover:underline border-t border-ink-100 mt-2">
+      More Categories
+      <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    </a>
+  </aside>
+
+  {# ── Center: Hero banner ──────────────────────────────── #}
+  <section class="rounded-xl overflow-hidden bg-gradient-to-br from-ink-900 via-ink-800 to-brand-900 text-white relative min-h-[340px] flex items-center">
+    <div class="relative z-10 p-10 max-w-md">
+      <h1 class="text-4xl md:text-5xl font-bold leading-tight">
+        Big Deals.<br>Bigger Savings.
+      </h1>
+      <p class="mt-4 text-lg text-white/80">Up to <span class="text-orange-400 font-bold">70% OFF</span> on top products</p>
+      <a href="{% url 'catalogue:browse' %}" class="mt-6 inline-flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 font-semibold hover:bg-orange-600">
+        Shop the Deals
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(255,255,255,0.15),transparent_60%)] pointer-events-none"></div>
+  </section>
+
+  {# ── Right: Two promo cards ───────────────────────────── #}
+  <aside class="grid gap-4 content-start">
+    <a href="{% url 'catalogue:browse' %}" class="rounded-xl bg-gradient-to-br from-sky-100 to-sky-200 p-5 hover:shadow-md transition relative overflow-hidden block">
+      <p class="text-lg font-bold text-ink-900">Free Shipping<br>Worldwide</p>
+      <p class="text-sm text-ink-600 mt-1">Shop Now →</p>
+      <svg class="absolute -right-4 -bottom-4 h-24 w-24 text-sky-400/30" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945"/></svg>
+    </a>
+    <a href="{% url 'vendors:become_seller' %}" class="rounded-xl bg-gradient-to-br from-orange-100 to-orange-200 p-5 hover:shadow-md transition relative overflow-hidden block">
+      <p class="text-lg font-bold text-ink-900">Become a Seller</p>
+      <p class="text-sm text-ink-600 mt-1">Grow Your Business</p>
+      <p class="text-sm text-orange-600 font-medium mt-2">Start Selling →</p>
+    </a>
+  </aside>
+</div>
+
+{# ── Popular Categories strip ───────────────────────────── #}
+{% if top_categories %}
+<section class="mb-8">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-lg font-bold text-ink-900">🔥 Popular Categories</h2>
+    <a href="{% url 'catalogue:browse' %}" class="text-sm text-orange-600 hover:underline">View All →</a>
+  </div>
+  <div class="grid grid-cols-4 md:grid-cols-8 gap-3">
+    {% for cat in top_categories %}
+      <a href="{% url 'catalogue:browse' %}?category={{ cat.slug }}" class="bg-ink-100 rounded-xl p-4 text-center hover:bg-orange-50 transition">
+        <div class="h-12 w-12 mx-auto mb-2 rounded-lg bg-white flex items-center justify-center">
+          <svg class="h-6 w-6 text-orange-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        </div>
+        <p class="text-xs font-medium text-ink-800 truncate">{{ cat.name }}</p>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── Flash Deals + Recommended ──────────────────────────── #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+
+  {% if flash_deals %}
+  <section class="bg-white rounded-xl border border-ink-200 p-5">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <h2 class="text-lg font-bold text-ink-900">Flash Deals ⚡</h2>
+        <span class="text-xs text-ink-500">Ends in: <span class="font-mono text-orange-600 font-bold">01 : 24 : 32</span></span>
+      </div>
+      <a href="{% url 'catalogue:browse' %}" class="text-sm text-orange-600 hover:underline">View All →</a>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {% for product in flash_deals %}
+        {% include "components/product_card.html" with product=product %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if recommended %}
+  <section class="bg-white rounded-xl border border-ink-200 p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-bold text-ink-900">Recommended For You</h2>
+      <a href="{% url 'catalogue:browse' %}" class="text-sm text-orange-600 hover:underline">View All →</a>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {% for product in recommended %}
+        {% include "components/product_card.html" with product=product %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+{# ── Wholesale CTA + Featured Stores ─────────────────────── #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+  <a href="{% url 'wholesale:open_rfqs' %}" class="rounded-xl bg-gradient-to-r from-ink-900 to-ink-800 text-white p-6 flex items-center justify-between hover:opacity-95">
+    <div>
+      <p class="text-lg font-bold">UniMarket Wholesale</p>
+      <p class="text-sm text-white/70 mt-1">Bulk purchases. Better prices. Greater value.</p>
+    </div>
+    <span class="bg-orange-500 px-4 py-2 rounded-lg text-sm font-semibold">Explore B2B →</span>
+  </a>
+
+  <section class="bg-white rounded-xl border border-ink-200 p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="font-bold text-ink-900">Featured Stores</h2>
+      <a href="{% url 'catalogue:browse' %}" class="text-sm text-orange-600 hover:underline">View All →</a>
+    </div>
+    <p class="text-xs text-ink-500">Stores with new products go here — will populate as sellers join.</p>
+  </section>
+</div>
+
+{% endblock %}

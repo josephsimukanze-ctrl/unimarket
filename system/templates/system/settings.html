@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+{% block title %}Site settings — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .ss-wrap { max-width: 56rem; margin: 0 auto; padding: 0 0.75rem 6rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .ss-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .ss-h1 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0; }
+  .ss-sub { font-size: 0.85rem; color: #4b5563; margin: 0.25rem 0 1.5rem; }
+
+  .ss-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; overflow: hidden; margin-bottom: 1rem;
+  }
+  .ss-card-head {
+    padding: 0.85rem 1.25rem; background: #f9fafb;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .ss-card-icon {
+    width: 1.75rem; height: 1.75rem; border-radius: 8px;
+    background: #ffedd5; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ss-card-title { font-size: 0.9rem; font-weight: 800; color: #111827; margin: 0; }
+  .ss-card-body { padding: 1.25rem; }
+
+  .ss-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 640px) {
+    .ss-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ss-span2 { grid-column: span 2; }
+  }
+
+  .ss-label {
+    display: block; font-size: 0.8rem; font-weight: 700;
+    color: #374151; margin-bottom: 0.35rem;
+  }
+  .ss-error { font-size: 0.75rem; color: #dc2626; margin-top: 0.35rem; }
+
+  /* ── INPUT STYLES — !important to guarantee ── */
+  input.ss-input,
+  select.ss-input,
+  textarea.ss-input {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    padding: 0.55rem 0.7rem !important;
+    font-size: 0.85rem !important;
+    color: #111827 !important;
+    background: #fff !important;
+    outline: none !important;
+    font-family: inherit !important;
+    min-height: 2.35rem !important;
+    line-height: 1.4 !important;
+  }
+  input.ss-input:focus,
+  select.ss-input:focus,
+  textarea.ss-input:focus {
+    border-color: #ea580c !important;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12) !important;
+  }
+  textarea.ss-input { resize: vertical !important; min-height: 4rem !important; }
+  select.ss-input { cursor: pointer !important; }
+
+  /* Checkbox rows */
+  .ss-toggle {
+    display: flex; align-items: flex-start; gap: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #e5e7eb; border-radius: 8px;
+    cursor: pointer; background: #fff; box-sizing: border-box;
+  }
+  .ss-toggle:hover { background: #f9fafb; border-color: #d1d5db; }
+  .ss-toggle input[type="checkbox"] {
+    flex-shrink: 0; margin-top: 0.15rem;
+    width: 1rem !important; height: 1rem !important;
+    accent-color: #ea580c !important; cursor: pointer !important;
+  }
+  .ss-toggle-title {
+    display: block; font-size: 0.8rem; font-weight: 600;
+    color: #111827; line-height: 1.3;
+  }
+  .ss-toggle-text {
+    display: block; font-size: 0.7rem; color: #6b7280;
+    margin-top: 0.15rem; line-height: 1.4;
+  }
+  .ss-toggle-group { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
+  @media (min-width: 640px) {
+    .ss-toggle-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  /* Sticky save bar */
+  .ss-save-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+    background: #fff; border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+    padding: 0.75rem 1rem;
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 0.75rem; box-sizing: border-box;
+  }
+  .ss-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.6rem 1rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 42px; box-sizing: border-box; white-space: nowrap;
+  }
+  .ss-btn-primary { background: #ea580c; color: #fff; }
+  .ss-btn-primary:hover { background: #c2410c; }
+  .ss-btn-secondary { border: 1px solid #d1d5db; background: #fff; color: #374151; }
+  .ss-btn-secondary:hover { background: #f9fafb; }
+
+  .ss-alert {
+    background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d;
+    padding: 0.75rem 1rem; border-radius: 10px;
+    font-size: 0.85rem; margin-bottom: 1rem;
+  }
+</style>
+
+<div class="ss-wrap">
+
+  <h1 class="ss-h1">Site settings</h1>
+  <p class="ss-sub">Controls platform-wide behavior. Changes take effect immediately.</p>
+
+  {% if form.non_field_errors %}
+    <div class="ss-alert">
+      {% for e in form.non_field_errors %}<p style="margin:0;">{{ e }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" id="site-settings-form" novalidate>
+    {% csrf_token %}
+
+    {# ── MARKETPLACE ── #}
+    <section class="ss-card">
+      <div class="ss-card-head">
+        <div class="ss-card-icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/>
+          </svg>
+        </div>
+        <h2 class="ss-card-title">Marketplace</h2>
+      </div>
+      <div class="ss-card-body">
+        <div class="ss-grid">
+          <div>
+            <label for="id_site_name" class="ss-label">Site name</label>
+            <input type="text" name="site_name" id="id_site_name" class="ss-input"
+                   value="{{ form.site_name.value|default_if_none:'' }}"
+                   placeholder="UniMarket" maxlength="100">
+            {% if form.site_name.errors %}<p class="ss-error">{{ form.site_name.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_support_email" class="ss-label">Support email</label>
+            <input type="email" name="support_email" id="id_support_email" class="ss-input"
+                   value="{{ form.support_email.value|default_if_none:'' }}"
+                   placeholder="support@unimarket.zm">
+            {% if form.support_email.errors %}<p class="ss-error">{{ form.support_email.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div class="ss-span2">
+            <label for="id_site_tagline" class="ss-label">Tagline</label>
+            <input type="text" name="site_tagline" id="id_site_tagline" class="ss-input"
+                   value="{{ form.site_tagline.value|default_if_none:'' }}"
+                   placeholder="Everything you need. All in one place." maxlength="200">
+            {% if form.site_tagline.errors %}<p class="ss-error">{{ form.site_tagline.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_support_phone" class="ss-label">Support phone</label>
+            <input type="text" name="support_phone" id="id_support_phone" class="ss-input"
+                   value="{{ form.support_phone.value|default_if_none:'' }}"
+                   placeholder="+260 97 123 4567">
+            {% if form.support_phone.errors %}<p class="ss-error">{{ form.support_phone.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {# ── MAINTENANCE ── #}
+    <section class="ss-card">
+      <div class="ss-card-head">
+        <div class="ss-card-icon" style="background:#fef3c7; color:#92400e;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <h2 class="ss-card-title">Maintenance</h2>
+      </div>
+      <div class="ss-card-body">
+        <label class="ss-toggle">
+          <input type="checkbox" name="maintenance_mode" id="id_maintenance_mode"
+                 {% if form.maintenance_mode.value %}checked{% endif %}>
+          <span style="min-width: 0;">
+            <span class="ss-toggle-title">Enable maintenance mode</span>
+            <span class="ss-toggle-text">Blocks all non-staff users.</span>
+          </span>
+        </label>
+        <div style="margin-top: 1rem;">
+          <label for="id_maintenance_message" class="ss-label">Maintenance message</label>
+          <textarea name="maintenance_message" id="id_maintenance_message" class="ss-input" rows="3"
+                    placeholder="We're making improvements. Back in a few minutes.">{{ form.maintenance_message.value|default_if_none:'' }}</textarea>
+          {% if form.maintenance_message.errors %}<p class="ss-error">{{ form.maintenance_message.errors|join:", " }}</p>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    {# ── COMMERCE ── #}
+    <section class="ss-card">
+      <div class="ss-card-head">
+        <div class="ss-card-icon" style="background:#dbeafe; color:#1e40af;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+        </div>
+        <h2 class="ss-card-title">Commerce</h2>
+      </div>
+      <div class="ss-card-body">
+        <div class="ss-grid">
+          <div>
+            <label for="id_default_currency" class="ss-label">Default currency</label>
+            <select name="default_currency" id="id_default_currency" class="ss-input">
+              {% for value, label in form.default_currency.field.choices %}
+                <option value="{{ value }}" {% if form.default_currency.value == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="id_minimum_order_amount" class="ss-label">Minimum order amount</label>
+            <input type="number" step="0.01" min="0" name="minimum_order_amount"
+                   id="id_minimum_order_amount" class="ss-input"
+                   value="{{ form.minimum_order_amount.value|default_if_none:'0.00' }}">
+          </div>
+          <div>
+            <label for="id_default_commission_percent" class="ss-label">Commission %</label>
+            <input type="number" step="0.01" min="0" max="100" name="default_commission_percent"
+                   id="id_default_commission_percent" class="ss-input"
+                   value="{{ form.default_commission_percent.value|default_if_none:'5.00' }}">
+          </div>
+          <div>
+            <label for="id_free_shipping_threshold" class="ss-label">Free shipping above</label>
+            <input type="number" step="0.01" min="0" name="free_shipping_threshold"
+                   id="id_free_shipping_threshold" class="ss-input"
+                   value="{{ form.free_shipping_threshold.value|default_if_none:'0.00' }}">
+          </div>
+          <div>
+            <label for="id_default_shipping_fee" class="ss-label">Default shipping fee</label>
+            <input type="number" step="0.01" min="0" name="default_shipping_fee"
+                   id="id_default_shipping_fee" class="ss-input"
+                   value="{{ form.default_shipping_fee.value|default_if_none:'50.00' }}">
+          </div>
+        </div>
+        <div class="ss-toggle-group" style="margin-top: 1rem;">
+          <label class="ss-toggle">
+            <input type="checkbox" name="allow_new_orders" id="id_allow_new_orders"
+                   {% if form.allow_new_orders.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Allow new orders</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="allow_new_listings" id="id_allow_new_listings"
+                   {% if form.allow_new_listings.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Allow new listings</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    {# ── FEATURES ── #}
+    <section class="ss-card">
+      <div class="ss-card-head">
+        <div class="ss-card-icon" style="background:#f3e8ff; color:#6b21a8;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2"/>
+          </svg>
+        </div>
+        <h2 class="ss-card-title">Features</h2>
+      </div>
+      <div class="ss-card-body">
+        <div class="ss-toggle-group">
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_auctions" id="id_enable_auctions" {% if form.enable_auctions.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Auctions</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_wholesale" id="id_enable_wholesale" {% if form.enable_wholesale.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Wholesale</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_classifieds" id="id_enable_classifieds" {% if form.enable_classifieds.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Classifieds</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_reviews" id="id_enable_reviews" {% if form.enable_reviews.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Reviews</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_messaging" id="id_enable_messaging" {% if form.enable_messaging.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Messaging</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_disputes" id="id_enable_disputes" {% if form.enable_disputes.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Disputes</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    {# ── REGISTRATION ── #}
+    <section class="ss-card">
+      <div class="ss-card-head">
+        <div class="ss-card-icon" style="background:#dcfce7; color:#166534;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+          </svg>
+        </div>
+        <h2 class="ss-card-title">Registration</h2>
+      </div>
+      <div class="ss-card-body">
+        <div class="ss-toggle-group" style="grid-template-columns: 1fr;">
+          <label class="ss-toggle">
+            <input type="checkbox" name="allow_buyer_signups" id="id_allow_buyer_signups" {% if form.allow_buyer_signups.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Allow buyer signups</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="allow_seller_signups" id="id_allow_seller_signups" {% if form.allow_seller_signups.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Allow seller signups</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="require_vendor_verification" id="id_require_vendor_verification" {% if form.require_vendor_verification.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Require vendor verification</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    {# ── PAYMENTS ── #}
+    <section class="ss-card">
+      <div class="ss-card-head">
+        <div class="ss-card-icon" style="background:#ecfeff; color:#0e7490;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+          </svg>
+        </div>
+        <h2 class="ss-card-title">Payment methods</h2>
+      </div>
+      <div class="ss-card-body">
+        <div class="ss-toggle-group">
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_card_payments" id="id_enable_card_payments" {% if form.enable_card_payments.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Card payments</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_mobile_money" id="id_enable_mobile_money" {% if form.enable_mobile_money.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Mobile money</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_bank_transfer" id="id_enable_bank_transfer" {% if form.enable_bank_transfer.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Bank transfer</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_cash_on_delivery" id="id_enable_cash_on_delivery" {% if form.enable_cash_on_delivery.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Cash on delivery</span>
+          </label>
+        </div>
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f3f4f6;">
+          <label class="ss-toggle" style="background:#fef3c7; border-color:#fbbf24;">
+            <input type="checkbox" name="enable_flutterwave" id="id_enable_flutterwave" {% if form.enable_flutterwave.value %}checked{% endif %}>
+            <span style="min-width: 0;">
+              <span class="ss-toggle-title">Flutterwave live payments</span>
+              <span class="ss-toggle-text">When off, subscription payments use simulated mode for development.</span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    {# ── NOTIFICATIONS ── #}
+    <section class="ss-card">
+      <div class="ss-card-head">
+        <div class="ss-card-icon" style="background:#ffe4e6; color:#be123c;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+        </div>
+        <h2 class="ss-card-title">Notifications</h2>
+      </div>
+      <div class="ss-card-body">
+        <div class="ss-toggle-group">
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_email_notifications" id="id_enable_email_notifications" {% if form.enable_email_notifications.value %}checked{% endif %}>
+            <span class="ss-toggle-title">Email notifications</span>
+          </label>
+          <label class="ss-toggle">
+            <input type="checkbox" name="enable_sms_notifications" id="id_enable_sms_notifications" {% if form.enable_sms_notifications.value %}checked{% endif %}>
+            <span class="ss-toggle-title">SMS notifications</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+  </form>
+
+  <div class="ss-save-bar">
+    <a href="{% url 'dashboards:dashboard' %}" class="ss-btn ss-btn-secondary">Cancel</a>
+    <button type="submit" form="site-settings-form" class="ss-btn ss-btn-primary">
+      Save settings
+    </button>
+  </div>
+</div>
+{% endblock %}

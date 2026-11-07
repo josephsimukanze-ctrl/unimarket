@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+{% block title %}Incoming orders — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .so-wrap { max-width: 72rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .so-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .so-header {
+    display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .so-h1 {
+    font-size: 1.5rem; font-weight: 800;
+    color: #111827; letter-spacing: -0.01em;
+    margin: 0; line-height: 1.2;
+  }
+  @media (min-width: 640px) { .so-h1 { font-size: 1.6rem; } }
+  .so-sub {
+    font-size: 0.85rem; color: #4b5563;
+    margin: 0.35rem 0 0; line-height: 1.5;
+  }
+  .so-sub strong { color: #111827; font-weight: 700; }
+
+  .so-back {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 0.8rem; font-weight: 700;
+    color: #374151; text-decoration: none;
+    white-space: nowrap;
+    min-height: 40px; box-sizing: border-box;
+  }
+  .so-back:hover { background: #f9fafb; }
+
+  /* ── Table container ── */
+  .so-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  /* Desktop table */
+  .so-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .so-table thead {
+    background: #f9fafb;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .so-table thead th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: 0.7rem; font-weight: 800;
+    color: #4b5563;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .so-table thead th:last-child { text-align: right; }
+
+  .so-table tbody tr {
+    border-top: 1px solid #f3f4f6;
+    transition: background-color 0.15s;
+  }
+  .so-table tbody tr:hover { background: #fff7ed; }
+  .so-table tbody td {
+    padding: 0.85rem 1rem;
+    color: #111827;
+    vertical-align: middle;
+  }
+  .so-table tbody td:last-child { text-align: right; white-space: nowrap; }
+
+  .so-order-num {
+    font-family: ui-monospace, monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #111827;
+    word-break: break-all;
+  }
+  .so-buyer {
+    font-size: 0.85rem;
+    color: #374151;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 12rem;
+  }
+  .so-total {
+    font-weight: 700;
+    color: #111827;
+    white-space: nowrap;
+  }
+
+  /* Status badges */
+  .so-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.7rem; font-weight: 800;
+    text-transform: capitalize;
+    white-space: nowrap;
+  }
+  .so-badge-delivered  { background: #dcfce7; color: #166534; }
+  .so-badge-cancelled  { background: #fee2e2; color: #991b1b; }
+  .so-badge-pending    { background: #fef3c7; color: #92400e; }
+  .so-badge-shipped    { background: #dbeafe; color: #1e40af; }
+  .so-badge-processing { background: #ffedd5; color: #9a3412; }
+  .so-badge-paid       { background: #ffedd5; color: #9a3412; }
+  .so-badge-default    { background: #f3f4f6; color: #374151; }
+  .so-badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+  }
+
+  .so-manage {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    font-size: 0.75rem; font-weight: 700;
+    color: #ea580c; text-decoration: none;
+    min-height: 32px; box-sizing: border-box;
+    white-space: nowrap;
+  }
+  .so-manage:hover { background: #fff7ed; border-color: #fdba74; }
+
+  /* ── Mobile card layout ── */
+  .so-cards { display: none; }
+  @media (max-width: 767px) {
+    .so-table-wrap { display: none; }
+    .so-cards { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .so-order-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 0.85rem;
+    }
+    .so-order-card-head {
+      display: flex; flex-wrap: wrap;
+      align-items: flex-start; justify-content: space-between;
+      gap: 0.5rem;
+      padding-bottom: 0.65rem;
+      border-bottom: 1px solid #f3f4f6;
+      margin-bottom: 0.65rem;
+    }
+    .so-order-card-info {
+      display: flex; flex-direction: column;
+      gap: 0.15rem; min-width: 0;
+    }
+    .so-order-card-label {
+      font-size: 0.6rem; font-weight: 800;
+      color: #9ca3af;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin: 0;
+    }
+    .so-order-card-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .so-order-card-field { min-width: 0; }
+    .so-order-card-value {
+      font-size: 0.8rem; font-weight: 600;
+      color: #111827; margin: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .so-order-card-actions {
+      display: flex; justify-content: flex-end;
+    }
+    .so-manage { width: 100%; justify-content: center; }
+  }
+
+  /* ── Empty state ── */
+  .so-empty {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; padding: 2.5rem 1.25rem;
+    text-align: center;
+  }
+  @media (min-width: 640px) { .so-empty { padding: 3rem 1.5rem; } }
+  .so-empty-icon {
+    width: 4rem; height: 4rem;
+    border-radius: 9999px;
+    background: #fff7ed; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  .so-empty-title {
+    font-size: 1.05rem; font-weight: 800;
+    color: #111827; margin: 0;
+  }
+  .so-empty-text {
+    font-size: 0.85rem; color: #4b5563;
+    margin: 0.5rem auto 0; max-width: 28rem;
+    line-height: 1.5;
+  }
+  .so-empty-cta {
+    display: inline-flex; align-items: center;
+    margin-top: 1.25rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: 10px;
+    background: #ea580c; color: #fff;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none;
+    min-height: 42px; box-sizing: border-box;
+  }
+  .so-empty-cta:hover { background: #c2410c; }
+</style>
+
+<div class="so-wrap">
+
+  {# ── Header ── #}
+  <div class="so-header">
+    <div style="min-width: 0;">
+      <h1 class="so-h1">Incoming orders</h1>
+      <p class="so-sub">Seller: <strong>{{ vendor.display_name }}</strong></p>
+    </div>
+    <a href="{% url 'vendors:dashboard' %}" class="so-back">
+      ← Dashboard
+    </a>
+  </div>
+
+  {% if orders %}
+
+    {# ── DESKTOP TABLE (hidden on mobile) ── #}
+    <div class="so-card so-table-wrap">
+      <table class="so-table">
+        <thead>
+          <tr>
+            <th>Order #</th>
+            <th>Buyer</th>
+            <th>Items</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Placed</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+            <tr>
+              <td>
+                <p class="so-order-num">{{ order.order_number }}</p>
+              </td>
+              <td>
+                <p class="so-buyer">{{ order.buyer.username }}</p>
+              </td>
+              <td>
+                <span style="color: #374151; font-weight: 600;">
+                  {{ order.items.count }}
+                </span>
+              </td>
+              <td>
+                <p class="so-total">{{ order.currency }} {{ order.total }}</p>
+              </td>
+              <td>
+                {% if order.status == 'delivered' %}
+                  <span class="so-badge so-badge-delivered">
+                    <span class="so-badge-dot" style="background: #16a34a;"></span>
+                    {{ order.get_status_display }}
+                  </span>
+                {% elif order.status == 'cancelled' %}
+                  <span class="so-badge so-badge-cancelled">
+                    <span class="so-badge-dot" style="background: #dc2626;"></span>
+                    {{ order.get_status_display }}
+                  </span>
+                {% elif order.status == 'pending' %}
+                  <span class="so-badge so-badge-pending">
+                    <span class="so-badge-dot" style="background: #d97706;"></span>
+                    {{ order.get_status_display }}
+                  </span>
+                {% elif order.status == 'shipped' %}
+                  <span class="so-badge so-badge-shipped">
+                    <span class="so-badge-dot" style="background: #2563eb;"></span>
+                    {{ order.get_status_display }}
+                  </span>
+                {% elif order.status == 'paid' or order.status == 'processing' %}
+                  <span class="so-badge so-badge-processing">
+                    <span class="so-badge-dot" style="background: #ea580c;"></span>
+                    {{ order.get_status_display }}
+                  </span>
+                {% else %}
+                  <span class="so-badge so-badge-default">{{ order.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <span style="color: #6b7280; font-size: 0.8rem; white-space: nowrap;">
+                  {{ order.placed_at|date:"M d, H:i" }}
+                </span>
+              </td>
+              <td>
+                <a href="{% url 'orders:seller_order_detail' order.order_number %}" class="so-manage">
+                  Manage
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# ── MOBILE CARDS (hidden on desktop) ── #}
+    <div class="so-cards">
+      {% for order in orders %}
+        <div class="so-order-card">
+
+          {# Card header: order number + status #}
+          <div class="so-order-card-head">
+            <div class="so-order-card-info">
+              <p class="so-order-card-label">Order</p>
+              <p class="so-order-num" style="font-size: 0.85rem;">{{ order.order_number }}</p>
+            </div>
+
+            {% if order.status == 'delivered' %}
+              <span class="so-badge so-badge-delivered">
+                <span class="so-badge-dot" style="background: #16a34a;"></span>
+                {{ order.get_status_display }}
+              </span>
+            {% elif order.status == 'cancelled' %}
+              <span class="so-badge so-badge-cancelled">
+                <span class="so-badge-dot" style="background: #dc2626;"></span>
+                {{ order.get_status_display }}
+              </span>
+            {% elif order.status == 'pending' %}
+              <span class="so-badge so-badge-pending">
+                <span class="so-badge-dot" style="background: #d97706;"></span>
+                {{ order.get_status_display }}
+              </span>
+            {% elif order.status == 'shipped' %}
+              <span class="so-badge so-badge-shipped">
+                <span class="so-badge-dot" style="background: #2563eb;"></span>
+                {{ order.get_status_display }}
+              </span>
+            {% elif order.status == 'paid' or order.status == 'processing' %}
+              <span class="so-badge so-badge-processing">
+                <span class="so-badge-dot" style="background: #ea580c;"></span>
+                {{ order.get_status_display }}
+              </span>
+            {% else %}
+              <span class="so-badge so-badge-default">{{ order.get_status_display }}</span>
+            {% endif %}
+          </div>
+
+          {# Card body: buyer, items, total, placed #}
+          <div class="so-order-card-body">
+            <div class="so-order-card-field">
+              <p class="so-order-card-label">Buyer</p>
+              <p class="so-order-card-value">{{ order.buyer.username }}</p>
+            </div>
+            <div class="so-order-card-field">
+              <p class="so-order-card-label">Items</p>
+              <p class="so-order-card-value">{{ order.items.count }}</p>
+            </div>
+            <div class="so-order-card-field">
+              <p class="so-order-card-label">Total</p>
+              <p class="so-order-card-value">{{ order.currency }} {{ order.total }}</p>
+            </div>
+            <div class="so-order-card-field">
+              <p class="so-order-card-label">Placed</p>
+              <p class="so-order-card-value">{{ order.placed_at|date:"M d, H:i" }}</p>
+            </div>
+          </div>
+
+          {# Card actions #}
+          <div class="so-order-card-actions">
+            <a href="{% url 'orders:seller_order_detail' order.order_number %}" class="so-manage">
+              Manage order →
+            </a>
+          </div>
+
+        </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+
+    {# ── Empty state ── #}
+    <div class="so-empty">
+      <div class="so-empty-icon">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+        </svg>
+      </div>
+      <p class="so-empty-title">No incoming orders yet</p>
+      <p class="so-empty-text">
+        Once buyers purchase from your store, their orders will appear here for you to manage.
+      </p>
+      <a href="{% url 'catalogue:product_create' %}" class="so-empty-cta">
+        + Add a product
+      </a>
+    </div>
+
+  {% endif %}
+
+</div>
+{% endblock %}

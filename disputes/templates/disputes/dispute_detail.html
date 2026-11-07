@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+{% block title %}Dispute — {{ dispute.order.order_number }}{% endblock %}
+
+{% block content %}
+<style>
+  .dd-wrap { max-width: 56rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .dd-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .dd-breadcrumb { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem; font-size:.75rem; color:#6b7280; margin-bottom:1rem; }
+  .dd-breadcrumb a { color:#6b7280; text-decoration:none; }
+  .dd-breadcrumb a:hover { color:#ea580c; }
+  .dd-breadcrumb .current { color:#111827; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60%; }
+
+  .dd-card { background:#fff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden; }
+
+  .dd-label { font-size:.65rem; font-weight:700; color:#4b5563; text-transform:uppercase; letter-spacing:.05em; margin:0; }
+
+  .dd-title { font-size:1.15rem; font-weight:800; color:#111827; margin:.15rem 0 0; line-height:1.25; word-break:break-word; }
+  @media (min-width: 640px) { .dd-title { font-size:1.3rem; } }
+
+  .dd-sub { font-size:.8rem; color:#4b5563; margin:.5rem 0 0; word-break:break-word; line-height:1.5; }
+  .dd-sub a { color:#ea580c; text-decoration:none; font-weight:600; }
+  .dd-sub a:hover { text-decoration:underline; }
+
+  .dd-badge { display:inline-flex; align-items:center; gap:.35rem; font-size:.7rem; font-weight:700; padding:.35rem .75rem; border-radius:9999px; text-transform:capitalize; white-space:nowrap; }
+  .dd-badge-open  { background:#fef3c7; color:#92400e; }
+  .dd-badge-green { background:#dcfce7; color:#166534; }
+  .dd-badge-gray  { background:#f3f4f6; color:#374151; }
+  .dd-badge-red   { background:#fee2e2; color:#991b1b; }
+  .dd-badge-blue  { background:#dbeafe; color:#1e40af; }
+
+  /* Timeline */
+  .dd-timeline {
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:.25rem;
+    margin-top:1rem;
+    padding-top:1rem;
+    border-top:1px solid #f3f4f6;
+  }
+  .dd-step { text-align:center; min-width:0; }
+  .dd-dot { width:.6rem; height:.6rem; border-radius:9999px; margin:0 auto .35rem; display:block; }
+  .dd-step-label { font-size:.55rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  @media (min-width: 480px) { .dd-step-label { font-size:.6rem; letter-spacing:.05em; } }
+
+  /* Two-column layout */
+  .dd-body { display:grid; gap:1rem; grid-template-columns:minmax(0,1fr); }
+  @media (min-width: 1024px) { .dd-body { grid-template-columns:minmax(0,1fr) 320px; } }
+
+  .dd-col-left, .dd-col-right { display:flex; flex-direction:column; gap:1rem; min-width:0; }
+
+  /* Card inner sections */
+  .dd-pad { padding:1rem; }
+  @media (min-width: 640px) { .dd-pad { padding:1.25rem; } }
+
+  .dd-h2 {
+    font-size:.9rem;
+    font-weight:800;
+    color:#111827;
+    margin:0 0 .75rem;
+    display:flex; align-items:center; gap:.5rem;
+  }
+  .dd-h2 svg { width:16px; height:16px; color:#6b7280; flex-shrink:0; }
+
+  .dd-desc {
+    font-size:.85rem;
+    color:#374151;
+    line-height:1.6;
+    white-space:pre-line;
+    margin:0;
+    word-break:break-word;
+  }
+
+  /* Evidence grid */
+  .dd-evidence-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+    gap:.6rem;
+    margin-top:.5rem;
+  }
+  .dd-evidence-item {
+    display:block;
+    aspect-ratio:1;
+    border-radius:8px;
+    overflow:hidden;
+    background:#f3f4f6;
+    border:1px solid #e5e7eb;
+    text-decoration:none;
+    position:relative;
+  }
+  .dd-evidence-item img { width:100%; height:100%; object-fit:cover; display:block; }
+  .dd-evidence-file {
+    width:100%; height:100%;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:.5rem;
+    color:#374151;
+    font-size:.65rem;
+    font-weight:600;
+    text-align:center;
+    word-break:break-all;
+    overflow:hidden;
+    box-sizing:border-box;
+  }
+  .dd-evidence-ext {
+    font-size:.75rem;
+    font-weight:800;
+    color:#ea580c;
+    margin-bottom:.25rem;
+  }
+
+  /* Conversation */
+  .dd-conv-body { padding:1rem; background:#f9fafb; }
+  @media (min-width: 640px) { .dd-conv-body { padding:1.25rem; } }
+  .dd-conv-text { font-size:.85rem; color:#374151; line-height:1.6; white-space:pre-line; margin:0; word-break:break-word; }
+  .dd-conv-empty { text-align:center; color:#6b7280; font-style:italic; font-size:.85rem; padding:1rem 0; margin:0; }
+
+  /* Reply form */
+  .dd-reply { padding:.75rem 1rem; border-top:1px solid #f3f4f6; background:#fff; }
+  @media (min-width: 640px) { .dd-reply { padding:1rem 1.25rem; } }
+  .dd-reply textarea {
+    width:100%;
+    border:1px solid #d1d5db;
+    border-radius:8px;
+    padding:.6rem .75rem;
+    font-size:.85rem;
+    color:#111827;
+    background:#fff;
+    resize:none;
+    outline:none;
+    box-sizing:border-box;
+    font-family:inherit;
+  }
+  .dd-reply textarea:focus { border-color:#ea580c; box-shadow:0 0 0 3px rgba(234,88,12,.12); }
+  .dd-reply-row { display:flex; gap:.5rem; align-items:flex-end; }
+  .dd-reply-btn {
+    border-radius:8px;
+    background:#f97316;
+    color:#fff;
+    padding:.6rem 1rem;
+    font-size:.85rem;
+    font-weight:700;
+    border:0;
+    cursor:pointer;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+  .dd-reply-btn:hover { background:#ea580c; }
+
+  /* Refunds */
+  .dd-refund {
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:.5rem;
+    padding:.75rem;
+    background:#f9fafb;
+    border-radius:8px;
+  }
+  .dd-refund + .dd-refund { margin-top:.5rem; }
+  .dd-refund-amount { font-size:.85rem; font-weight:700; color:#111827; margin:0; }
+  .dd-refund-date   { font-size:.7rem; color:#6b7280; margin:.15rem 0 0; }
+
+  /* Right sidebar cards */
+  .dd-section-title { font-size:.9rem; font-weight:800; color:#111827; margin:0 0 .75rem; }
+
+  .dd-currency-input {
+    width:100%;
+    border:1px solid #d1d5db;
+    border-radius:8px;
+    padding:.6rem .75rem .6rem 3rem;
+    font-size:.85rem;
+    color:#111827;
+    background:#fff;
+    outline:none;
+    box-sizing:border-box;
+  }
+  .dd-currency-input:focus { border-color:#ea580c; box-shadow:0 0 0 3px rgba(234,88,12,.12); }
+  .dd-currency-symbol {
+    position:absolute; top:50%; left:.75rem; transform:translateY(-50%);
+    font-size:.8rem; font-weight:600; color:#4b5563; pointer-events:none;
+  }
+
+  .dd-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.65rem 1rem; border-radius:10px; font-size:.85rem;
+    font-weight:700; text-decoration:none; border:0; cursor:pointer;
+    min-height:42px; box-sizing:border-box; width:100%;
+  }
+  .dd-btn-primary { background:#f97316; color:#fff; }
+  .dd-btn-primary:hover { background:#ea580c; }
+
+  .dd-participant { display:flex; align-items:center; gap:.5rem; min-width:0; }
+  .dd-avatar {
+    width:2rem; height:2rem; border-radius:9999px;
+    background:#ffedd5; color:#c2410c;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.75rem; font-weight:800; flex-shrink:0;
+  }
+  .dd-participant-name { font-size:.75rem; font-weight:700; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin:0; }
+  .dd-participant-role { font-size:.65rem; color:#6b7280; margin:0; }
+
+  .dd-admin {
+    background:#111827; color:#fff;
+    border-radius:16px; padding:1rem;
+  }
+  .dd-admin-title { font-size:.7rem; font-weight:800; color:#fb923c; text-transform:uppercase; letter-spacing:.05em; margin:0 0 .75rem; }
+  .dd-admin select {
+    width:100%;
+    border:1px solid rgba(255,255,255,.2);
+    background:rgba(255,255,255,.05);
+    color:#fff;
+    padding:.6rem .75rem;
+    border-radius:8px;
+    font-size:.85rem;
+    outline:none;
+    box-sizing:border-box;
+    margin-bottom:.5rem;
+  }
+  .dd-admin select option { color:#111827; }
+</style>
+
+<div class="dd-wrap">
+
+  {# ── Breadcrumb ── #}
+  <nav class="dd-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'disputes:my_disputes' %}">My disputes</a>
+    <span>/</span>
+    <span class="current">{{ dispute.reason }}</span>
+  </nav>
+
+  {# ── Header ── #}
+  <div class="dd-card" style="padding:1rem; margin-bottom:1rem;">
+    <style>@media(min-width:640px){ .dd-header-pad { padding:1.5rem !important; } }</style>
+    <div class="dd-header-pad">
+
+      <div style="display:flex; flex-direction:column; gap:.75rem;">
+        <style>@media(min-width:640px){ .dd-header-top { flex-direction:row !important; align-items:flex-start !important; justify-content:space-between !important; } }</style>
+        <div class="dd-header-top" style="display:flex; flex-direction:column; gap:.75rem;">
+          <div style="min-width:0;">
+            <p class="dd-label">Dispute</p>
+            <h1 class="dd-title">{{ dispute.reason }}</h1>
+            <p class="dd-sub">
+              Order <a href="{% url 'orders:order_detail' dispute.order.order_number %}">{{ dispute.order.order_number }}</a>
+              · Opened by <strong style="color:#111827;">{{ dispute.opened_by.username }}</strong>
+              · {{ dispute.created_at|date:"M d, Y" }}
+            </p>
+          </div>
+          <span class="dd-badge
+            {% if dispute.status == 'closed' %}dd-badge-gray
+            {% elif dispute.status == 'resolved_buyer' or dispute.status == 'resolved_seller' %}dd-badge-green
+            {% else %}dd-badge-open{% endif %}"
+            style="align-self:flex-start;">
+            {{ dispute.get_status_display }}
+          </span>
+        </div>
+      </div>
+
+      {# Timeline #}
+      {% if dispute.status != 'closed' %}
+        <div class="dd-timeline">
+          {% with s=dispute.status %}
+
+            <div class="dd-step">
+              <span class="dd-dot" style="background:{% if s == 'open' or s == 'under_review' or s == 'resolved_buyer' or s == 'resolved_seller' %}#f97316{% else %}#d1d5db{% endif %};"></span>
+              <p class="dd-step-label" style="color:{% if s == 'open' or s == 'under_review' or s == 'resolved_buyer' or s == 'resolved_seller' %}#c2410c{% else %}#6b7280{% endif %};">Opened</p>
+            </div>
+
+            <div class="dd-step">
+              <span class="dd-dot" style="background:{% if s == 'under_review' or s == 'resolved_buyer' or s == 'resolved_seller' %}#f97316{% else %}#d1d5db{% endif %};"></span>
+              <p class="dd-step-label" style="color:{% if s == 'under_review' or s == 'resolved_buyer' or s == 'resolved_seller' %}#c2410c{% else %}#6b7280{% endif %};">In review</p>
+            </div>
+
+            <div class="dd-step">
+              <span class="dd-dot" style="background:{% if s == 'resolved_buyer' or s == 'resolved_seller' %}#16a34a{% else %}#d1d5db{% endif %};"></span>
+              <p class="dd-step-label" style="color:{% if s == 'resolved_buyer' or s == 'resolved_seller' %}#166534{% else %}#6b7280{% endif %};">Resolved</p>
+            </div>
+
+          {% endwith %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Body ── #}
+  <div class="dd-body">
+
+    {# ══ LEFT: Description + Evidence + Conversation + Refunds ══ #}
+    <div class="dd-col-left">
+
+      {# Description #}
+      <div class="dd-card dd-pad">
+        <h2 class="dd-h2">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Description
+        </h2>
+        <p class="dd-desc">{{ dispute.description }}</p>
+      </div>
+
+      {# Evidence #}
+      {% if dispute.evidence_files.exists %}
+        <div class="dd-card dd-pad">
+          <h2 class="dd-h2">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Evidence
+            <span style="font-size:.65rem; font-weight:600; color:#6b7280; margin-left:auto;">{{ dispute.evidence_files.count }} file{{ dispute.evidence_files.count|pluralize }}</span>
+          </h2>
+          <div class="dd-evidence-grid">
+            {% for ev in dispute.evidence_files.all %}
+              {% with filename=ev.file.name|lower %}
+                {% if '.pdf' in filename %}
+                  <a href="{{ ev.file.url }}" target="_blank" rel="noopener" class="dd-evidence-item" title="{{ ev.original_name }}">
+                    <div class="dd-evidence-file">
+                      <span class="dd-evidence-ext">PDF</span>
+                      <span>{{ ev.original_name|default:ev.file.name|truncatechars:20 }}</span>
+                    </div>
+                  </a>
+                {% else %}
+                  <a href="{{ ev.file.url }}" target="_blank" rel="noopener" class="dd-evidence-item" title="{{ ev.original_name }}">
+                    <img src="{{ ev.file.url }}" alt="{{ ev.original_name }}" loading="lazy">
+                  </a>
+                {% endif %}
+              {% endwith %}
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      {# Conversation #}
+      <div class="dd-card">
+        <div class="dd-pad" style="padding-bottom:.75rem; border-bottom:1px solid #f3f4f6;">
+          <h2 class="dd-h2" style="margin-bottom:.25rem;">Conversation</h2>
+          <p style="font-size:.75rem; color:#4b5563; margin:0;">Buyer, seller, and staff can reply here.</p>
+        </div>
+
+        <div class="dd-conv-body">
+          {% if dispute.resolution_notes %}
+            <p class="dd-conv-text">{{ dispute.resolution_notes }}</p>
+          {% else %}
+            <p class="dd-conv-empty">No replies yet. Start the conversation below.</p>
+          {% endif %}
+        </div>
+
+        {% if is_buyer or is_seller %}
+          <form method="post" class="dd-reply">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_notes">
+            <div class="dd-reply-row">
+              <textarea name="notes" rows="2" placeholder="Add a reply..." required></textarea>
+              <button type="submit" class="dd-reply-btn">Reply</button>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+
+      {# Refunds #}
+      {% if refunds %}
+        <div class="dd-card dd-pad">
+          <h2 class="dd-h2">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Refunds
+          </h2>
+          {% for r in refunds %}
+            <div class="dd-refund">
+              <div style="min-width:0;">
+                <p class="dd-refund-amount">{{ r.currency }} {{ r.amount }}</p>
+                <p class="dd-refund-date">Requested {{ r.created_at|date:"M d, Y" }}</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;">
+                <span class="dd-badge
+                  {% if r.status == 'completed' %}dd-badge-green
+                  {% elif r.status == 'rejected' %}dd-badge-red
+                  {% elif r.status == 'approved' %}dd-badge-blue
+                  {% else %}dd-badge-open{% endif %}">
+                  {{ r.get_status_display }}
+                </span>
+                {% if is_staff and r.status == 'requested' %}
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve_refund">
+                    <input type="hidden" name="refund_id" value="{{ r.pk }}">
+                    <button type="submit" style="font-size:.7rem; font-weight:700; color:#ea580c; background:none; border:0; cursor:pointer; text-decoration:underline;">Approve</button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    {# ══ RIGHT: Actions sidebar ══ #}
+    <div class="dd-col-right">
+
+      {# Buyer: Request refund #}
+      {% if is_buyer and dispute.status == 'open' %}
+        <div class="dd-card dd-pad">
+          <h2 class="dd-section-title">Request a refund</h2>
+          <p style="font-size:.75rem; color:#4b5563; margin:0 0 .75rem; line-height:1.5;">
+            If the seller hasn't resolved your issue, request a refund. Staff will review and approve.
+          </p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="request_refund">
+            <div style="position:relative; margin-bottom:.5rem;">
+              <span class="dd-currency-symbol">{{ dispute.order.currency }}</span>
+              <input type="number" step="0.01" name="amount" placeholder="Amount"
+                     value="{{ dispute.order.total }}"
+                     class="dd-currency-input" required>
+            </div>
+            <button type="submit" class="dd-btn dd-btn-primary">Request refund</button>
+          </form>
+        </div>
+      {% endif %}
+
+      {# Order summary #}
+      <div class="dd-card dd-pad">
+        <p class="dd-label" style="margin-bottom:.5rem;">Order</p>
+        <a href="{% url 'orders:order_detail' dispute.order.order_number %}"
+           style="font-size:.85rem; font-weight:700; color:#111827; text-decoration:none; display:block; word-break:break-all;">
+          {{ dispute.order.order_number }}
+        </a>
+        <p style="font-size:.75rem; color:#4b5563; margin:.25rem 0 0;">From {{ dispute.order.vendor.display_name }}</p>
+        <div style="margin-top:.75rem; padding-top:.75rem; border-top:1px solid #f3f4f6; display:flex; justify-content:space-between; font-size:.85rem;">
+          <span style="color:#4b5563;">Total</span>
+          <span style="font-weight:800; color:#111827;">{{ dispute.order.currency }} {{ dispute.order.total }}</span>
+        </div>
+      </div>
+
+      {# Participants #}
+      <div class="dd-card dd-pad">
+        <p class="dd-label" style="margin-bottom:.75rem;">Participants</p>
+        <div style="display:flex; flex-direction:column; gap:.75rem;">
+          <div class="dd-participant">
+            <div class="dd-avatar">{{ dispute.opened_by.username|slice:":1"|upper }}</div>
+            <div style="min-width:0;">
+              <p class="dd-participant-name">{{ dispute.opened_by.username }}</p>
+              <p class="dd-participant-role">Buyer</p>
+            </div>
+          </div>
+          <div class="dd-participant">
+            <div class="dd-avatar">{{ dispute.order.vendor.display_name|slice:":1"|upper }}</div>
+            <div style="min-width:0;">
+              <p class="dd-participant-name">{{ dispute.order.vendor.display_name }}</p>
+              <p class="dd-participant-role">Seller</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Staff: resolve #}
+      {% if is_staff %}
+        <div class="dd-admin">
+          <p class="dd-admin-title">Admin: resolve</p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="resolve">
+            <select name="status">
+              {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if dispute.status == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="dd-btn dd-btn-primary">Update status</button>
+          </form>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}My purchase summary — UniMarket{% endblock %}
+{% block content %}
+
+<div class="max-w-5xl mx-auto">
+
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-ink-900 tracking-tight">My purchase summary</h1>
+      <p class="text-sm text-ink-500 mt-1">Last {{ days }} days of shopping</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="?days=30" class="px-3 py-1.5 rounded-lg text-sm {% if days == 30 %}bg-orange-500 text-white{% else %}bg-white border border-ink-200 text-ink-700 hover:bg-ink-50{% endif %}">30 days</a>
+      <a href="?days=90" class="px-3 py-1.5 rounded-lg text-sm {% if days == 90 %}bg-orange-500 text-white{% else %}bg-white border border-ink-200 text-ink-700 hover:bg-ink-50{% endif %}">90 days</a>
+      <a href="?days=365" class="px-3 py-1.5 rounded-lg text-sm {% if days == 365 %}bg-orange-500 text-white{% else %}bg-white border border-ink-200 text-ink-700 hover:bg-ink-50{% endif %}">1 year</a>
+    </div>
+  </div>
+
+  {# KPI #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <div class="flex items-start justify-between mb-1">
+        <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Total spent</p>
+        {% if data.spent_change.direction %}
+          <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full
+            {% if data.spent_change.direction == 'up' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+            {% if data.spent_change.direction == 'up' %}↑{% else %}↓{% endif %} {{ data.spent_change.value }}%
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900">ZMW {{ data.total_spent }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <div class="flex items-start justify-between mb-1">
+        <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Orders</p>
+        {% if data.orders_change.direction %}
+          <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full
+            {% if data.orders_change.direction == 'up' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+            {% if data.orders_change.direction == 'up' %}↑{% else %}↓{% endif %} {{ data.orders_change.value }}%
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900">{{ data.total_orders }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Delivered</p>
+      <p class="text-xl sm:text-2xl font-bold text-green-600 mt-1">{{ data.delivered }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-ink-200 p-4">
+      <p class="text-xs font-medium text-ink-500 uppercase tracking-wide">Reviews</p>
+      <p class="text-xl sm:text-2xl font-bold text-ink-900 mt-1">{{ data.reviews_written }}</p>
+    </div>
+  </div>
+
+  {# Spending trend chart #}
+  <div class="bg-white rounded-xl border border-ink-200 p-5 mb-4">
+    <h2 class="font-bold text-ink-900 mb-4">Your spending trend</h2>
+    <div class="relative h-64">
+      <canvas id="spendChart"></canvas>
+    </div>
+  </div>
+
+  {# Two columns: where you shopped + recent orders #}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    <div class="bg-white rounded-xl border border-ink-200 p-5">
+      <h2 class="font-bold text-ink-900 mb-4">Where you shopped</h2>
+      {% if data.orders_by_vendor %}
+        <div class="space-y-3">
+          {% for row in data.orders_by_vendor %}
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-ink-900">{{ row.vendor__display_name }}</p>
+                <p class="text-xs text-ink-500">{{ row.count }} order{{ row.count|pluralize }}</p>
+              </div>
+              <p class="font-semibold text-ink-900">ZMW {{ row.spent }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-sm text-ink-500">No purchases in this period.</p>
+      {% endif %}
+    </div>
+
+    <div class="bg-white rounded-xl border border-ink-200 p-5">
+      <h2 class="font-bold text-ink-900 mb-4">Recent orders</h2>
+      {% if data.recent_orders %}
+        <div class="space-y-2">
+          {% for o in data.recent_orders %}
+            <a href="{% url 'orders:order_detail' o.order_number %}" class="flex items-center justify-between text-sm py-1.5 border-b border-ink-100 last:border-0 hover:bg-orange-50/40 -mx-2 px-2 rounded">
+              <div class="min-w-0">
+                <p class="font-medium text-ink-900 truncate">{{ o.order_number }}</p>
+                <p class="text-xs text-ink-500">{{ o.vendor.display_name }} · {{ o.placed_at|date:"M d" }}</p>
+              </div>
+              <span class="text-xs capitalize {% if o.status == 'delivered' %}text-green-600{% else %}text-amber-600{% endif %}">
+                {{ o.get_status_display }}
+              </span>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-sm text-ink-500">No recent orders.</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ data.spend_labels|json_script:"spend-labels" }}
+{{ data.spend_data|json_script:"spend-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const ORANGE = 'rgb(249, 115, 22)';
+  const ORANGE_LIGHT = 'rgba(249, 115, 22, 0.15)';
+  const INK = 'rgb(100, 116, 139)';
+
+  const labels = JSON.parse(document.getElementById('spend-labels').textContent);
+  const values = JSON.parse(document.getElementById('spend-data').textContent);
+  const el = document.getElementById('spendChart');
+  if (el) {
+    new Chart(el, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Spent (ZMW)',
+          data: values,
+          borderColor: ORANGE,
+          backgroundColor: ORANGE_LIGHT,
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: ORANGE,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0f172a',
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              label: (c) => 'ZMW ' + Number(c.parsed.y).toLocaleString(undefined, { minimumFractionDigits: 2 })
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: INK, maxRotation: 0, autoSkip: true, maxTicksLimit: 8, font: { size: 11 } } },
+          y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.15)' }, ticks: { color: INK, font: { size: 11 }, callback: (v) => 'ZMW ' + v.toLocaleString() } }
+        }
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

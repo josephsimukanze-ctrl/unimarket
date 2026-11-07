@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}My auctions — UniMarket{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">My auctions</h1>
+  <a href="{% url 'auctions:auction_create' %}"
+     class="rounded-lg bg-brand-600 px-4 py-2 text-white text-sm font-medium hover:bg-brand-700">
+    + Create auction
+  </a>
+</div>
+
+{% if auctions %}
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-left text-gray-600">
+        <tr>
+          <th class="px-4 py-3">Title</th>
+          <th class="px-4 py-3">Status</th>
+          <th class="px-4 py-3">Current bid</th>
+          <th class="px-4 py-3">Ends</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for auction in auctions %}
+          <tr>
+            <td class="px-4 py-3 font-medium text-gray-900">{{ auction.title }}</td>
+            <td class="px-4 py-3 capitalize">{{ auction.get_status_display }}</td>
+            <td class="px-4 py-3">{{ auction.currency }} {{ auction.current_price }}</td>
+            <td class="px-4 py-3">{{ auction.ends_at|date:"M d, H:i" }}</td>
+            <td class="px-4 py-3 text-right">
+              <a href="{% url 'auctions:auction_detail' auction.pk %}" class="text-brand-600 hover:underline">View</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="bg-white rounded-xl border border-gray-200 p-8 text-center">
+    <p class="text-gray-600 mb-4">You haven't created any auctions yet.</p>
+    <a href="{% url 'auctions:auction_create' %}"
+       class="inline-block rounded-lg bg-brand-600 px-4 py-2 text-white text-sm font-medium hover:bg-brand-700">
+      Create your first auction
+    </a>
+  </div>
+{% endif %}
+{% endblock %}

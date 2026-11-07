@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% block title %}My disputes — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .md-wrap { max-width: 72rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .md-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .md-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (min-width: 640px) {
+    .md-header { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+  }
+
+  .md-h1 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  @media (min-width: 640px) { .md-h1 { font-size: 1.5rem; } }
+
+  .md-sub {
+    font-size: 0.8rem;
+    color: #374151;
+    margin: 0.35rem 0 0;
+    line-height: 1.5;
+  }
+  @media (min-width: 640px) { .md-sub { font-size: 0.85rem; } }
+
+  .md-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.65rem 1.1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    min-height: 42px;
+    box-sizing: border-box;
+    white-space: nowrap;
+  }
+  .md-btn-secondary {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #374151;
+  }
+  .md-btn-secondary:hover { background: #f9fafb; }
+  .md-btn-primary {
+    background: #ea580c;
+    color: #fff;
+  }
+  .md-btn-primary:hover { background: #c2410c; }
+
+  /* Stats grid */
+  .md-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (min-width: 768px) { .md-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; } }
+
+  .md-stat {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.85rem;
+    min-width: 0;
+  }
+  @media (min-width: 640px) { .md-stat { padding: 1rem; } }
+  .md-stat-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .md-stat-num {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin: 0.25rem 0 0;
+    color: #111827;
+  }
+  @media (min-width: 640px) { .md-stat-num { font-size: 1.5rem; } }
+
+  /* Filter tabs — horizontal scroll on phone */
+  .md-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.25rem;
+  }
+  .md-tabs::-webkit-scrollbar { display: none; }
+  .md-tab {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: background-color 0.15s;
+  }
+  .md-tab-active { background: #f97316; color: #fff; }
+  .md-tab-idle   { background: #fff; border: 1px solid #e5e7eb; color: #374151; }
+  .md-tab-idle:hover { background: #f9fafb; }
+
+  /* Dispute list */
+  .md-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  .md-card {
+    display: block;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem;
+    text-decoration: none;
+    transition: box-shadow 0.15s, border-color 0.15s;
+    overflow: hidden;
+  }
+  .md-card:hover { border-color: #fdba74; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+
+  .md-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  @media (min-width: 640px) {
+    .md-card-body { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+  }
+
+  .md-card-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .md-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .md-icon-gray   { background: #f3f4f6; color: #4b5563; }
+  .md-icon-green  { background: #dcfce7; color: #16a34a; }
+  .md-icon-amber  { background: #fef3c7; color: #b45309; }
+  .md-icon-orange { background: #ffedd5; color: #ea580c; }
+
+  .md-card-info { flex: 1; min-width: 0; }
+  .md-reason {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .md-meta {
+    font-size: 0.75rem;
+    color: #4b5563;
+    margin: 0.35rem 0 0;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .md-meta strong { color: #111827; font-weight: 600; }
+  .md-date {
+    font-size: 0.65rem;
+    color: #6b7280;
+    margin: 0.35rem 0 0;
+  }
+
+  .md-card-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  @media (min-width: 640px) { .md-card-right { justify-content: flex-end; } }
+
+  .md-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.3rem 0.65rem;
+    border-radius: 9999px;
+    text-transform: capitalize;
+    white-space: nowrap;
+  }
+  .md-badge-gray   { background: #f3f4f6; color: #374151; }
+  .md-badge-green  { background: #dcfce7; color: #166534; }
+  .md-badge-orange { background: #ffedd5; color: #9a3412; }
+  .md-badge-amber  { background: #fef3c7; color: #92400e; }
+
+  .md-arrow {
+    width: 1rem;
+    height: 1rem;
+    color: #9ca3af;
+    display: none;
+  }
+  @media (min-width: 640px) { .md-arrow { display: block; } }
+
+  /* Empty state */
+  .md-empty {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 2.5rem 1.25rem;
+    text-align: center;
+  }
+  @media (min-width: 640px) { .md-empty { padding: 3rem 1.5rem; } }
+  .md-empty-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 9999px;
+    background: #fff7ed;
+    color: #ea580c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  @media (min-width: 640px) { .md-empty-icon { width: 4rem; height: 4rem; } }
+  .md-empty-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+  }
+  @media (min-width: 640px) { .md-empty-title { font-size: 1.1rem; } }
+  .md-empty-text {
+    font-size: 0.85rem;
+    color: #374151;
+    margin: 0.5rem auto 0;
+    max-width: 28rem;
+    line-height: 1.5;
+  }
+</style>
+
+<div class="md-wrap">
+
+  {# ── Header ── #}
+  <div class="md-header">
+    <div style="min-width: 0;">
+      <h1 class="md-h1">My disputes</h1>
+      <p class="md-sub">
+        {% if disputes %}
+          {{ disputes|length }} dispute{{ disputes|length|pluralize }} opened.
+        {% else %}
+          Problems you raise with orders appear here.
+        {% endif %}
+      </p>
+    </div>
+    <a href="{% url 'orders:my_orders' %}" class="md-btn md-btn-secondary">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+      My orders
+    </a>
+  </div>
+
+  {# ── Stats ── #}
+  {% if disputes %}
+    <div class="md-stats">
+      <div class="md-stat">
+        <p class="md-stat-label">Total</p>
+        <p class="md-stat-num">{{ disputes|length }}</p>
+      </div>
+      <div class="md-stat" style="background:#fffbeb; border-color:#fde68a;">
+        <p class="md-stat-label" style="color:#92400e;">Open</p>
+        <p class="md-stat-num" style="color:#78350f;">{{ open_count|default:"0" }}</p>
+      </div>
+      <div class="md-stat" style="background:#fff7ed; border-color:#fed7aa;">
+        <p class="md-stat-label" style="color:#9a3412;">Under review</p>
+        <p class="md-stat-num" style="color:#7c2d12;">{{ review_count|default:"0" }}</p>
+      </div>
+      <div class="md-stat" style="background:#f0fdf4; border-color:#bbf7d0;">
+        <p class="md-stat-label" style="color:#166534;">Resolved</p>
+        <p class="md-stat-num" style="color:#14532d;">{{ resolved_count|default:"0" }}</p>
+      </div>
+    </div>
+  {% endif %}
+
+  {# ── Filter tabs ── #}
+  {% if disputes %}
+    <div class="md-tabs" role="tablist">
+      <a href="{% url 'disputes:my_disputes' %}" role="tab"
+         class="md-tab {% if not request.GET.status %}md-tab-active{% else %}md-tab-idle{% endif %}">
+        All
+      </a>
+      <a href="?status=open" role="tab"
+         class="md-tab {% if request.GET.status == 'open' %}md-tab-active{% else %}md-tab-idle{% endif %}">
+        Open
+      </a>
+      <a href="?status=under_review" role="tab"
+         class="md-tab {% if request.GET.status == 'under_review' %}md-tab-active{% else %}md-tab-idle{% endif %}">
+        Under review
+      </a>
+      <a href="?status=resolved_buyer" role="tab"
+         class="md-tab {% if request.GET.status == 'resolved_buyer' %}md-tab-active{% else %}md-tab-idle{% endif %}">
+        Resolved
+      </a>
+      <a href="?status=closed" role="tab"
+         class="md-tab {% if request.GET.status == 'closed' %}md-tab-active{% else %}md-tab-idle{% endif %}">
+        Closed
+      </a>
+    </div>
+  {% endif %}
+
+  {# ── List ── #}
+  {% if disputes %}
+    <div class="md-list">
+      {% for d in disputes %}
+        <a href="{% url 'disputes:dispute_detail' d.pk %}" class="md-card">
+          <div class="md-card-body">
+
+            {# Left #}
+            <div class="md-card-left">
+              <div class="md-icon
+                {% if d.status == 'closed' %}md-icon-gray
+                {% elif d.status == 'resolved_buyer' or d.status == 'resolved_seller' %}md-icon-green
+                {% elif d.status == 'under_review' %}md-icon-orange
+                {% else %}md-icon-amber{% endif %}">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+              </div>
+
+              <div class="md-card-info">
+                <p class="md-reason">{{ d.reason }}</p>
+                <p class="md-meta">
+                  Order <strong>{{ d.order.order_number }}</strong> · {{ d.order.vendor.display_name }} · {{ d.order.currency }} {{ d.order.total }}
+                </p>
+                <p class="md-date">Opened {{ d.created_at|date:"M d, Y" }}</p>
+              </div>
+            </div>
+
+            {# Right #}
+            <div class="md-card-right">
+              <span class="md-badge
+                {% if d.status == 'closed' %}md-badge-gray
+                {% elif d.status == 'resolved_buyer' or d.status == 'resolved_seller' %}md-badge-green
+                {% elif d.status == 'under_review' %}md-badge-orange
+                {% else %}md-badge-amber{% endif %}">
+                {{ d.get_status_display }}
+              </span>
+              <svg class="md-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+              </svg>
+            </div>
+
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    {# ── Empty state ── #}
+    <div class="md-empty">
+      <div class="md-empty-icon">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+      </div>
+      <p class="md-empty-title">No disputes</p>
+      <p class="md-empty-text">
+        You haven't opened any disputes. If something goes wrong with an order, you can open a dispute from the order detail page.
+      </p>
+      <a href="{% url 'orders:my_orders' %}" class="md-btn md-btn-primary" style="margin-top:1.25rem;">
+        View my orders
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

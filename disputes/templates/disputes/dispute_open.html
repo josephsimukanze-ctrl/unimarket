@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+{% block title %}Open dispute — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .dp-wrap { max-width: 42rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .dp-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .dp-breadcrumb { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem; font-size:.75rem; color:#6b7280; margin-bottom:1rem; }
+  .dp-breadcrumb a { color:#6b7280; text-decoration:none; }
+  .dp-breadcrumb a:hover { color:#ea580c; }
+  .dp-breadcrumb .current { color:#111827; font-weight:600; }
+
+  .dp-card { background:#fff; border:1px solid #e5e7eb; border-radius:16px; }
+
+  .dp-section-label { font-size:.65rem; font-weight:700; color:#4b5563; text-transform:uppercase; letter-spacing:.05em; margin:0; }
+
+  .dp-input, .dp-textarea, .dp-select {
+    width:100%; border:1px solid #d1d5db; border-radius:8px;
+    padding:.65rem .75rem; font-size:.875rem; color:#111827; background:#fff;
+    outline:none; box-sizing:border-box; font-family:inherit;
+  }
+  .dp-input:focus, .dp-textarea:focus, .dp-select:focus {
+    border-color:#ea580c; box-shadow:0 0 0 3px rgba(234,88,12,.12);
+  }
+
+  .dp-label { display:block; font-size:.85rem; font-weight:600; color:#374151; margin-bottom:.35rem; }
+  .dp-hint  { font-size:.75rem; color:#4b5563; line-height:1.4; }
+
+  .dp-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.65rem 1.25rem; border-radius:10px; font-size:.875rem;
+    font-weight:700; text-decoration:none; border:0; cursor:pointer;
+    min-height:42px; box-sizing:border-box;
+  }
+  .dp-btn-secondary { border:1px solid #d1d5db; background:#fff; color:#374151; }
+  .dp-btn-secondary:hover { background:#f9fafb; }
+  .dp-btn-danger { background:#dc2626; color:#fff; }
+  .dp-btn-danger:hover { background:#b91c1c; }
+
+  /* ── Upload zone ── */
+  .dp-dropzone {
+    border:2px dashed #d1d5db;
+    border-radius:12px;
+    padding:1.5rem 1rem;
+    text-align:center;
+    cursor:pointer;
+    transition: border-color .15s, background-color .15s;
+    background:#f9fafb;
+  }
+  .dp-dropzone:hover,
+  .dp-dropzone.dragover { border-color:#ea580c; background:#fff7ed; }
+  .dp-dropzone-icon {
+    width:3rem; height:3rem; border-radius:12px;
+    background:#fff; color:#ea580c;
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto .75rem;
+    box-shadow:0 1px 2px rgba(0,0,0,.05);
+  }
+
+  .dp-file-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(6rem, 1fr));
+    gap:.5rem;
+    margin-top:.75rem;
+  }
+  .dp-file-tile {
+    position:relative;
+    aspect-ratio:1;
+    border-radius:8px;
+    overflow:hidden;
+    background:#f3f4f6;
+    border:1px solid #e5e7eb;
+  }
+  .dp-file-tile img { width:100%; height:100%; object-fit:cover; display:block; }
+  .dp-file-tile .file-icon {
+    width:100%; height:100%;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    color:#6b7280;
+    font-size:.6rem; font-weight:600;
+    padding:.25rem;
+    text-align:center;
+    word-break:break-all;
+    overflow:hidden;
+  }
+  .dp-file-tile .file-ext {
+    font-size:.75rem; font-weight:800; color:#ea580c; margin-bottom:.25rem;
+  }
+  .dp-file-remove {
+    position:absolute; top:.25rem; right:.25rem;
+    width:1.5rem; height:1.5rem; border-radius:9999px;
+    background:rgba(0,0,0,.7); color:#fff;
+    border:0; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1rem; line-height:1; padding:0;
+  }
+  .dp-file-remove:hover { background:#dc2626; }
+</style>
+
+<div class="dp-wrap">
+
+  {# Breadcrumb #}
+  <nav class="dp-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'orders:my_orders' %}">My orders</a>
+    <span>/</span>
+    <a href="{% url 'orders:order_detail' order.order_number %}">{{ order.order_number }}</a>
+    <span>/</span>
+    <span class="current">Open dispute</span>
+  </nav>
+
+  {# Order summary #}
+  <div class="dp-card" style="padding:1rem; margin-bottom:1rem;">
+    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem; margin-bottom:.75rem;">
+      <div style="min-width:0;">
+        <p class="dp-section-label">Order</p>
+        <p style="font-size:.85rem; font-weight:700; color:#111827; margin:.15rem 0 0; word-break:break-all;">{{ order.order_number }}</p>
+        <p style="font-size:.75rem; color:#4b5563; margin:.15rem 0 0;">From <strong style="color:#111827;">{{ order.vendor.display_name }}</strong></p>
+      </div>
+      <div style="text-align:right; flex-shrink:0;">
+        <p style="font-size:.85rem; font-weight:700; color:#111827; margin:0;">{{ order.currency }} {{ order.total }}</p>
+        <p style="font-size:.7rem; color:#6b7280; margin:.15rem 0 0;">Placed {{ order.placed_at|date:"M d, Y" }}</p>
+      </div>
+    </div>
+
+    {# Items preview #}
+    <div style="border-top:1px solid #f3f4f6; padding-top:.75rem; display:flex; gap:.5rem; overflow-x:auto; -webkit-overflow-scrolling:touch;">
+      {% for item in order.items.all|slice:":3" %}
+        <div style="display:flex; align-items:center; gap:.5rem; flex-shrink:0; background:#f9fafb; border-radius:8px; padding:.4rem .75rem .4rem .4rem;">
+          <div style="width:2rem; height:2rem; border-radius:6px; background:#e5e7eb; overflow:hidden; flex-shrink:0;">
+            {% with item.variant.product.images.first as img %}
+              {% if img %}<img src="{{ img.image.url }}" alt="" style="width:100%; height:100%; object-fit:cover;">{% endif %}
+            {% endwith %}
+          </div>
+          <div style="font-size:.7rem; min-width:0;">
+            <p style="font-weight:600; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:7rem; margin:0;">{{ item.variant.product.name }}</p>
+            <p style="color:#6b7280; margin:0;">× {{ item.quantity }}</p>
+          </div>
+        </div>
+      {% endfor %}
+      {% if order.items.all|length > 3 %}
+        <div style="display:flex; align-items:center; padding:0 .75rem; font-size:.7rem; color:#6b7280; flex-shrink:0;">
+          +{{ order.items.all|length|add:"-3" }} more
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Form card #}
+  <div class="dp-card" style="padding:1.25rem;">
+    <style>@media(min-width:640px){ .dp-form-card { padding:1.75rem !important; } }</style>
+    <div class="dp-form-card">
+
+      {# Header #}
+      <div style="display:flex; align-items:flex-start; gap:.75rem; margin-bottom:1.5rem;">
+        <div style="width:2.75rem; height:2.75rem; border-radius:12px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <div style="min-width:0;">
+          <h1 style="font-size:1.15rem; font-weight:800; color:#111827; margin:0;">Open a dispute</h1>
+          <p style="font-size:.8rem; color:#4b5563; margin:.25rem 0 0;">
+            Tell us what went wrong. The seller will be notified and can respond.
+          </p>
+        </div>
+      </div>
+
+      {% if form.non_field_errors %}
+        <div style="margin-bottom:1.25rem; background:#fef2f2; border:1px solid #fecaca; color:#7f1d1d; padding:.75rem 1rem; border-radius:8px; font-size:.85rem;">
+          {% for error in form.non_field_errors %}<p style="margin:0;">{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        {# Reason #}
+        <div style="margin-bottom:1.5rem;">
+          <label for="{{ form.reason.id_for_label }}" class="dp-label">
+            {{ form.reason.label }} <span style="color:#dc2626;">*</span>
+          </label>
+          {{ form.reason }}
+          <p class="dp-hint" style="margin-top:.35rem;">
+            Be specific and concise. Examples: "Item not as described", "Damaged on arrival", "Wrong item sent".
+          </p>
+          {% if form.reason.errors %}<p style="margin-top:.35rem; font-size:.8rem; color:#dc2626;">{{ form.reason.errors|join:", " }}</p>{% endif %}
+        </div>
+
+        {# Description #}
+        <div style="margin-bottom:1.5rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:.5rem; margin-bottom:.35rem;">
+            <label for="{{ form.description.id_for_label }}" class="dp-label" style="margin:0;">
+              {{ form.description.label }} <span style="color:#dc2626;">*</span>
+            </label>
+            <span style="font-size:.7rem; color:#6b7280;" id="desc-count">0 characters</span>
+          </div>
+          {{ form.description }}
+          <p class="dp-hint" style="margin-top:.35rem;">
+            Provide as much detail as possible — what happened, what you expected, and what resolution you're seeking.
+          </p>
+          {% if form.description.errors %}<p style="margin-top:.35rem; font-size:.8rem; color:#dc2626;">{{ form.description.errors|join:", " }}</p>{% endif %}
+        </div>
+
+        {# ── Evidence upload ── #}
+        <div style="margin-bottom:1.5rem;">
+          <label class="dp-label">
+            Evidence <span style="color:#6b7280; font-weight:400;">(optional)</span>
+          </label>
+
+          <label for="id_evidence" id="evidence-dropzone" class="dp-dropzone" style="display:block;">
+            <div class="dp-dropzone-icon">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <p style="font-size:.85rem; font-weight:700; color:#111827; margin:0;">Click to upload or drag files here</p>
+            <p style="font-size:.7rem; color:#4b5563; margin:.25rem 0 0;">JPG, PNG, WEBP, PDF — max 5 MB each, up to 5 files</p>
+
+            {{ form.evidence }}
+          </label>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:.5rem; gap:.5rem; flex-wrap:wrap;">
+            <p id="evidence-count" style="font-size:.7rem; color:#4b5563; margin:0;">No files selected</p>
+            <button type="button" id="clear-evidence" style="display:none; font-size:.7rem; font-weight:600; color:#dc2626; background:none; border:0; cursor:pointer;">
+              Remove all
+            </button>
+          </div>
+
+          <div id="evidence-preview" class="dp-file-grid"></div>
+
+          {% if form.evidence.errors %}
+            <p style="margin-top:.5rem; font-size:.8rem; color:#dc2626;">{{ form.evidence.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        {# Info box #}
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:.75rem 1rem; display:flex; align-items:flex-start; gap:.5rem; margin-bottom:1.5rem;">
+          <svg width="16" height="16" fill="none" stroke="#b45309" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0; margin-top:2px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p style="font-size:.75rem; color:#78350f; line-height:1.5; margin:0;">
+            <strong>What happens next:</strong> The seller is notified immediately. They can respond with a resolution. If you can't reach an agreement, you can request a refund and our team will review the case.
+          </p>
+        </div>
+
+        {# Actions #}
+        <div style="padding-top:1rem; border-top:1px solid #f3f4f6; display:flex; flex-direction:column-reverse; gap:.5rem;">
+          <style>@media(min-width:640px){ .dp-actions { flex-direction:row !important; } }</style>
+          <div class="dp-actions" style="display:flex; flex-direction:column-reverse; gap:.5rem;">
+            <a href="{% url 'orders:order_detail' order.order_number %}" class="dp-btn dp-btn-secondary">
+              Cancel
+            </a>
+            <button type="submit" class="dp-btn dp-btn-danger" style="flex:1;">
+              Open dispute
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  // Character counter
+  const desc = document.getElementById('id_description');
+  const count = document.getElementById('desc-count');
+  if (desc && count) {
+    const update = () => { count.textContent = desc.value.length + ' characters'; };
+    desc.addEventListener('input', update);
+    update();
+  }
+
+  // Evidence upload handling
+  const input = document.getElementById('id_evidence');
+  const dropzone = document.getElementById('evidence-dropzone');
+  const preview = document.getElementById('evidence-preview');
+  const countEl = document.getElementById('evidence-count');
+  const clearBtn = document.getElementById('clear-evidence');
+
+  if (!input || !dropzone || !preview) return;
+
+  const MAX_FILES = 5;
+  const MAX_SIZE = 5 * 1024 * 1024;
+  const ALLOWED = ['image/jpeg','image/png','image/webp','application/pdf'];
+
+  let selectedFiles = [];
+  let previewUrls = [];
+
+  function showCount() {
+    if (selectedFiles.length === 0) {
+      countEl.textContent = 'No files selected';
+      clearBtn.style.display = 'none';
+    } else {
+      countEl.textContent = selectedFiles.length + ' of ' + MAX_FILES + ' file(s) selected';
+      clearBtn.style.display = 'inline-block';
+    }
+  }
+
+  function clearPreviewUrls() {
+    previewUrls.forEach(u => URL.revokeObjectURL(u));
+    previewUrls = [];
+  }
+
+  function syncInput() {
+    const dt = new DataTransfer();
+    selectedFiles.forEach(f => dt.items.add(f));
+    input.files = dt.files;
+  }
+
+  function renderPreview() {
+    clearPreviewUrls();
+    preview.innerHTML = '';
+
+    selectedFiles.forEach((file, i) => {
+      const tile = document.createElement('div');
+      tile.className = 'dp-file-tile';
+
+      if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        previewUrls.push(url);
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = file.name;
+        tile.appendChild(img);
+      } else {
+        const ext = (file.name.split('.').pop() || 'FILE').toUpperCase();
+        const box = document.createElement('div');
+        box.className = 'file-icon';
+        box.innerHTML = '<span class="file-ext">' + ext + '</span><span>' + file.name + '</span>';
+        tile.appendChild(box);
+      }
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'dp-file-remove';
+      remove.innerHTML = '×';
+      remove.setAttribute('aria-label', 'Remove ' + file.name);
+      remove.addEventListener('click', () => {
+        selectedFiles.splice(i, 1);
+        syncInput();
+        renderPreview();
+      });
+      tile.appendChild(remove);
+
+      preview.appendChild(tile);
+    });
+
+    showCount();
+  }
+
+  function addFiles(fileList) {
+    const incoming = Array.from(fileList);
+    let added = 0, skipped = 0;
+
+    incoming.forEach(file => {
+      if (selectedFiles.length >= MAX_FILES) { skipped++; return; }
+      if (!ALLOWED.includes(file.type)) { skipped++; return; }
+      if (file.size > MAX_SIZE) { skipped++; return; }
+      if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) { skipped++; return; }
+      selectedFiles.push(file);
+      added++;
+    });
+
+    syncInput();
+    renderPreview();
+
+    if (skipped > 0) {
+      countEl.textContent = added + ' added, ' + skipped + ' skipped (limit or type)';
+    }
+  }
+
+  input.addEventListener('change', () => {
+    const files = Array.from(input.files);
+    input.value = '';
+    addFiles(files);
+  });
+
+  ['dragenter','dragover'].forEach(evt => {
+    dropzone.addEventListener(evt, e => {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.add('dragover');
+    });
+  });
+
+  ['dragleave','drop'].forEach(evt => {
+    dropzone.addEventListener(evt, e => {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.remove('dragover');
+    });
+  });
+
+  dropzone.addEventListener('drop', e => {
+    addFiles(Array.from(e.dataTransfer.files));
+  });
+
+  clearBtn.addEventListener('click', () => {
+    selectedFiles = [];
+    syncInput();
+    renderPreview();
+  });
+
+  showCount();
+})();
+</script>
+{% endblock %}

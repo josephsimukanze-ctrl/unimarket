@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ target.username }} — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .eu-wrap { max-width: 36rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .eu-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .eu-back {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-size: 0.85rem; font-weight: 600;
+    color: #4b5563; text-decoration: none;
+    margin-bottom: 1.25rem;
+  }
+  .eu-back:hover { color: #ea580c; }
+  .eu-back svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+
+  .eu-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .eu-card { padding: 2rem; } }
+
+  /* Header with avatar */
+  .eu-header {
+    display: flex; align-items: center; gap: 1rem;
+    padding-bottom: 1.5rem; margin-bottom: 1.5rem;
+    border-bottom: 1px solid #f3f4f6;
+    min-width: 0;
+  }
+  .eu-avatar {
+    width: 3.5rem; height: 3.5rem;
+    border-radius: 9999px;
+    background: #ffedd5; color: #c2410c;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; font-weight: 800; flex-shrink: 0;
+  }
+  .eu-header-info { min-width: 0; }
+  .eu-name {
+    font-size: 1.1rem; font-weight: 800;
+    color: #111827; margin: 0; line-height: 1.2;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  @media (min-width: 640px) { .eu-name { font-size: 1.25rem; } }
+  .eu-email {
+    font-size: 0.8rem; color: #4b5563;
+    margin: 0.25rem 0 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .eu-joined {
+    font-size: 0.7rem; color: #9ca3af;
+    margin: 0.35rem 0 0;
+  }
+
+  /* Messages */
+  .eu-msg {
+    border-radius: 10px; padding: 0.75rem 1rem;
+    font-size: 0.85rem; margin-bottom: 0.5rem;
+    line-height: 1.5;
+  }
+  .eu-msg-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+  .eu-msg-error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+  .eu-msg-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .eu-msg-info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+
+  /* Form layout */
+  .eu-form { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .eu-field-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  @media (min-width: 640px) {
+    .eu-field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  .eu-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 0.4rem;
+  }
+
+  .eu-input, .eu-select {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem;
+    color: #111827;
+    background: #fff;
+    outline: none;
+    font-family: inherit;
+  }
+  .eu-input:focus, .eu-select:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+
+  .eu-help {
+    font-size: 0.7rem;
+    color: #6b7280;
+    margin: 0.4rem 0 0;
+    line-height: 1.5;
+  }
+  .eu-help strong { color: #374151; font-weight: 700; }
+
+  .eu-error {
+    font-size: 0.8rem;
+    color: #dc2626;
+    margin: 0.35rem 0 0;
+    line-height: 1.4;
+  }
+
+  /* Active toggle */
+  .eu-toggle {
+    display: flex; align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #fff;
+    transition: background-color 0.15s, border-color 0.15s;
+    box-sizing: border-box;
+  }
+  .eu-toggle:hover { background: #f9fafb; border-color: #d1d5db; }
+  .eu-toggle input { flex-shrink: 0; margin-top: 0.1rem; }
+  .eu-toggle-title {
+    display: block; font-size: 0.85rem;
+    font-weight: 700; color: #111827;
+  }
+  .eu-toggle-text {
+    display: block; font-size: 0.75rem;
+    color: #6b7280; margin-top: 0.15rem;
+    line-height: 1.4;
+  }
+
+  /* Actions */
+  .eu-actions {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+  }
+  @media (min-width: 640px) { .eu-actions { flex-direction: row; } }
+
+  .eu-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.65rem 1.25rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 42px; box-sizing: border-box;
+    width: 100%;
+  }
+  @media (min-width: 640px) {
+    .eu-btn-secondary { width: auto; }
+    .eu-btn-primary { flex: 1; width: auto; }
+  }
+  .eu-btn-primary { background: #ea580c; color: #fff; }
+  .eu-btn-primary:hover { background: #c2410c; }
+  .eu-btn-secondary {
+    border: 1px solid #d1d5db; background: #fff; color: #374151;
+  }
+  .eu-btn-secondary:hover { background: #f9fafb; }
+
+  /* Danger zone */
+  .eu-danger {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #f3f4f6;
+  }
+  .eu-danger-title {
+    font-size: 0.85rem; font-weight: 800;
+    color: #111827; margin: 0 0 0.5rem;
+  }
+  .eu-danger-text {
+    font-size: 0.75rem; color: #4b5563;
+    line-height: 1.5; margin: 0 0 0.75rem;
+  }
+  .eu-btn-danger {
+    display: inline-flex; align-items: center;
+    padding: 0.6rem 1rem; border-radius: 10px;
+    font-size: 0.8rem; font-weight: 700;
+    cursor: pointer; box-sizing: border-box;
+    min-height: 40px;
+  }
+  .eu-btn-deactivate {
+    border: 1px solid #fca5a5; background: #fff; color: #dc2626;
+  }
+  .eu-btn-deactivate:hover { background: #fef2f2; }
+  .eu-btn-activate {
+    border: 1px solid #86efac; background: #fff; color: #16a34a;
+  }
+  .eu-btn-activate:hover { background: #f0fdf4; }
+</style>
+
+<div class="eu-wrap">
+
+  {# ── Back ── #}
+  <a href="{% url 'accounts:manage_users' %}" class="eu-back">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to users
+  </a>
+
+  {# ── Card ── #}
+  <div class="eu-card">
+
+    {# Header #}
+    <div class="eu-header">
+      <div class="eu-avatar">{{ target.username|slice:":2"|upper }}</div>
+      <div class="eu-header-info">
+        <h1 class="eu-name">{{ target.get_full_name|default:target.username }}</h1>
+        <p class="eu-email">{{ target.email|default:target.username }}</p>
+        <p class="eu-joined">Joined {{ target.date_joined|date:"M d, Y" }}</p>
+      </div>
+    </div>
+
+    {# Messages #}
+    {% if messages %}
+      <div style="margin-bottom: 1.25rem;">
+        {% for message in messages %}
+          <div class="eu-msg
+            {% if message.tags == 'success' %}eu-msg-success
+            {% elif message.tags == 'error' %}eu-msg-error
+            {% elif message.tags == 'warning' %}eu-msg-warning
+            {% else %}eu-msg-info{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# Non-field errors #}
+    {% if form.non_field_errors %}
+      <div class="eu-msg eu-msg-error" style="margin-bottom: 1.25rem;">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" class="eu-form">
+      {% csrf_token %}
+
+      {# Name row #}
+      <div class="eu-field-grid">
+        <div>
+          <label for="{{ form.first_name.id_for_label }}" class="eu-label">First name</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}
+            <p class="eu-error">{{ form.first_name.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label for="{{ form.last_name.id_for_label }}" class="eu-label">Last name</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}
+            <p class="eu-error">{{ form.last_name.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Email #}
+      <div>
+        <label for="{{ form.email.id_for_label }}" class="eu-label">Email address</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+          <p class="eu-error">{{ form.email.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      {# Role #}
+      <div>
+        <label for="{{ form.role.id_for_label }}" class="eu-label">Role</label>
+        {{ form.role }}
+        <p class="eu-help">
+          <strong>User Manager</strong> — can access this page and manage all users.<br>
+          <strong>Support Agent</strong> — can view order and dispute queues.<br>
+          <strong>Administrator</strong> — full access to all admin sections.
+        </p>
+        {% if form.role.errors %}
+          <p class="eu-error">{{ form.role.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      {# Active toggle #}
+      <label class="eu-toggle">
+        {{ form.is_active }}
+        <span style="min-width: 0;">
+          <span class="eu-toggle-title">Account is active</span>
+          <span class="eu-toggle-text">
+            Disabled users can't log in, but their data stays intact.
+          </span>
+        </span>
+      </label>
+
+      {# Actions #}
+      <div class="eu-actions">
+        <a href="{% url 'accounts:manage_users' %}" class="eu-btn eu-btn-secondary">
+          Cancel
+        </a>
+        <button type="submit" class="eu-btn eu-btn-primary">
+          Save changes
+        </button>
+      </div>
+    </form>
+
+    {# Danger zone #}
+    {% if target != request.user %}
+      <div class="eu-danger">
+        <h3 class="eu-danger-title">Account actions</h3>
+        <p class="eu-danger-text">
+          {% if target.is_active %}
+            Deactivating prevents {{ target.username }} from logging in but keeps their data.
+          {% else %}
+            This account is currently disabled. Re-enable it to restore login access.
+          {% endif %}
+        </p>
+        <form method="post" action="{% url 'accounts:toggle_user_active' target.id %}"
+              onsubmit="return confirm('{% if target.is_active %}Deactivate{% else %}Activate{% endif %} “{{ target.username|escapejs }}”?');">
+          {% csrf_token %}
+          <button type="submit"
+                  class="eu-btn-danger {% if target.is_active %}eu-btn-deactivate{% else %}eu-btn-activate{% endif %}">
+            {% if target.is_active %}Deactivate account{% else %}Activate account{% endif %}
+          </button>
+        </form>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

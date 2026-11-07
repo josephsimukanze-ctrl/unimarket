@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+{% block title %}{{ thread.subject|default:"Conversation" }} — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .td-wrap { max-width: 48rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .td-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .td-back {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.85rem; font-weight: 600;
+    color: #4b5563; text-decoration: none;
+    margin-bottom: 1rem;
+  }
+  .td-back:hover { color: #ea580c; }
+
+  .td-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    /* Fill available space minus header offset for sticky composer */
+    max-height: calc(100vh - 7rem);
+    min-height: 24rem;
+  }
+
+  /* ── Conversation header ── */
+  .td-head {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex; align-items: center; gap: 0.75rem;
+    flex-shrink: 0;
+    background: #fff;
+  }
+  .td-head-avatar {
+    width: 2.5rem; height: 2.5rem;
+    border-radius: 9999px;
+    background: #ffedd5; color: #c2410c;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1rem; flex-shrink: 0;
+  }
+  .td-head-info { flex: 1; min-width: 0; }
+  .td-head-title {
+    font-size: 0.95rem; font-weight: 800;
+    color: #111827; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .td-head-sub {
+    font-size: 0.7rem; color: #6b7280;
+    margin: 0.15rem 0 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .td-head-sub strong { color: #111827; font-weight: 700; }
+
+  /* ── Messages area ── */
+  .td-messages {
+    padding: 1rem;
+    background: #f9fafb;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0;  /* critical for flex children to scroll properly */
+  }
+  @media (min-width: 640px) { .td-messages { padding: 1.25rem; } }
+
+  .td-row { display: flex; }
+  .td-row-mine { justify-content: flex-end; }
+  .td-row-theirs { justify-content: flex-start; }
+
+  .td-bubble-wrap {
+    max-width: 85%;
+    min-width: 0;
+  }
+  @media (min-width: 480px) { .td-bubble-wrap { max-width: 75%; } }
+  @media (min-width: 768px) { .td-bubble-wrap { max-width: 65%; } }
+
+  .td-meta {
+    display: flex; align-items: center; gap: 0.35rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.65rem; color: #6b7280;
+  }
+  .td-row-mine .td-meta { justify-content: flex-end; }
+  .td-meta strong { color: #374151; font-weight: 700; }
+  .td-meta-sep { color: #d1d5db; }
+
+  .td-bubble {
+    border-radius: 16px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  .td-bubble-mine {
+    background: #f97316; color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .td-bubble-theirs {
+    background: #fff; color: #111827;
+    border: 1px solid #e5e7eb;
+    border-bottom-left-radius: 4px;
+  }
+  .td-bubble-text {
+    white-space: pre-wrap;
+    margin: 0;
+  }
+  .td-bubble-text + .td-attachments { margin-top: 0.5rem; }
+
+  /* ── Attachments inside bubble ── */
+  .td-attachments {
+    display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .td-attach-image {
+    display: block;
+    max-width: 18rem;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.06);
+    background: #f3f4f6;
+  }
+  .td-bubble-theirs .td-attach-image { border-color: #e5e7eb; }
+  .td-attach-image img {
+    width: 100%; height: auto; display: block;
+    max-height: 20rem; object-fit: cover;
+  }
+  .td-attach-video {
+    display: block;
+    max-width: 18rem;
+    width: 100%;
+    max-height: 20rem;
+    border-radius: 10px;
+    background: #000;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .td-bubble-theirs .td-attach-video { border-color: #e5e7eb; }
+
+  .td-attach-file {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.75rem; font-weight: 700;
+    text-decoration: none;
+    background: rgba(255,255,255,0.15);
+    color: inherit;
+    border: 1px solid rgba(255,255,255,0.2);
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .td-bubble-theirs .td-attach-file {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+    color: #374151;
+  }
+  .td-attach-file:hover { background: rgba(255,255,255,0.25); }
+  .td-bubble-theirs .td-attach-file:hover { background: #f3f4f6; }
+  .td-attach-file-name {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    min-width: 0;
+  }
+  .td-attach-file-size {
+    font-weight: 400; opacity: 0.75; flex-shrink: 0;
+    font-size: 0.7rem;
+  }
+
+  @media (max-width: 480px) {
+    .td-attach-image,
+    .td-attach-video { max-width: 100%; }
+    .td-bubble-wrap { max-width: 92%; }
+    .td-bubble { font-size: 0.8rem; padding: 0.55rem 0.75rem; }
+  }
+
+  /* ── Empty state ── */
+  .td-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  /* ── Composer ── */
+  .td-composer {
+    border-top: 1px solid #f3f4f6;
+    background: #fff;
+    padding: 0.75rem;
+    flex-shrink: 0;
+  }
+  @media (min-width: 640px) { .td-composer { padding: 1rem; } }
+
+  .td-input-row {
+    display: flex; align-items: flex-end; gap: 0.5rem;
+  }
+  .td-textarea {
+    flex: 1;
+    min-height: 2.5rem;
+    max-height: 8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem;
+    color: #111827;
+    background: #fff;
+    outline: none;
+    resize: none;
+    box-sizing: border-box;
+    font-family: inherit;
+    line-height: 1.4;
+  }
+  .td-textarea:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+
+  .td-send-btn {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    background: #f97316; color: #fff;
+    border: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .td-send-btn:hover { background: #ea580c; }
+  .td-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Attachment controls */
+  .td-attach-row {
+    display: flex; align-items: center;
+    gap: 0.5rem; flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+  .td-attach-btn {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    border-radius: 8px;
+    font-size: 0.7rem; font-weight: 700;
+    color: #374151;
+    cursor: pointer;
+  }
+  .td-attach-btn:hover { background: #f9fafb; }
+
+  .td-attach-count {
+    font-size: 0.7rem; color: #6b7280; margin: 0;
+  }
+  .td-clear-btn {
+    font-size: 0.7rem; font-weight: 700;
+    color: #dc2626; background: none; border: 0;
+    cursor: pointer;
+  }
+  .td-clear-btn:hover { text-decoration: underline; }
+
+  .td-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(4rem, 1fr));
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+  }
+  .td-preview:empty { display: none; }
+
+  .td-tile {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+  }
+  .td-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .td-tile video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .td-tile .file-badge {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 0.25rem; text-align: center;
+    color: #6b7280; font-size: 0.55rem; font-weight: 600;
+    word-break: break-all; overflow: hidden;
+  }
+  .td-tile .file-ext {
+    font-size: 0.7rem; font-weight: 800;
+    color: #ea580c; margin-bottom: 0.2rem;
+  }
+  .td-tile .video-badge {
+    position: absolute;
+    bottom: 0.25rem; left: 0.25rem;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    font-size: 0.5rem; font-weight: 800;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+  }
+  .td-tile-remove {
+    position: absolute; top: 0.2rem; right: 0.2rem;
+    width: 1.35rem; height: 1.35rem;
+    border-radius: 9999px;
+    background: rgba(0,0,0,0.75);
+    color: #fff; border: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; line-height: 1; padding: 0;
+  }
+  .td-tile-remove:hover { background: #dc2626; }
+
+  .td-error {
+    font-size: 0.75rem; color: #dc2626;
+    margin: 0.35rem 0 0;
+  }
+</style>
+
+<div class="td-wrap">
+
+  {# Back #}
+  <a href="{% url 'messaging:inbox' %}" class="td-back">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to inbox
+  </a>
+
+  <div class="td-card">
+
+    {# ── Conversation header ── #}
+    <div class="td-head">
+      <div class="td-head-avatar">
+        {% if other %}{{ other.username|slice:":1"|upper }}{% else %}?{% endif %}
+      </div>
+      <div class="td-head-info">
+        <h1 class="td-head-title">{{ thread.subject|default:"Conversation" }}</h1>
+        {% if other %}
+          <p class="td-head-sub">With <strong>{{ other.username }}</strong></p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── Messages ── #}
+    <div class="td-messages" id="td-messages">
+      {% if thread_messages %}
+        {% for msg in thread_messages %}
+          <div class="td-row {% if msg.sender == user %}td-row-mine{% else %}td-row-theirs{% endif %}">
+            <div class="td-bubble-wrap">
+
+              {# Meta line #}
+              <div class="td-meta">
+                <strong>{% if msg.sender == user %}You{% else %}{{ msg.sender.username }}{% endif %}</strong>
+                <span class="td-meta-sep">·</span>
+                <span>{{ msg.created_at|date:"M d, H:i" }}</span>
+              </div>
+
+              {# Bubble #}
+              <div class="td-bubble {% if msg.sender == user %}td-bubble-mine{% else %}td-bubble-theirs{% endif %}">
+                {% if msg.body %}
+                  <p class="td-bubble-text">{{ msg.body }}</p>
+                {% endif %}
+
+                {% if msg.has_attachments %}
+                  <div class="td-attachments">
+                    {% for att in msg.attachments.all %}
+                      {% if att.is_image %}
+                        <a href="{{ att.file.url }}" target="_blank" rel="noopener" class="td-attach-image">
+                          <img src="{{ att.file.url }}" alt="{{ att.original_name }}" loading="lazy">
+                        </a>
+                      {% elif att.is_video %}
+                        <video class="td-attach-video" controls preload="metadata">
+                          <source src="{{ att.file.url }}">
+                          Your browser doesn't support video playback.
+                        </video>
+                      {% else %}
+                        <a href="{{ att.file.url }}" target="_blank" rel="noopener" class="td-attach-file">
+                          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                          <span class="td-attach-file-name">{{ att.original_name|default:att.file.name|truncatechars:30 }}</span>
+                          <span class="td-attach-file-size">· {{ att.size_display }}</span>
+                        </a>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="td-empty">No messages yet. Start the conversation below.</div>
+      {% endif %}
+    </div>
+
+    {# ── Composer ── #}
+    <form method="post" enctype="multipart/form-data" class="td-composer" id="td-composer">
+      {% csrf_token %}
+
+      <div class="td-input-row">
+        <textarea name="body"
+                  id="td-textarea"
+                  rows="1"
+                  placeholder="Type a message…"
+                  class="td-textarea"></textarea>
+        <button type="submit" class="td-send-btn" aria-label="Send message">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="td-attach-row">
+        <label for="id_attachments" class="td-attach-btn">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+          </svg>
+          Attach
+        </label>
+
+        <input type="file"
+               name="attachments"
+               id="id_attachments"
+               multiple
+               accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf"
+               class="sr-only">
+
+        <p id="td-attach-count" class="td-attach-count">No files</p>
+
+        <button type="button" id="td-clear" class="td-clear-btn" style="display:none;">
+          Remove all
+        </button>
+      </div>
+
+      <div id="td-preview" class="td-preview"></div>
+
+      {% if form and form.non_field_errors %}
+        <p class="td-error">{{ form.non_field_errors|join:", " }}</p>
+      {% endif %}
+      {% if form and form.attachments.errors %}
+        <p class="td-error">{{ form.attachments.errors|join:", " }}</p>
+      {% endif %}
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  // ── Auto-scroll to bottom of messages ──
+  var msgList = document.getElementById('td-messages');
+  if (msgList) {
+    msgList.scrollTop = msgList.scrollHeight;
+  }
+
+  // ── Auto-resize textarea ──
+  var textarea = document.getElementById('td-textarea');
+  if (textarea) {
+    textarea.addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 128) + 'px';
+    });
+  }
+
+  // ── Attachments ──
+  var input = document.getElementById('id_attachments');
+  var countEl = document.getElementById('td-attach-count');
+  var clearBtn = document.getElementById('td-clear');
+  var preview = document.getElementById('td-preview');
+  var form = document.getElementById('td-composer');
+
+  if (!input) return;
+
+  var MAX_FILES = 5;
+  var MAX_SIZE = 20 * 1024 * 1024;
+  var ALLOWED = [
+    'image/jpeg','image/png','image/webp','image/gif',
+    'video/mp4','video/webm','video/quicktime',
+    'application/pdf',
+  ];
+
+  var selectedFiles = [];
+  var previewUrls = [];
+
+  function showCount() {
+    if (selectedFiles.length === 0) {
+      countEl.textContent = 'No files';
+      clearBtn.style.display = 'none';
+    } else {
+      countEl.textContent = selectedFiles.length + ' of ' + MAX_FILES;
+      clearBtn.style.display = 'inline';
+    }
+  }
+
+  function clearUrls() {
+    previewUrls.forEach(function (u) { URL.revokeObjectURL(u); });
+    previewUrls = [];
+  }
+
+  function syncInput() {
+    var dt = new DataTransfer();
+    selectedFiles.forEach(function (f) { dt.items.add(f); });
+    input.files = dt.files;
+  }
+
+  function render() {
+    clearUrls();
+    preview.innerHTML = '';
+
+    selectedFiles.forEach(function (file, i) {
+      var tile = document.createElement('div');
+      tile.className = 'td-tile';
+
+      if (file.type.indexOf('image/') === 0) {
+        var url = URL.createObjectURL(file);
+        previewUrls.push(url);
+        var img = document.createElement('img');
+        img.src = url;
+        img.alt = file.name;
+        tile.appendChild(img);
+      } else if (file.type.indexOf('video/') === 0) {
+        var vurl = URL.createObjectURL(file);
+        previewUrls.push(vurl);
+        var video = document.createElement('video');
+        video.src = vurl;
+        video.muted = true;
+        video.preload = 'metadata';
+        tile.appendChild(video);
+
+        var badge = document.createElement('span');
+        badge.className = 'video-badge';
+        badge.textContent = 'VIDEO';
+        tile.appendChild(badge);
+      } else {
+        var ext = (file.name.split('.').pop() || 'FILE').toUpperCase();
+        var box = document.createElement('div');
+        box.className = 'file-badge';
+        box.innerHTML = '<span class="file-ext">' + ext + '</span><span>' + file.name + '</span>';
+        tile.appendChild(box);
+      }
+
+      var remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'td-tile-remove';
+      remove.innerHTML = '×';
+      remove.setAttribute('aria-label', 'Remove ' + file.name);
+      remove.addEventListener('click', function () {
+        selectedFiles.splice(i, 1);
+        syncInput();
+        render();
+      });
+      tile.appendChild(remove);
+
+      preview.appendChild(tile);
+    });
+
+    showCount();
+  }
+
+  function addFiles(list) {
+    var incoming = Array.prototype.slice.call(list);
+    var added = 0, skipped = 0;
+
+    incoming.forEach(function (file) {
+      if (selectedFiles.length >= MAX_FILES) { skipped++; return; }
+      if (ALLOWED.indexOf(file.type) === -1) { skipped++; return; }
+      if (file.size > MAX_SIZE) { skipped++; return; }
+      var dup = selectedFiles.some(function (f) {
+        return f.name === file.name && f.size === file.size;
+      });
+      if (dup) { skipped++; return; }
+      selectedFiles.push(file);
+      added++;
+    });
+
+    syncInput();
+    render();
+
+    if (skipped > 0) {
+      countEl.textContent = added + ' added, ' + skipped + ' skipped';
+    }
+  }
+
+  input.addEventListener('change', function () {
+    var files = Array.prototype.slice.call(input.files);
+    input.value = '';
+    addFiles(files);
+  });
+
+  clearBtn.addEventListener('click', function () {
+    selectedFiles = [];
+    syncInput();
+    render();
+  });
+
+  // ── Validate before submit: needs text OR at least one file ──
+  form.addEventListener('submit', function (e) {
+    var text = (textarea.value || '').trim();
+    var hasFiles = selectedFiles.length > 0;
+
+    if (!text && !hasFiles) {
+      e.preventDefault();
+      textarea.focus();
+      return;
+    }
+  });
+
+  showCount();
+})();
+</script>
+{% endblock %}

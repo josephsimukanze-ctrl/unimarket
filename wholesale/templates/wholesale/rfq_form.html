@@ -1,0 +1,166 @@
+cat > wholesale/templates/wholesale/rfq_form.html << 'RFQFORMSEOF'
+{% extends "base.html" %}
+{% block title %}New RFQ — UniMarket{% endblock %}
+{% block content %}
+
+<div class="max-w-2xl mx-auto">
+
+  {# Breadcrumb #}
+  <nav class="flex items-center gap-1.5 text-xs text-ink-500 mb-4">
+    <a href="{% url 'wholesale:my_rfqs' %}" class="hover:text-orange-600">My RFQs</a>
+    <span>/</span>
+    <span class="text-ink-700">New request</span>
+  </nav>
+
+  <div class="bg-white rounded-2xl border border-ink-200 p-5 sm:p-7">
+
+    {# Header #}
+    <div class="mb-6">
+      <div class="flex items-center gap-3">
+        <div class="h-11 w-11 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-ink-900">Request for quotation</h1>
+          <p class="text-sm text-ink-500 mt-0.5">Describe what you need and suppliers will send their best prices.</p>
+        </div>
+      </div>
+    </div>
+
+    {% if form.non_field_errors %}
+      <div class="mb-5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" class="space-y-7">
+      {% csrf_token %}
+
+      {# ══ 1. ITEM ═══════════════════════════════════ #}
+      <section>
+        <div class="flex items-center gap-2.5 mb-4">
+          <span class="h-7 w-7 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-bold">1</span>
+          <h2 class="text-sm font-semibold text-ink-900 uppercase tracking-wide">What do you need?</h2>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label for="{{ form.title.id_for_label }}" class="label">
+              {{ form.title.label }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.title }}
+            <p class="mt-1.5 text-xs text-ink-500">A short, specific title helps suppliers understand quickly.</p>
+            {% if form.title.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.title.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label for="{{ form.category.id_for_label }}" class="label">
+              {{ form.category.label }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.category }}
+            {% if form.category.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.category.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+      </section>
+
+      {# ══ 2. QUANTITY & PRICING ══════════════════════ #}
+      <section class="pt-6 border-t border-ink-100">
+        <div class="flex items-center gap-2.5 mb-4">
+          <span class="h-7 w-7 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-bold">2</span>
+          <h2 class="text-sm font-semibold text-ink-900 uppercase tracking-wide">Quantity & pricing</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="{{ form.quantity.id_for_label }}" class="label">
+              {{ form.quantity.label }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.quantity }}
+            <p class="mt-1.5 text-xs text-ink-500">How many units do you need?</p>
+            {% if form.quantity.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.quantity.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label for="{{ form.target_price.id_for_label }}" class="label">
+              {{ form.target_price.label }}
+              <span class="text-ink-400 text-[10px] font-normal normal-case">(optional)</span>
+            </label>
+            {{ form.target_price }}
+            <p class="mt-1.5 text-xs text-ink-500">Your budget per unit, if you have one.</p>
+            {% if form.target_price.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.target_price.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+      </section>
+
+      {# ══ 3. DESCRIPTION ════════════════════════════ #}
+      <section class="pt-6 border-t border-ink-100">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2.5">
+            <span class="h-7 w-7 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-bold">3</span>
+            <h2 class="text-sm font-semibold text-ink-900 uppercase tracking-wide">Describe your needs</h2>
+          </div>
+          <span class="text-[10px] text-ink-400" id="desc-count">0 characters</span>
+        </div>
+
+        <div>
+          <label for="{{ form.description.id_for_label }}" class="label">
+            {{ form.description.label }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.description }}
+          <p class="mt-1.5 text-xs text-ink-500">
+            Include specifications, sizes, colors, materials, quality grade, or any other details that matter.
+          </p>
+          {% if form.description.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.description.errors|join:", " }}</p>{% endif %}
+        </div>
+      </section>
+
+      {# ══ 4. DEADLINE ═══════════════════════════════ #}
+      <section class="pt-6 border-t border-ink-100">
+        <div class="flex items-center gap-2.5 mb-4">
+          <span class="h-7 w-7 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-bold">4</span>
+          <h2 class="text-sm font-semibold text-ink-900 uppercase tracking-wide">Deadline</h2>
+        </div>
+
+        <div>
+          <label for="{{ form.deadline.id_for_label }}" class="label">
+            {{ form.deadline.label }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.deadline }}
+          <p class="mt-1.5 text-xs text-ink-500">The date and time by which suppliers must send their quotes.</p>
+          {% if form.deadline.errors %}<p class="mt-1.5 text-sm text-red-600">{{ form.deadline.errors|join:", " }}</p>{% endif %}
+        </div>
+      </section>
+
+      {# ══ ACTIONS ═══════════════════════════════════ #}
+      <div class="pt-6 border-t border-ink-100 flex flex-col-reverse sm:flex-row gap-3">
+        <a href="{% url 'wholesale:my_rfqs' %}" class="btn-secondary text-center sm:px-6">
+          Cancel
+        </a>
+        <button type="submit" class="btn-primary sm:flex-1">
+          Submit RFQ
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const desc = document.getElementById('id_description');
+  const count = document.getElementById('desc-count');
+  if (desc && count) {
+    function update() {
+      count.textContent = desc.value.length + ' characters';
+    }
+    desc.addEventListener('input', update);
+    update();
+  }
+})();
+</script>
+{% endblock %}
