@@ -1,3 +1,4 @@
+
 import uuid
 
 from django.db import models
@@ -108,22 +109,15 @@ class Payment(models.Model):
         blank=True,
     )
 
-    failure_reason = models.TextField(
-        blank=True,
-    )
+    failure_reason = models.TextField(blank=True)
 
     paid_at = models.DateTimeField(
         null=True,
         blank=True,
     )
 
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-    )
-
-    updated_at = models.DateTimeField(
-        auto_now=True,
-    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -179,32 +173,38 @@ class Payment(models.Model):
 
     def mark_successful(self, provider_transaction_id: str = ""):
         """
-        Mark the payment successful AND propagate to the target:
-          - For an Order, flip to PAID and freeze the payout snapshot.
-          - For a Subscription, move it to SUBMITTED so staff can review.
+        Mark the payment successful and propagate to its target.
         """
         self.status = PaymentStatus.SUCCESSFUL
         self.paid_at = timezone.now()
         self.failure_reason = ""
+
         if provider_transaction_id:
             self.provider_transaction_id = provider_transaction_id
 
-        update_fields = [
-            "status", "paid_at", "failure_reason",
-            "provider_transaction_id", "updated_at",
-        ]
-        self.save(update_fields=update_fields)
+        self.save(
+            update_fields=[
+                "status",
+                "paid_at",
+                "failure_reason",
+                "provider_transaction_id",
+                "updated_at",
+            ]
+        )
 
         if self.is_for_order and self.order is not None:
             order = self.order
+
             if not order.has_frozen_payout:
                 order.freeze_payout()
+
             if order.status != OrderStatus.PAID:
                 order.status = OrderStatus.PAID
                 order.save(update_fields=["status", "updated_at"])
 
         elif self.is_for_subscription and self.subscription is not None:
             sub = self.subscription
+
             if not sub.is_submitted and not sub.is_active:
                 sub.mark_submitted(
                     payment_ref=self.provider_transaction_id or self.reference,
@@ -213,6 +213,7 @@ class Payment(models.Model):
     def mark_failed(self, reason=""):
         self.status = PaymentStatus.FAILED
         self.failure_reason = reason
+
         self.save(
             update_fields=[
                 "status",
@@ -223,29 +224,24 @@ class Payment(models.Model):
 
     def attach_transaction(self, txn: PaymentTransaction):
         """
-        Mirror this Payment into the corresponding PaymentTransaction so
-        the existing provider webhooks (Airtel/MTN) keep working when
-        they look up by partner_reference.
+        Mirror this payment into the corresponding PaymentTransaction.
         """
         txn.provider_reference = self.provider_transaction_id
         txn.amount = self.amount
         txn.currency = self.currency
         txn.raw_response = self.provider_response
+
         if self.is_successful:
             txn.mark_successful(provider_ref=self.provider_transaction_id)
         elif self.status == PaymentStatus.FAILED:
             txn.mark_failed(message=self.failure_reason)
+
         return txn
 
-
-# ═══════════════════════════════════════════════════════════════════
-# PLATFORM SETTINGS  (singleton — configured by staff)
-# ═══════════════════════════════════════════════════════════════════
 
 class PlatformSettings(models.Model):
     """
     Singleton row for platform-level payment configuration.
-    Holds the wallet buyers send *deposits* to.
     """
 
     class Network(models.TextChoices):
@@ -258,7 +254,9 @@ class PlatformSettings(models.Model):
         USD = "USD", "USD — US Dollar"
 
     id = models.PositiveSmallIntegerField(
-        primary_key=True, default=1, editable=False
+        primary_key=True,
+        default=1,
+        editable=False,
     )
 
     deposit_wallet_name = models.CharField(
@@ -266,16 +264,19 @@ class PlatformSettings(models.Model):
         blank=True,
         help_text="Name registered on the platform's deposit wallet.",
     )
+
     deposit_wallet_number = models.CharField(
         max_length=30,
         blank=True,
         help_text="Mobile-money number where buyers send wallet top-ups.",
     )
+
     deposit_wallet_network = models.CharField(
         max_length=20,
         blank=True,
         choices=Network.choices,
     )
+
     deposit_currency = models.CharField(
         max_length=3,
         choices=Currency.choices,
@@ -292,7 +293,7 @@ class PlatformSettings(models.Model):
         return "Platform payment settings"
 
     def save(self, *args, **kwargs):
-        self.id = 1  # enforce singleton
+        self.id = 1
         super().save(*args, **kwargs)
 
     @classmethod
@@ -304,6 +305,7 @@ class PlatformSettings(models.Model):
     def deposit_receiver(self):
         if not (self.deposit_wallet_name and self.deposit_wallet_number):
             return None
+
         return {
             "name": self.deposit_wallet_name,
             "number": self.deposit_wallet_number,
