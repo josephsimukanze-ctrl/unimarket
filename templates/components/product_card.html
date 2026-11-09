@@ -1,20 +1,54 @@
-
 {% with product.variants.first as variant %}
-<a href="{% url 'catalogue:product_detail' product.slug %}" class="group block">
-  <div class="{% if compact %}aspect-square max-w-[80px]{% else %}aspect-square{% endif %} bg-ink-50 rounded-lg overflow-hidden relative">
+<a href="{% url 'catalogue:product_detail' product.slug %}"
+   style="display: flex; flex-direction: column; text-decoration: none; color: inherit; min-width: 0;"
+   class="group">
+
+  {# ── Image — always full width, always square ── #}
+  <div style="
+      width: 100%;
+      aspect-ratio: 1;
+      background: #f3f4f6;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;">
     {% with product.images.first as img %}
       {% if img %}
-        <img src="{{ img.image.url }}" alt="{{ product.name }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+        <img src="{{ img.image.url }}"
+             alt="{{ product.name }}"
+             loading="lazy"
+             style="width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s ease;"
+             class="group-hover:scale-105">
       {% else %}
-        <div class="h-full w-full flex items-center justify-center text-ink-400 text-xs">No image</div>
+        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 0.65rem;">
+          No image
+        </div>
       {% endif %}
     {% endwith %}
   </div>
-  <div class="mt-2">
-    <p class="text-sm font-semibold text-ink-900">
-      {% if variant %}{{ variant.currency }} {{ variant.price }}{% endif %}
+
+  {# ── Details ── #}
+  <div style="margin-top: {% if compact %}0.35rem{% else %}0.5rem{% endif %}; min-width: 0;">
+    {# Price #}
+    <p style="font-size: {% if compact %}0.72rem{% else %}0.8rem{% endif %}; font-weight: 800; color: #ea580c; margin: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+      {% if variant %}
+        {{ variant.currency }} {{ variant.price }}
+      {% else %}
+        <span style="color: #9ca3af; font-weight: 600;">—</span>
+      {% endif %}
     </p>
-    <p class="text-xs text-ink-600 truncate mt-0.5">{{ product.name }}</p>
+
+    {# Name #}
+    <p style="font-size: {% if compact %}0.68rem{% else %}0.75rem{% endif %}; font-weight: 600; color: #111827; margin: 0.2rem 0 0; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+      {{ product.name }}
+    </p>
+
+    {# Store name (full mode only) #}
+    {% if not compact %}
+      <p style="font-size: 0.65rem; color: #6b7280; margin: 0.25rem 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        {{ product.store.name }}
+      </p>
+    {% endif %}
   </div>
+
 </a>
 {% endwith %}

@@ -9,6 +9,12 @@ def _generate_token():
     return secrets.token_hex(32)
 
 
+def _avatar_upload_path(instance, filename):
+    """Store avatars under avatars/<user_id>/<filename>."""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
+    return f"avatars/{instance.id}/{uuid.uuid4().hex}.{ext}"
+
+
 # ─────────────────────────────────────────────────────
 # Roles
 # ─────────────────────────────────────────────────────
@@ -30,6 +36,27 @@ class User(AbstractUser):
         default=UserRole.CUSTOMER,
         help_text="Determines what this user can access in the platform.",
     )
+
+    # ── Profile fields (NEW) ────────────────────────────
+    avatar = models.ImageField(
+        upload_to=_avatar_upload_path,
+        blank=True,
+        null=True,
+        help_text="Square image recommended (e.g. 400×400). Max 5 MB.",
+    )
+    bio = models.TextField(
+        blank=True,
+        max_length=500,
+        help_text="Short bio shown on your public profile.",
+    )
+    date_of_birth = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Used for age verification and birthday offers.",
+    )
+    city = models.CharField(max_length=100, blank=True)
+    country = models.CharField(max_length=100, blank=True, default="Zambia")
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self) -> str:
         return self.email or self.username
@@ -66,6 +93,60 @@ class User(AbstractUser):
             self.is_superuser
             or self.role in {UserRole.USER_MANAGER, UserRole.ADMIN}
         )
+
+    # ── Profile helpers (NEW) ──────────────────────────
+    @property
+    def display_name(self) -> str:
+        """First name if set, else username. Use in templates with {{ user.display_name }}."""
+        return self.first_name or self.username
+
+    @property
+    def full_name(self) -> str:
+        """Full name if both first and last are set, else display_name."""
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        return self.display_name
+
+    @property
+    def initials(self) -> str:
+        """One or two letters for avatar fallback. Use with {{ user.initials }}."""
+        if self.first_name and self.last_name:
+            return f"{self.first_name[0]}{self.last_name[0]}".upper()
+        name = self.first_name or self.username or "?"
+        return name[:2].upper() if len(name) >= 2 else name[0].upper()
+
+    @property
+    def avatar_url(self) -> str | None:
+        """
+        Returns a URL for the user's avatar image, or None.
+
+        Resolution order:
+          1. user.avatar (uploaded image)
+          2. user.vendor.stores.first().logo (fallback for vendors)
+          3. None → templates should render initials
+
+        Safe to call in templates — never raises if vendor/logo is missing.
+        """
+        if self.avatar:
+            try:
+                return self.avatar.url
+            except (ValueError, AttributeError):
+                pass
+
+        if hasattr(self, "vendor"):
+            try:
+                store = self.vendor.stores.first()
+                if store and store.logo:
+                    return store.logo.url
+            except (ValueError, AttributeError):
+                pass
+
+        return None
+
+    @property
+    def has_avatar(self) -> bool:
+        """Quick boolean for template checks: {% if user.has_avatar %}."""
+        return self.avatar_url is not None
 
 
 class APIToken(models.Model):

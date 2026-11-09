@@ -6,8 +6,8 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
-
-from .forms import RegisterForm, UserEditForm
+from django.contrib.auth.decorators import login_required
+from .forms import ProfileForm, RegisterForm, UserEditForm
 from .models import UserRole
 from .permissions import user_manager_required
 
@@ -40,6 +40,32 @@ class RegisterView(CreateView):
 
 
 # ═══════════════════════════════════════════════════════
+# Self-service profile (any logged-in user)
+# ═══════════════════════════════════════════════════════
+@login_required
+def profile_view(request):
+    """Let the current user edit their own profile + upload an avatar."""
+    if request.method == "POST":
+        form = ProfileForm(
+            request.POST,
+            request.FILES,
+            instance=request.user,
+        )
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profile updated successfully.")
+            return redirect("accounts:profile")
+    else:
+        form = ProfileForm(instance=request.user)
+
+    return render(
+        request,
+        "accounts/profile.html",
+        {"form": form},
+    )
+
+
+# ═══════════════════════════════════════════════════════
 # User management (User Manager / Admin only)
 # ═══════════════════════════════════════════════════════
 @user_manager_required
@@ -48,7 +74,11 @@ def manage_users(request):
     q = request.GET.get("q", "").strip()
     role = request.GET.get("role", "").strip()
 
-    users_qs = User.objects.select_related("vendor").order_by("-date_joined")
+    users_qs = (
+        User.objects
+        .select_related("vendor")
+        .order_by("-date_joined")
+    )
 
     if q:
         users_qs = users_qs.filter(
@@ -56,6 +86,7 @@ def manage_users(request):
             | Q(email__icontains=q)
             | Q(first_name__icontains=q)
             | Q(last_name__icontains=q)
+            | Q(phone__icontains=q)
         )
 
     if role and role in dict(UserRole.choices):
@@ -77,7 +108,7 @@ def manage_users(request):
 
 @user_manager_required
 def edit_user(request, user_id):
-    """Edit a user's profile, role, and active status."""
+    """Edit any user's profile, role, and active status (admin-level)."""
     target = get_object_or_404(User, id=user_id)
 
     # Safety: a user manager can't edit a superuser unless they are one
@@ -86,7 +117,11 @@ def edit_user(request, user_id):
         return redirect("accounts:manage_users")
 
     if request.method == "POST":
-        form = UserEditForm(request.POST, instance=target)
+        form = UserEditForm(
+            request.POST,
+            request.FILES,
+            instance=target,
+        )
         if form.is_valid():
             form.save()
             messages.success(request, f"User “{target.username}” updated.")
@@ -94,11 +129,11 @@ def edit_user(request, user_id):
     else:
         form = UserEditForm(instance=target)
 
-    context = {
-        "form": form,
-        "target": target,
-    }
-    return render(request, "accounts/edit_user.html", context)
+    return render(
+        request,
+        "accounts/edit_user.html",
+        {"form": form, "target": target},
+    )
 
 
 @user_manager_required
@@ -119,6 +154,7 @@ def toggle_user_active(request, user_id):
 
     target.is_active = not target.is_active
     target.save(update_fields=["is_active"])
+
     state = "activated" if target.is_active else "deactivated"
     messages.success(request, f"User “{target.username}” {state}.")
     return redirect("accounts:manage_users")

@@ -7,6 +7,7 @@ from .views import (
     RegisterView,
     edit_user,
     manage_users,
+    profile_view,       # ← ADD
     toggle_user_active,
 )
 
@@ -16,6 +17,9 @@ urlpatterns = [
     path("login/", CustomLoginView.as_view(), name="login"),
     path("logout/", CustomLogoutView.as_view(), name="logout"),
     path("register/", RegisterView.as_view(), name="register"),
+
+    # ── Profile (self-service) ─────────────────────────
+    path("profile/", profile_view, name="profile"),   # ← FIXED
 
     # Password reset — 4 views, each needs a template
     path("password-reset/", auth_views.PasswordResetView.as_view(

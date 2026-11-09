@@ -1,169 +1,461 @@
 {% extends "base.html" %}
 {% block title %}Complete payment — UniMarket{% endblock %}
-{% block content %}
-<div class="max-w-4xl mx-auto">
 
-  <nav class="flex items-center gap-1.5 text-xs text-ink-500 mb-4">
-    <a href="{% url 'orders:my_orders' %}" class="hover:text-orange-600">My orders</a>
-    <span>/</span>
-    <a href="{% url 'orders:order_detail' order.order_number %}" class="hover:text-orange-600">{{ order.order_number }}</a>
-    <span>/</span>
-    <span class="text-ink-700">Payment</span>
+{% block content %}
+<style>
+  .pay-wrap { max-width: 60rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .pay-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  /* ── Breadcrumb ── */
+  .pay-breadcrumb {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 0.4rem; font-size: 0.75rem; color: #6b7280;
+    margin-bottom: 1rem; word-break: break-word;
+  }
+  .pay-breadcrumb a { color: #6b7280; text-decoration: none; }
+  .pay-breadcrumb a:hover { color: #ea580c; }
+  .pay-breadcrumb .current {
+    color: #111827; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 50%;
+  }
+
+  /* ── Header ── */
+  .pay-header { margin-bottom: 1.5rem; }
+  .pay-h1 {
+    font-size: 1.5rem; font-weight: 800;
+    color: #111827; letter-spacing: -0.01em; margin: 0;
+  }
+  .pay-sub {
+    font-size: 0.85rem; color: #4b5563;
+    margin: 0.35rem 0 0; line-height: 1.5;
+  }
+  .pay-sub strong { color: #111827; font-weight: 700; }
+
+  /* ── Two-column layout ── */
+  .pay-grid {
+    display: grid; gap: 1.5rem;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 1024px) {
+    .pay-grid { grid-template-columns: minmax(0, 1fr) 21rem; }
+  }
+
+  /* ── Cards ── */
+  .pay-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .pay-card { padding: 1.5rem; } }
+
+  .pay-card-title {
+    font-size: 1rem; font-weight: 800;
+    color: #111827; margin: 0 0 1rem;
+  }
+
+  /* ── Payment method radios ── */
+  .pay-methods {
+    display: flex; flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .pay-method {
+    display: block; position: relative;
+    cursor: pointer;
+  }
+  .pay-method input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .pay-method-card {
+    display: flex; align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    transition: border-color 0.15s, background-color 0.15s;
+    min-width: 0;
+  }
+  .pay-method:hover .pay-method-card { border-color: #fdba74; }
+
+  /* Selected state — shows when the hidden radio is checked */
+  .pay-method input:checked + .pay-method-card {
+    border-color: #f97316;
+    background: #fff7ed;
+  }
+
+  .pay-method-icon {
+    width: 2.5rem; height: 2.5rem;
+    border-radius: 10px;
+    background: #ffedd5; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .pay-method-icon svg { width: 1.25rem; height: 1.25rem; }
+
+  .pay-method-text { flex: 1; min-width: 0; }
+  .pay-method-title {
+    font-size: 0.85rem; font-weight: 700;
+    color: #111827; margin: 0;
+  }
+  .pay-method-desc {
+    font-size: 0.7rem; color: #6b7280;
+    margin: 0.15rem 0 0; line-height: 1.4;
+  }
+
+  /* ── Form fields ── */
+  .pay-field { margin-bottom: 1rem; }
+  .pay-field:last-child { margin-bottom: 0; }
+
+  .pay-label {
+    display: block;
+    font-size: 0.8rem; font-weight: 700;
+    color: #374151; margin-bottom: 0.35rem;
+  }
+  .pay-label-optional {
+    color: #9ca3af; font-weight: 400; font-size: 0.75rem;
+  }
+  .pay-label-required { color: #dc2626; margin-left: 0.15rem; }
+
+  .pay-input {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem;
+    color: #111827;
+    background: #fff;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .pay-input:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+  .pay-help {
+    font-size: 0.7rem; color: #6b7280;
+    margin: 0.35rem 0 0; line-height: 1.4;
+  }
+
+  /* Mobile money panel */
+  .pay-mobile-panel {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+    padding: 0.85rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .pay-mobile-panel.is-visible { display: block; }
+  .pay-mobile-panel .pay-field:last-child { margin-bottom: 0; }
+
+  /* Submit button */
+  .pay-submit {
+    width: 100%;
+    padding: 0.85rem 1.5rem;
+    border-radius: 12px;
+    background: #f97316;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border: 0;
+    cursor: pointer;
+    min-height: 48px;
+    box-sizing: border-box;
+    margin-top: 0.5rem;
+    transition: background-color 0.15s;
+  }
+  .pay-submit:hover { background: #ea580c; }
+  .pay-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* ── Right sidebar ── */
+  .pay-aside {
+    display: flex; flex-direction: column;
+    gap: 1rem;
+  }
+  @media (min-width: 1024px) {
+    .pay-aside { position: sticky; top: 1.5rem; align-self: start; }
+  }
+
+  .pay-summary-items {
+    display: flex; flex-direction: column;
+    gap: 0.75rem;
+    max-height: 16rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    margin-bottom: 1rem;
+  }
+  .pay-summary-item {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    min-width: 0;
+  }
+  .pay-summary-thumb {
+    width: 3rem; height: 3rem;
+    border-radius: 8px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .pay-summary-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pay-summary-thumb .empty {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: #9ca3af; font-size: 0.6rem;
+  }
+  .pay-summary-info { flex: 1; min-width: 0; }
+  .pay-summary-name {
+    font-size: 0.85rem; font-weight: 600;
+    color: #111827; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .pay-summary-qty {
+    font-size: 0.7rem; color: #6b7280;
+    margin: 0.15rem 0 0;
+  }
+  .pay-summary-price {
+    font-size: 0.85rem; font-weight: 700;
+    color: #111827; flex-shrink: 0; margin: 0;
+  }
+
+  .pay-divider {
+    border: 0;
+    border-top: 1px solid #f3f4f6;
+    margin: 1rem 0;
+  }
+
+  .pay-total-row {
+    display: flex; justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+  .pay-total-row span:first-child { color: #4b5563; }
+  .pay-total-row span:last-child { color: #111827; font-weight: 600; }
+
+  .pay-total-final {
+    display: flex; justify-content: space-between;
+    padding-top: 1rem;
+    margin-top: 0.75rem;
+    border-top: 1px solid #f3f4f6;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  /* Trust card */
+  .pay-trust {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+  .pay-trust-title {
+    font-size: 0.65rem; font-weight: 800;
+    color: #9a3412;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 0 0 0.5rem;
+  }
+  .pay-trust-text {
+    font-size: 0.75rem; color: #7c2d12;
+    line-height: 1.6; margin: 0;
+  }
+</style>
+
+<div class="pay-wrap">
+
+  {# ── Breadcrumb ── #}
+  <nav class="pay-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'orders:my_orders' %}">My orders</a>
+    <span aria-hidden="true">/</span>
+    <a href="{% url 'orders:order_detail' order.order_number %}">{{ order.order_number }}</a>
+    <span aria-hidden="true">/</span>
+    <span class="current">Payment</span>
   </nav>
 
-  <div class="mb-6">
-    <h1 class="text-2xl font-bold text-ink-900 tracking-tight">Complete payment</h1>
-    <p class="text-sm text-ink-500 mt-1">Order {{ order.order_number }} · {{ order.items.all|length }} item{{ order.items.all|length|pluralize }}</p>
+  {# ── Header ── #}
+  <div class="pay-header">
+    <h1 class="pay-h1">Complete payment</h1>
+    <p class="pay-sub">
+      Order <strong>{{ order.order_number }}</strong>
+      · {{ order.items.all|length }} item{{ order.items.all|length|pluralize }}
+    </p>
   </div>
 
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+  <div class="pay-grid">
 
-    <div class="bg-white rounded-2xl border border-ink-200 p-5 sm:p-6">
-      <h2 class="font-bold text-ink-900 mb-4">Choose payment method</h2>
-      <form method="post" class="space-y-4" id="payment-form">
+    {# ══ LEFT: Payment form ══ #}
+    <div class="pay-card">
+      <h2 class="pay-card-title">Choose payment method</h2>
+
+      <form method="post" id="payment-form">
         {% csrf_token %}
 
-        <div class="space-y-2">
+        {# ── Payment methods ── #}
+        <div class="pay-methods">
 
-          {# ── Card ───────────────────────────────────── #}
-          <label class="block cursor-pointer">
-            <input type="radio" name="method" value="card" class="peer sr-only" checked>
-            <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-ink-200 hover:border-orange-300 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition">
-              <div class="h-10 w-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          {# Card #}
+          <label class="pay-method">
+            <input type="radio" name="method" value="card" checked>
+            <div class="pay-method-card">
+              <div class="pay-method-icon">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-ink-900">Card payment</p>
-                <p class="text-xs text-ink-500">Visa, Mastercard, or debit card</p>
+              <div class="pay-method-text">
+                <p class="pay-method-title">Card payment</p>
+                <p class="pay-method-desc">Visa, Mastercard, or debit card</p>
               </div>
             </div>
           </label>
 
-          {# ── Mobile money ──────────────────────────── #}
-          <label class="block cursor-pointer">
-            <input type="radio" name="method" value="mobile_money" class="peer sr-only">
-            <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-ink-200 hover:border-orange-300 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition">
-              <div class="h-10 w-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          {# Mobile money #}
+          <label class="pay-method">
+            <input type="radio" name="method" value="mobile_money">
+            <div class="pay-method-card">
+              <div class="pay-method-icon">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-ink-900">Mobile money</p>
-                <p class="text-xs text-ink-500">MTN MoMo, Zamtel Kwacha</p>
-              </div>
-            </div>
-          </label>
-
-          {# ── Bank transfer ─────────────────────────── #}
-          <label class="block cursor-pointer">
-            <input type="radio" name="method" value="bank_transfer" class="peer sr-only">
-            <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-ink-200 hover:border-orange-300 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition">
-              <div class="h-10 w-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/></svg>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-ink-900">Bank transfer</p>
-                <p class="text-xs text-ink-500">Direct deposit to seller's account</p>
+              <div class="pay-method-text">
+                <p class="pay-method-title">Mobile money</p>
+                <p class="pay-method-desc">MTN MoMo, Zamtel Kwacha</p>
               </div>
             </div>
           </label>
 
-          {# ── Cash on delivery ──────────────────────── #}
-          <label class="block cursor-pointer">
-            <input type="radio" name="method" value="cod" class="peer sr-only">
-            <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-ink-200 hover:border-orange-300 peer-checked:border-orange-500 peer-checked:bg-orange-50 transition">
-              <div class="h-10 w-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          {# Bank transfer #}
+          <label class="pay-method">
+            <input type="radio" name="method" value="bank_transfer">
+            <div class="pay-method-card">
+              <div class="pay-method-icon">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/>
+                </svg>
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-ink-900">Cash on delivery</p>
-                <p class="text-xs text-ink-500">Pay in cash when your order arrives</p>
+              <div class="pay-method-text">
+                <p class="pay-method-title">Bank transfer</p>
+                <p class="pay-method-desc">Direct deposit to seller's account</p>
               </div>
             </div>
           </label>
+
+          {# Cash on delivery #}
+          <label class="pay-method">
+            <input type="radio" name="method" value="cod">
+            <div class="pay-method-card">
+              <div class="pay-method-icon">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+              </div>
+              <div class="pay-method-text">
+                <p class="pay-method-title">Cash on delivery</p>
+                <p class="pay-method-desc">Pay in cash when your order arrives</p>
+              </div>
+            </div>
+          </label>
+
         </div>
 
-        {# ── Mobile money input fields ──────────────── #}
-        <div id="mobile-fields" class="hidden space-y-3 p-4 rounded-xl bg-orange-50 border border-orange-200">
-          <div>
-            <label for="phone" class="label">
-              Mobile money number <span class="text-red-500">*</span>
+        {# ── Mobile money extra fields (hidden by default) ── #}
+        <div class="pay-mobile-panel" id="mobile-fields">
+          <div class="pay-field">
+            <label for="phone" class="pay-label">
+              Mobile money number <span class="pay-label-required">*</span>
             </label>
             <input type="tel" name="phone" id="phone"
                    placeholder="+260971234567 or 0971234567"
-                   class="input">
-            <p class="mt-1 text-xs text-ink-500">Use the number registered with your mobile money account.</p>
+                   class="pay-input">
+            <p class="pay-help">Use the number registered with your mobile money account.</p>
           </div>
-          <div>
-            <label for="network" class="label">Network</label>
-            <select name="network" id="network" class="input">
+          <div class="pay-field">
+            <label for="network" class="pay-label">Network</label>
+            <select name="network" id="network" class="pay-input">
               <option value="mtn">MTN MoMo</option>
               <option value="zamtel">Zamtel Kwacha</option>
             </select>
           </div>
         </div>
 
-        {# ── Reference (optional) ───────────────────── #}
-        <div id="reference-field">
-          <label for="reference" class="label">
-            Payment reference <span class="text-ink-400 text-xs font-normal">(optional)</span>
+        {# ── Payment reference (optional) ── #}
+        <div class="pay-field" id="reference-field">
+          <label for="reference" class="pay-label">
+            Payment reference <span class="pay-label-optional">(optional)</span>
           </label>
           <input type="text" name="reference" id="reference"
                  placeholder="e.g. transaction ID, mobile money reference"
-                 class="input">
+                 class="pay-input">
         </div>
 
-        <button type="submit"
-                class="w-full rounded-xl bg-orange-500 px-6 py-3 text-sm font-bold text-white hover:bg-orange-600 transition">
+        {# Submit button #}
+        <button type="submit" class="pay-submit" id="submit-btn">
           Pay {{ order.currency }} {{ order.total }}
         </button>
       </form>
     </div>
 
-    <aside class="lg:sticky lg:top-6 self-start space-y-4">
-      <div class="bg-white rounded-2xl border border-ink-200 p-5">
-        <h2 class="font-bold text-ink-900 mb-4">Order summary</h2>
-        <div class="space-y-3 mb-4 max-h-64 overflow-y-auto pr-1">
+    {# ══ RIGHT: Order summary ══ #}
+    <aside class="pay-aside">
+
+      <div class="pay-card">
+        <h2 class="pay-card-title">Order summary</h2>
+
+        <div class="pay-summary-items">
           {% for item in order.items.all %}
-            <div class="flex items-start gap-3">
-              <div class="w-12 h-12 shrink-0 rounded-lg bg-ink-100 overflow-hidden">
+            <div class="pay-summary-item">
+              <div class="pay-summary-thumb">
                 {% with item.variant.product.images.first as img %}
                   {% if img %}
-                    <img src="{{ img.image.url }}" alt="" class="w-full h-full object-cover">
+                    <img src="{{ img.image.url }}" alt="" loading="lazy">
                   {% else %}
-                    <div class="w-full h-full flex items-center justify-center text-ink-400 text-[9px]">—</div>
+                    <div class="empty">—</div>
                   {% endif %}
                 {% endwith %}
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-ink-900 truncate">{{ item.variant.product.name }}</p>
-                <p class="text-xs text-ink-500">Qty {{ item.quantity }}</p>
+              <div class="pay-summary-info">
+                <p class="pay-summary-name">{{ item.variant.product.name }}</p>
+                <p class="pay-summary-qty">Qty {{ item.quantity }}</p>
               </div>
-              <p class="text-sm font-semibold text-ink-900 shrink-0">{{ order.currency }} {{ item.subtotal }}</p>
+              <p class="pay-summary-price">{{ order.currency }} {{ item.subtotal }}</p>
             </div>
           {% endfor %}
         </div>
-        <hr class="border-ink-100 my-4">
-        <div class="space-y-2 text-sm">
-          <div class="flex justify-between">
-            <span class="text-ink-600">Subtotal</span>
-            <span class="text-ink-900">{{ order.currency }} {{ order.subtotal }}</span>
+
+        <hr class="pay-divider">
+
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <div class="pay-total-row">
+            <span>Subtotal</span>
+            <span>{{ order.currency }} {{ order.subtotal }}</span>
           </div>
-          <div class="flex justify-between">
-            <span class="text-ink-600">Shipping</span>
-            <span class="text-ink-900">{{ order.currency }} {{ order.shipping_total }}</span>
+          <div class="pay-total-row">
+            <span>Shipping</span>
+            <span>{{ order.currency }} {{ order.shipping_total }}</span>
           </div>
         </div>
-        <div class="mt-4 pt-4 border-t border-ink-100 flex justify-between font-bold text-lg">
+
+        <div class="pay-total-final">
           <span>Total due</span>
           <span>{{ order.currency }} {{ order.total }}</span>
         </div>
       </div>
-      <div class="bg-orange-50 border border-orange-200 rounded-2xl p-4">
-        <p class="text-xs font-bold text-orange-700 uppercase tracking-wide mb-2">Buyer protection</p>
-        <p class="text-xs text-ink-700 leading-relaxed">
+
+      <div class="pay-trust">
+        <p class="pay-trust-title">Buyer protection</p>
+        <p class="pay-trust-text">
           Your payment is held until you confirm delivery. If something goes wrong, open a dispute for a full refund.
         </p>
       </div>
+
     </aside>
   </div>
 </div>
@@ -174,27 +466,42 @@
 (function () {
   'use strict';
 
-  const methodInputs = document.querySelectorAll('input[name="method"]');
-  const mobileFields = document.getElementById('mobile-fields');
-  const phoneInput = document.getElementById('phone');
-  const networkInput = document.getElementById('network');
+  var methodInputs = document.querySelectorAll('input[name="method"]');
+  var mobileFields = document.getElementById('mobile-fields');
+  var phoneInput = document.getElementById('phone');
+  var networkInput = document.getElementById('network');
+  var referenceField = document.getElementById('reference-field');
+  var submitBtn = document.getElementById('submit-btn');
 
   function updateVisibility() {
-    const selected = document.querySelector('input[name="method"]:checked');
-    const isMobile = selected && selected.value === 'mobile_money';
+    var selected = document.querySelector('input[name="method"]:checked');
+    var value = selected ? selected.value : '';
 
-    if (isMobile) {
-      mobileFields.classList.remove('hidden');
+    // Mobile money panel
+    if (value === 'mobile_money') {
+      mobileFields.classList.add('is-visible');
       phoneInput.required = true;
       networkInput.required = true;
     } else {
-      mobileFields.classList.add('hidden');
+      mobileFields.classList.remove('is-visible');
       phoneInput.required = false;
       networkInput.required = false;
     }
+
+    // Hide reference field for COD (not needed) and update button label
+    if (value === 'cod') {
+      referenceField.style.display = 'none';
+      submitBtn.textContent = 'Confirm order — pay on delivery';
+    } else {
+      referenceField.style.display = 'block';
+      submitBtn.textContent = 'Pay {{ order.currency }} {{ order.total }}';
+    }
   }
 
-  methodInputs.forEach(m => m.addEventListener('change', updateVisibility));
+  methodInputs.forEach(function (input) {
+    input.addEventListener('change', updateVisibility);
+  });
+
   updateVisibility();
 })();
 </script>

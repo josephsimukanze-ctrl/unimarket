@@ -22,6 +22,7 @@ from .models import Payment, PaymentMethod, PaymentStatus
 # Order payment (simulated — COD or instant success)
 # ═══════════════════════════════════════════════════════════════
 
+
 @login_required
 def pay(request, order_number):
     order = get_object_or_404(
@@ -32,30 +33,56 @@ def pay(request, order_number):
         buyer=request.user,
     )
 
-    if order.status in (
+    paid_statuses = (
         OrderStatus.PAID,
         OrderStatus.PROCESSING,
         OrderStatus.SHIPPED,
         OrderStatus.DELIVERED,
-    ):
+    )
+
+    if order.status in paid_statuses:
         messages.info(request, "This order is already paid.")
-        return redirect("orders:order_detail", order_number=order.order_number)
+        return redirect(
+            "orders:order_detail",
+            order_number=order.order_number,
+        )
 
     if order.status != OrderStatus.PENDING:
         messages.error(request, "This order cannot be paid.")
-        return redirect("orders:order_detail", order_number=order.order_number)
+        return redirect(
+            "orders:order_detail",
+            order_number=order.order_number,
+        )
 
     if request.method == "POST":
         method = request.POST.get("method", "").strip()
         reference = request.POST.get("reference", "").strip()
 
         valid_methods = dict(PaymentMethod.choices)
+
         if method not in valid_methods:
             messages.error(request, "Please select a valid payment method.")
+            return redirect(
+                "orders:order_detail",
+                order_number=order.order_number,
+            )
+
+        # Do not simulate successful electronic payments.
+        # Airtel Money and MTN MoMo must be verified by their APIs.
+        if method != PaymentMethod.CASH_ON_DELIVERY:
+            messages.warning(
+                request,
+                "This payment provider is not yet connected. "
+                "Your order has not been charged or marked as paid. "
+                "Please choose another available payment method."
+            )
             return render(
                 request,
                 "payments/pay.html",
-                {"order": order, "methods": PaymentMethod.choices},
+                {
+                    "order": order,
+                    "methods": PaymentMethod.choices,
+                },
             )
 
         try:
@@ -66,100 +93,51 @@ def pay(request, order_number):
                     status=PaymentStatus.PENDING,
                     amount=order.total,
                     currency=order.currency,
-                    reference=reference or f"TXN-{timezone.now().timestamp()}",
+                    reference=(
+                        reference or
+                        f"COD-{order.order_number}-{timezone.now().timestamp()}"
+                    ),
                     provider_response={
-                        "mode": "simulated",
+                        "mode": "cash_on_delivery",
                         "submitted_at": timezone.now().isoformat(),
+                        "message": "Payment due upon delivery.",
                     },
                 )
 
-                if method == PaymentMethod.CASH_ON_DELIVERY:
-                    payment.status = PaymentStatus.PENDING
-                    payment.provider_response["message"] = (
-                        "Cash on delivery — pay when delivered."
-                    )
-                    payment.save(update_fields=["status", "provider_response"])
-
-                    notify(
-                        recipient=order.vendor.user,
-                        title=f"New COD order {order.order_number}",
-                        body=(
-                            f"{order.buyer.username} chose cash on delivery for "
-                            f"{order.currency} {order.total}."
-                        ),
-                        url=f"/orders/seller/{order.order_number}/",
-                    )
-                    messages.success(
-                        request,
-                        f"Order confirmed! Pay {order.currency} {order.total} "
-                        "in cash when your order arrives.",
-                    )
-                    return redirect(
-                        "orders:order_detail",
-                        order_number=order.order_number,
-                    )
-
-                payment.status = PaymentStatus.SUCCESSFUL
-                payment.provider_response["message"] = (
-                    "Payment processed successfully."
-                )
-                payment.save(update_fields=["status", "provider_response"])
-
-                order.status = OrderStatus.PAID
-                order.save(update_fields=["status", "updated_at"])
-
-                for item in order.items.all():
-                    try:
-                        inventory = Inventory.objects.select_for_update().get(
-                            variant=item.variant
-                        )
-                        if inventory.quantity >= item.quantity:
-                            inventory.quantity -= item.quantity
-                            inventory.save(update_fields=["quantity"])
-                    except Inventory.DoesNotExist:
-                        pass
-
                 notify(
                     recipient=order.vendor.user,
-                    title=f"Payment received for {order.order_number}",
+                    title=f"New COD order {order.order_number}",
                     body=(
-                        f"{order.buyer.username} paid {order.currency} "
-                        f"{order.total} via {valid_methods[method]}."
+                        f"{order.buyer.username} selected cash on delivery "
+                        f"for {order.currency} {order.total}."
                     ),
                     url=f"/orders/seller/{order.order_number}/",
                 )
-                notify(
-                    recipient=order.buyer,
-                    title=f"Payment confirmed for {order.order_number}",
-                    body=(
-                        f"Your payment of {order.currency} {order.total} "
-                        "was successful."
-                    ),
-                    url=f"/orders/{order.order_number}/",
-                )
 
-                messages.success(
-                    request,
-                    f"Payment successful! Your order {order.order_number} "
-                    "is now being processed.",
-                )
-                return redirect(
-                    "orders:order_detail",
-                    order_number=order.order_number,
-                )
-
-        except Exception as e:
-            messages.error(request, f"Payment failed: {e}. Please try again.")
-            return render(
+            messages.success(
                 request,
-                "payments/pay.html",
-                {"order": order, "methods": PaymentMethod.choices},
+                f"Order confirmed! Pay {order.currency} {order.total} "
+                "when your order arrives.",
+            )
+
+            return redirect(
+                "orders:order_detail",
+                order_number=order.order_number,
+            )
+
+        except Exception:
+            messages.error(
+                request,
+                "We could not process your order. Please try again."
             )
 
     return render(
         request,
         "payments/pay.html",
-        {"order": order, "methods": PaymentMethod.choices},
+        {
+            "order": order,
+            "methods": PaymentMethod.choices,
+        },
     )
 
 

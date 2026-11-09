@@ -253,16 +253,72 @@
   }
   .vd-store-btn-ghost:hover { background: #f9fafb; }
 
-  /* ── Products grid ── */
+  /* ── Products grid (dense, fills every column) ── */
   .vd-products {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.5rem;
     padding: 0.75rem;
   }
-  @media (min-width: 480px) { .vd-products { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  @media (min-width: 768px) { .vd-products { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; } }
-  @media (min-width: 1024px) { .vd-products { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+  @media (min-width: 480px) {
+    .vd-products { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
+  }
+  @media (min-width: 768px) {
+    .vd-products { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.7rem; }
+  }
+  @media (min-width: 1024px) {
+    .vd-products { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.75rem; }
+  }
+
+  .vd-prod {
+    display: flex; flex-direction: column;
+    text-decoration: none; color: inherit;
+    min-width: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: background-color 0.15s;
+  }
+  .vd-prod:hover { background: #fff7ed; }
+
+  .vd-prod-img {
+    width: 100%;
+    aspect-ratio: 1;
+    background: #f3f4f6;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .vd-prod-img img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+  }
+  .vd-prod:hover .vd-prod-img img {
+    transform: scale(1.05);
+  }
+  .vd-prod-img .empty {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: #9ca3af; font-size: 0.6rem;
+  }
+
+  .vd-prod-info {
+    padding: 0.4rem 0.15rem 0.5rem;
+    min-width: 0;
+  }
+  .vd-prod-price {
+    font-size: 0.75rem; font-weight: 800;
+    color: #ea580c;
+    margin: 0; line-height: 1.2;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .vd-prod-name {
+    font-size: 0.7rem; font-weight: 600;
+    color: #111827;
+    margin: 0.2rem 0 0; line-height: 1.3;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
 
   /* ── Empty state ── */
   .vd-empty {
@@ -281,6 +337,34 @@
     min-height: 42px; box-sizing: border-box;
   }
   .vd-empty-cta:hover { background: #c2410c; }
+
+  /* ── Gated dashboard lock card ── */
+  .vd-gate {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 2rem 1.25rem;
+    text-align: center;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .vd-gate { padding: 2.5rem 2rem; } }
+  .vd-gate-icon {
+    width: 4rem; height: 4rem;
+    border-radius: 9999px;
+    background: #dbeafe; color: #1e40af;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  .vd-gate-title {
+    font-size: 1.1rem; font-weight: 800;
+    color: #111827; margin: 0 0 0.5rem;
+    line-height: 1.3;
+  }
+  .vd-gate-text {
+    font-size: 0.85rem; color: #4b5563;
+    margin: 0 auto 1.5rem; max-width: 26rem;
+    line-height: 1.6;
+  }
 </style>
 
 <div class="vd-wrap">
@@ -289,29 +373,27 @@
   {% if latest_subscription %}
     {% with sub=latest_subscription %}
 
-      {# 0. Submitted — awaiting admin approval (NEW PRIORITY: shown first) #}
       {% if sub.status == 'submitted' %}
-        <div class="vd-sub-banner vd-sub-blue">
+        <div class="vd-sub-banner vd-sub-blue" role="status">
           <div class="vd-sub-info">
             <p class="vd-sub-title">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               Payment received — awaiting approval
             </p>
             <p class="vd-sub-text">
               Your {{ sub.plan.name }} subscription payment of {{ sub.plan.currency }} {{ sub.plan.price }}
-              is being reviewed by our team. You'll be notified once it's approved.
+              is being reviewed. You'll be notified once it's approved.
             </p>
           </div>
         </div>
 
-      {# 1. Active + healthy #}
       {% elif sub.is_active and not sub.needs_payment_reminder %}
-        <div class="vd-sub-banner vd-sub-green">
+        <div class="vd-sub-banner vd-sub-green" role="status">
           <div class="vd-sub-info">
             <p class="vd-sub-title">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
               </svg>
               {{ sub.plan.name }} subscription active
@@ -323,12 +405,11 @@
           </div>
         </div>
 
-      {# 2. Active + expiring soon #}
       {% elif sub.is_active and sub.needs_payment_reminder %}
-        <div class="vd-sub-banner vd-sub-amber">
+        <div class="vd-sub-banner vd-sub-amber" role="alert">
           <div class="vd-sub-info">
             <p class="vd-sub-title">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
               </svg>
               Subscription expires in {{ sub.days_remaining }} day{{ sub.days_remaining|pluralize }}
@@ -337,17 +418,14 @@
               Renew for {{ sub.plan.currency }} {{ sub.plan.price }} to keep selling without interruption.
             </p>
           </div>
-          <a href="{% url 'vendors:choose_plan' %}" class="vd-sub-cta">
-            Renew now →
-          </a>
+          <a href="{% url 'vendors:choose_plan' %}" class="vd-sub-cta">Renew now →</a>
         </div>
 
-      {# 3. Grace period #}
       {% elif sub.is_in_grace_period %}
-        <div class="vd-sub-banner vd-sub-red">
+        <div class="vd-sub-banner vd-sub-red" role="alert">
           <div class="vd-sub-info">
             <p class="vd-sub-title">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               Subscription expired — grace period
@@ -357,14 +435,11 @@
               Renew now or your store will be disabled.
             </p>
           </div>
-          <a href="{% url 'vendors:choose_plan' %}" class="vd-sub-cta">
-            Renew now →
-          </a>
+          <a href="{% url 'vendors:choose_plan' %}" class="vd-sub-cta">Renew now →</a>
         </div>
 
-      {# 4. Fully expired #}
       {% elif sub.is_past_expiry and not sub.is_in_grace_period %}
-        <div class="vd-sub-banner vd-sub-dark">
+        <div class="vd-sub-banner vd-sub-dark" role="alert">
           <div class="vd-sub-info">
             <p class="vd-sub-title">Your store is disabled</p>
             <p class="vd-sub-text">
@@ -372,28 +447,22 @@
               Renew to restore full access.
             </p>
           </div>
-          <a href="{% url 'vendors:choose_plan' %}" class="vd-sub-cta">
-            Reactivate →
-          </a>
+          <a href="{% url 'vendors:choose_plan' %}" class="vd-sub-cta">Reactivate →</a>
         </div>
 
-      {# 5. Pending payment #}
       {% elif sub.status == 'pending' %}
-        <div class="vd-sub-banner vd-sub-amber">
+        <div class="vd-sub-banner vd-sub-amber" role="status">
           <div class="vd-sub-info">
             <p class="vd-sub-title">Complete your subscription payment</p>
             <p class="vd-sub-text">
               Pay {{ sub.plan.currency }} {{ sub.plan.price }} to activate your "{{ sub.plan.name }}" plan.
             </p>
           </div>
-          <a href="{% url 'payments:pay_subscription' sub.id %}" class="vd-sub-cta">
-            Pay now →
-          </a>
+          <a href="{% url 'payments:pay_subscription' sub.id %}" class="vd-sub-cta">Pay now →</a>
         </div>
 
-      {# 6. Rejected #}
       {% elif sub.status == 'rejected' %}
-        <div class="vd-sub-banner vd-sub-red">
+        <div class="vd-sub-banner vd-sub-red" role="alert">
           <div class="vd-sub-info">
             <p class="vd-sub-title">Subscription payment rejected</p>
             <p class="vd-sub-text">
@@ -404,9 +473,7 @@
               {% endif %}
             </p>
           </div>
-          <a href="{% url 'vendors:choose_plan' %}" class="vd-sub-cta">
-            Try again →
-          </a>
+          <a href="{% url 'vendors:choose_plan' %}" class="vd-sub-cta">Try again →</a>
         </div>
       {% endif %}
 
@@ -432,17 +499,11 @@
         </div>
       </div>
       <div class="vd-hero-actions">
-        {% if vendor.is_verified %}
-          <a href="{% url 'catalogue:product_create' %}" class="vd-hero-btn vd-hero-btn-white">
-            + Add product
-          </a>
-          <a href="{% url 'catalogue:my_products' %}" class="vd-hero-btn vd-hero-btn-ghost">
-            My products
-          </a>
+        {% if vendor.is_verified and vendor.active_subscription %}
+          <a href="{% url 'catalogue:product_create' %}" class="vd-hero-btn vd-hero-btn-white">+ Add product</a>
+          <a href="{% url 'catalogue:my_products' %}" class="vd-hero-btn vd-hero-btn-ghost">My products</a>
         {% else %}
-          <a href="{% url 'messaging:inbox' %}" class="vd-hero-btn vd-hero-btn-ghost">
-            Contact support
-          </a>
+          <a href="{% url 'messaging:inbox' %}" class="vd-hero-btn vd-hero-btn-ghost">Contact support</a>
         {% endif %}
       </div>
     </div>
@@ -450,11 +511,10 @@
 
   {# ══ KPI CARDS ══ #}
   <div class="vd-kpis">
-
     <a href="{% url 'orders:seller_orders' %}" class="vd-kpi">
       <div class="vd-kpi-head">
         <p class="vd-kpi-label">Incoming</p>
-        <span class="vd-kpi-icon">
+        <span class="vd-kpi-icon" aria-hidden="true">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0"/></svg>
         </span>
       </div>
@@ -465,7 +525,7 @@
     <a href="{% url 'disputes:seller_disputes' %}" class="vd-kpi">
       <div class="vd-kpi-head">
         <p class="vd-kpi-label">Disputes</p>
-        <span class="vd-kpi-icon">
+        <span class="vd-kpi-icon" aria-hidden="true">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
         </span>
       </div>
@@ -476,7 +536,7 @@
     <a href="{% url 'catalogue:my_products' %}" class="vd-kpi">
       <div class="vd-kpi-head">
         <p class="vd-kpi-label">Products</p>
-        <span class="vd-kpi-icon">
+        <span class="vd-kpi-icon" aria-hidden="true">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
         </span>
       </div>
@@ -487,7 +547,7 @@
     <div class="vd-kpi">
       <div class="vd-kpi-head">
         <p class="vd-kpi-label">Revenue</p>
-        <span class="vd-kpi-icon">
+        <span class="vd-kpi-icon" aria-hidden="true">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </span>
       </div>
@@ -496,53 +556,62 @@
     </div>
   </div>
 
-  {# ── Gate: hide everything below until vendor is verified ── #}
-  {% if not vendor.is_verified %}
+  {# ══ GATE ══ #}
+  {% if not vendor.is_verified or not vendor.active_subscription %}
 
-    {# Big informational card replaces the rest of the dashboard #}
-    <div class="vd-card" style="padding: 2rem 1.5rem; text-align: center;">
-      <div style="width: 4rem; height: 4rem; border-radius: 9999px; background: #dbeafe; color: #1e40af; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <div class="vd-gate">
+      <div class="vd-gate-icon">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
         </svg>
       </div>
 
-      <h2 style="font-size: 1.1rem; font-weight: 800; color: #111827; margin: 0 0 0.5rem;">
-        {% if latest_subscription.status == 'submitted' %}
-          Awaiting admin approval
-        {% elif latest_subscription.status == 'pending' %}
-          Complete your payment
+      <h2 class="vd-gate-title">
+        {% if latest_subscription %}
+          {% if latest_subscription.status == 'submitted' %}Awaiting admin approval
+          {% elif latest_subscription.status == 'pending' %}Complete your payment
+          {% elif latest_subscription.status == 'rejected' %}Subscription not approved
+          {% elif latest_subscription.is_in_grace_period %}Subscription expired — grace period
+          {% elif latest_subscription.is_past_expiry %}Your store is disabled
+          {% else %}Your store is not yet active{% endif %}
         {% else %}
-          Your store is not yet active
+          No subscription yet
         {% endif %}
       </h2>
 
-      <p style="font-size: 0.85rem; color: #4b5563; margin: 0 auto 1.5rem; max-width: 26rem; line-height: 1.6;">
-        {% if latest_subscription.status == 'submitted' %}
-          Your payment has been received. Our team is reviewing it — you'll be notified
-          as soon as your store is activated (usually within 24 hours).
-        {% elif latest_subscription.status == 'pending' %}
-          Pay {{ latest_subscription.plan.currency }} {{ latest_subscription.plan.price }}
-          to submit your subscription for approval.
+      <p class="vd-gate-text">
+        {% if latest_subscription %}
+          {% if latest_subscription.status == 'submitted' %}
+            Your payment has been received. Our team is reviewing it — you'll be notified as soon as your store is activated (usually within 24 hours).
+          {% elif latest_subscription.status == 'pending' %}
+            Pay {{ latest_subscription.plan.currency }} {{ latest_subscription.plan.price }} to submit your subscription for approval.
+          {% elif latest_subscription.status == 'rejected' %}
+            {% if latest_subscription.rejection_reason %}Reason: {{ latest_subscription.rejection_reason }}. {% endif %}
+            Please choose a different plan or contact support.
+          {% elif latest_subscription.is_in_grace_period %}
+            {{ latest_subscription.days_of_grace_remaining }} day{{ latest_subscription.days_of_grace_remaining|pluralize }} remaining before your store is disabled. Renew to keep selling.
+          {% else %}
+            Your subscription has expired. Renew to restore full access.
+          {% endif %}
         {% else %}
-          Complete the payment flow to activate your seller account.
+          Choose a subscription plan to activate your seller account.
         {% endif %}
       </p>
 
-      {% if latest_subscription.status == 'pending' %}
-        <a href="{% url 'payments:pay_subscription' latest_subscription.id %}" class="vd-empty-cta">
-          Pay now →
-        </a>
+      {% if latest_subscription %}
+        {% if latest_subscription.status == 'pending' %}
+          <a href="{% url 'payments:pay_subscription' latest_subscription.id %}" class="vd-empty-cta">Pay now →</a>
+        {% elif latest_subscription.status == 'submitted' %}
+          <a href="{% url 'messaging:inbox' %}" class="vd-empty-cta" style="background: #1e40af;">Contact support</a>
+        {% else %}
+          <a href="{% url 'vendors:choose_plan' %}" class="vd-empty-cta">Choose a plan →</a>
+        {% endif %}
       {% else %}
-        <a href="{% url 'messaging:inbox' %}" class="vd-empty-cta" style="background: #1e40af;">
-          Contact support
-        </a>
+        <a href="{% url 'vendors:choose_plan' %}" class="vd-empty-cta">Choose a plan →</a>
       {% endif %}
     </div>
 
   {% else %}
-
-    {# ══ Everything below only shows when verified ══ #}
 
     {# QUICK ACTIONS #}
     <div class="vd-card">
@@ -551,50 +620,33 @@
       </div>
       <div class="vd-quick">
         <a href="{% url 'catalogue:product_create' %}" class="vd-quick-item">
-          <span class="vd-quick-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-          </span>
+          <span class="vd-quick-icon" aria-hidden="true"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></span>
           <span class="vd-quick-label">Add product</span>
         </a>
-
         <a href="{% url 'auctions:auction_create' %}" class="vd-quick-item">
-          <span class="vd-quick-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </span>
+          <span class="vd-quick-icon" aria-hidden="true"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
           <span class="vd-quick-label">Auction</span>
         </a>
-
         <a href="{% url 'orders:seller_orders' %}" class="vd-quick-item">
-          <span class="vd-quick-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0"/></svg>
-          </span>
+          <span class="vd-quick-icon" aria-hidden="true"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0"/></svg></span>
           <span class="vd-quick-label">Orders</span>
         </a>
-
         <a href="{% url 'disputes:seller_disputes' %}" class="vd-quick-item">
-          <span class="vd-quick-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-          </span>
+          <span class="vd-quick-icon" aria-hidden="true"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></span>
           <span class="vd-quick-label">Disputes</span>
         </a>
-
         <a href="{% url 'auctions:my_auctions' %}" class="vd-quick-item">
-          <span class="vd-quick-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </span>
+          <span class="vd-quick-icon" aria-hidden="true"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
           <span class="vd-quick-label">My auctions</span>
         </a>
-
         <a href="{% url 'messaging:inbox' %}" class="vd-quick-item">
-          <span class="vd-quick-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-          </span>
+          <span class="vd-quick-icon" aria-hidden="true"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></span>
           <span class="vd-quick-label">Messages</span>
         </a>
       </div>
     </div>
 
-    {# TOP PRODUCTS #}
+    {# TOP PRODUCTS — INLINE CARDS THAT FILL THEIR COLUMN #}
     {% if top_products %}
       <div class="vd-card">
         <div class="vd-card-head">
@@ -603,7 +655,25 @@
         </div>
         <div class="vd-products">
           {% for p in top_products %}
-            {% include "components/product_card.html" with product=p compact=True %}
+            <a href="{% url 'catalogue:product_detail' p.slug %}" class="vd-prod">
+              <div class="vd-prod-img">
+                {% with p.images.first as img %}
+                  {% if img %}
+                    <img src="{{ img.image.url }}" alt="{{ p.name }}" loading="lazy">
+                  {% else %}
+                    <div class="empty">No image</div>
+                  {% endif %}
+                {% endwith %}
+              </div>
+              <div class="vd-prod-info">
+                {% with p.variants.first as v %}
+                  <p class="vd-prod-price">
+                    {% if v %}{{ v.currency }} {{ v.price }}{% else %}—{% endif %}
+                  </p>
+                {% endwith %}
+                <p class="vd-prod-name">{{ p.name }}</p>
+              </div>
+            </a>
           {% endfor %}
         </div>
       </div>
@@ -638,15 +708,9 @@
                 </div>
               </div>
               <div class="vd-store-actions">
-                <a href="{% url 'catalogue:my_products' %}" class="vd-store-btn vd-store-btn-primary">
-                  Manage products
-                </a>
-                <a href="{% url 'catalogue:store_detail' store.slug %}" class="vd-store-btn vd-store-btn-ghost">
-                  View store
-                </a>
-                <a href="{% url 'catalogue:product_create' %}" class="vd-store-btn vd-store-btn-ghost">
-                  + Add product
-                </a>
+                <a href="{% url 'catalogue:my_products' %}" class="vd-store-btn vd-store-btn-primary">Manage products</a>
+                <a href="{% url 'catalogue:store_detail' store.slug %}" class="vd-store-btn vd-store-btn-ghost">View store</a>
+                <a href="{% url 'catalogue:product_create' %}" class="vd-store-btn vd-store-btn-ghost">+ Add product</a>
               </div>
             </div>
           {% endfor %}
@@ -659,7 +723,7 @@
       {% endif %}
     </div>
 
-  {% endif %}{# end vendor.is_verified #}
+  {% endif %}
 
 </div>
 {% endblock %}

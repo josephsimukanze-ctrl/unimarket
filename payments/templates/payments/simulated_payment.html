@@ -1,279 +1,363 @@
+
 {% extends "base.html" %}
-{% block title %}Simulated payment — UniMarket{% endblock %}
+
+{% block title %}Development Payment — UniMarket{% endblock %}
 
 {% block content %}
-<style>
-  .sp-wrap { max-width: 34rem; margin: 0 auto; padding: 2rem 0.75rem; box-sizing: border-box; }
-  @media (min-width: 640px) { .sp-wrap { padding: 3rem 1rem; } }
 
-  .sp-dev-banner {
-    background: #fef3c7;
-    border: 2px solid #fbbf24;
-    border-radius: 12px;
-    padding: 0.85rem 1rem;
-    display: flex; align-items: flex-start; gap: 0.5rem;
-    font-size: 0.8rem; color: #92400e;
-    margin-bottom: 1.25rem;
-    line-height: 1.5;
+<style>
+  .sp-wrap {
+    max-width: 34rem;
+    margin: 0 auto;
+    padding: 2.5rem 1rem;
   }
-  .sp-dev-banner strong { color: #78350f; }
 
   .sp-card {
     background: #fff;
     border: 1px solid #e5e7eb;
-    border-radius: 20px;
+    border-radius: 18px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: 0 8px 30px rgba(0,0,0,.05);
   }
 
   .sp-head {
-    padding: 1.25rem 1.5rem;
-    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-    color: #fff;
+    background: linear-gradient(135deg,#f97316,#ea580c);
+    color: white;
+    padding: 1.75rem;
   }
-  .sp-head-title {
-    font-size: 0.65rem; font-weight: 800;
+
+  .sp-eyebrow {
     color: #ffedd5;
-    text-transform: uppercase; letter-spacing: 0.05em;
-    margin: 0 0 0.35rem;
+    font-size: .7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: .5rem;
   }
-  .sp-head-plan {
-    font-size: 1.35rem; font-weight: 800;
+
+  .sp-plan {
+    font-size: 1.5rem;
+    font-weight: 800;
     margin: 0;
   }
-  .sp-head-amount {
-    font-size: 1.75rem; font-weight: 900;
-    margin: 0.5rem 0 0;
-  }
-  .sp-head-duration {
-    font-size: 0.8rem; color: #ffedd5;
-    margin: 0.25rem 0 0;
+
+  .sp-price {
+    font-size: 2rem;
+    font-weight: 900;
+    margin-top: .75rem;
   }
 
-  .sp-body { padding: 1.5rem; }
-  @media (min-width: 640px) { .sp-body { padding: 1.75rem; } }
+  .sp-duration {
+    color: #ffedd5;
+    font-size: .85rem;
+    margin-top: .25rem;
+  }
+
+  .sp-body {
+    padding: 1.5rem;
+  }
+
+  .sp-notice {
+    display: flex;
+    gap: .75rem;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: .82rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  .sp-notice svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
 
   .sp-section-title {
-    font-size: 0.75rem; font-weight: 800;
+    font-size: .75rem;
+    font-weight: 800;
     color: #6b7280;
-    text-transform: uppercase; letter-spacing: 0.05em;
-    margin: 0 0 1rem;
-  }
-
-  .sp-field { margin-bottom: 1rem; }
-  .sp-label {
-    display: block;
-    font-size: 0.8rem; font-weight: 700;
-    color: #374151; margin-bottom: 0.35rem;
-  }
-  .sp-input {
-    width: 100%; box-sizing: border-box;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    padding: 0.65rem 0.75rem;
-    font-size: 0.9rem;
-    color: #111827;
-    background: #fff;
-    outline: none;
-    font-family: inherit;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  .sp-input:focus {
-    border-color: #ea580c;
-    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
-  }
-  .sp-input::placeholder { color: #9ca3af; }
-
-  .sp-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 1rem;
   }
 
   .sp-summary {
     background: #f9fafb;
     border: 1px solid #e5e7eb;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 1rem;
-    margin-bottom: 1.25rem;
   }
+
   .sp-summary-row {
-    display: flex; justify-content: space-between;
-    padding: 0.4rem 0;
-    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .55rem 0;
+    font-size: .85rem;
   }
-  .sp-summary-row span:first-child { color: #6b7280; }
-  .sp-summary-row span:last-child { color: #111827; font-weight: 700; }
-  .sp-summary-total {
-    display: flex; justify-content: space-between;
-    padding-top: 0.75rem; margin-top: 0.5rem;
+
+  .sp-summary-row span:first-child {
+    color: #6b7280;
+  }
+
+  .sp-summary-row span:last-child {
+    color: #111827;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .sp-total {
     border-top: 1px solid #e5e7eb;
+    margin-top: .5rem;
+    padding-top: 1rem;
     font-size: 1rem;
   }
-  .sp-summary-total span:first-child { font-weight: 800; color: #111827; }
-  .sp-summary-total span:last-child { font-weight: 900; color: #ea580c; }
+
+  .sp-total span:first-child {
+    color: #111827;
+    font-weight: 800;
+  }
+
+  .sp-total span:last-child {
+    color: #ea580c;
+    font-size: 1.1rem;
+    font-weight: 900;
+  }
 
   .sp-actions {
-    display: flex; flex-direction: column;
-    gap: 0.5rem; margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: .75rem;
+    margin-top: 1.5rem;
   }
-  @media (min-width: 480px) { .sp-actions { flex-direction: row-reverse; } }
 
   .sp-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: .75rem 1.25rem;
     border-radius: 10px;
-    font-size: 0.85rem; font-weight: 700;
-    text-decoration: none; border: 0; cursor: pointer;
-    min-height: 44px; box-sizing: border-box;
+    font-size: .85rem;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+    border: 0;
     width: 100%;
+    box-sizing: border-box;
   }
-  @media (min-width: 480px) {
-    .sp-btn-secondary { width: auto; }
-    .sp-btn-primary { flex: 1; width: auto; }
+
+  .sp-primary {
+    background: #f97316;
+    color: #fff;
   }
-  .sp-btn-primary { background: #f97316; color: #fff; }
-  .sp-btn-primary:hover:not(:disabled) { background: #ea580c; }
-  .sp-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-  .sp-btn-secondary {
-    border: 1px solid #d1d5db; background: #fff; color: #374151;
+
+  .sp-primary:hover:not(:disabled) {
+    background: #ea580c;
   }
-  .sp-btn-secondary:hover { background: #f9fafb; }
+
+  .sp-primary:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+  }
+
+  .sp-secondary {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    color: #374151;
+  }
+
+  .sp-secondary:hover {
+    background: #f9fafb;
+  }
 
   .sp-spinner {
-    display: inline-block;
-    width: 1rem; height: 1rem;
-    border: 2px solid rgba(255,255,255,0.4);
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,.4);
     border-top-color: #fff;
-    border-radius: 9999px;
-    animation: sp-spin 0.7s linear infinite;
-    margin-right: 0.4rem;
+    border-radius: 50%;
+    display: inline-block;
+    animation: sp-spin .7s linear infinite;
+    margin-right: .5rem;
   }
-  @keyframes sp-spin { to { transform: rotate(360deg); } }
+
+  @keyframes sp-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .sp-footer {
+    text-align: center;
+    color: #9ca3af;
+    font-size: .72rem;
+    margin-top: 1.25rem;
+  }
+
+  @media (min-width: 480px) {
+    .sp-actions {
+      flex-direction: row;
+    }
+
+    .sp-btn {
+      flex: 1;
+    }
+  }
 </style>
 
 <div class="sp-wrap">
 
-  <div class="sp-dev-banner">
-    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0; margin-top:2px;">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-    </svg>
-    <div>
-      <strong>Simulated payment (development mode)</strong><br>
-      Flutterwave isn't configured. This form simulates a successful payment — no real money is charged.
-    </div>
-  </div>
-
   <div class="sp-card">
 
+    <!-- Subscription heading -->
     <div class="sp-head">
-      <p class="sp-head-title">You're subscribing to</p>
-      <p class="sp-head-plan">{{ plan.name }}</p>
-      <p class="sp-head-amount">{{ plan.currency }} {{ plan.price }}</p>
-      <p class="sp-head-duration">for {{ plan.duration_label }}</p>
+      <p class="sp-eyebrow">Vendor subscription</p>
+
+      <h1 class="sp-plan">
+        {{ plan.name }}
+      </h1>
+
+      <div class="sp-price">
+        {{ plan.currency }} {{ plan.price }}
+      </div>
+
+      <p class="sp-duration">
+        Subscription duration: {{ plan.duration_label }}
+      </p>
     </div>
 
     <div class="sp-body">
-      <form method="post" action="{% url 'payments:simulate_confirm' subscription.id %}" id="sim-form">
+
+      <!-- Development warning -->
+      <div class="sp-notice">
+
+        <svg width="21" height="21"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             viewBox="0 0 24 24">
+
+          <path stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+
+        </svg>
+
+        <div>
+          <strong>Development payment mode</strong><br>
+
+          This is a simulated payment for testing UniMarket.
+          No real money will be charged or transferred.
+
+          Do not enter bank card details or mobile money PINs.
+        </div>
+
+      </div>
+
+      <h2 class="sp-section-title">
+        Subscription summary
+      </h2>
+
+      <div class="sp-summary">
+
+        <div class="sp-summary-row">
+          <span>Vendor</span>
+
+          <span>
+            {{ subscription.vendor }}
+          </span>
+        </div>
+
+        <div class="sp-summary-row">
+          <span>Subscription plan</span>
+
+          <span>
+            {{ plan.name }}
+          </span>
+        </div>
+
+        <div class="sp-summary-row">
+          <span>Duration</span>
+
+          <span>
+            {{ plan.duration_label }}
+          </span>
+        </div>
+
+        <div class="sp-summary-row">
+          <span>Currency</span>
+
+          <span>
+            {{ plan.currency }}
+          </span>
+        </div>
+
+        <div class="sp-summary-row sp-total">
+          <span>Total payable</span>
+
+          <span>
+            {{ plan.currency }} {{ plan.price }}
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Simulated payment confirmation -->
+      <form
+        method="post"
+        action="{% url 'payments:simulate_confirm' subscription.id %}"
+        id="sim-form">
+
         {% csrf_token %}
 
-        <p class="sp-section-title">Payment details</p>
-
-        <div class="sp-field">
-          <label for="card_number" class="sp-label">Card number</label>
-          <input
-            type="text"
-            id="card_number"
-            name="card_number"
-            class="sp-input"
-            placeholder="4242 4242 4242 4242"
-            value="4242 4242 4242 4242"
-            maxlength="19"
-            autocomplete="off">
-        </div>
-
-        <div class="sp-row">
-          <div class="sp-field">
-            <label for="expiry" class="sp-label">Expiry</label>
-            <input
-              type="text"
-              id="expiry"
-              name="expiry"
-              class="sp-input"
-              placeholder="12/30"
-              value="12/30"
-              maxlength="5"
-              autocomplete="off">
-          </div>
-          <div class="sp-field">
-            <label for="cvv" class="sp-label">CVV</label>
-            <input
-              type="text"
-              id="cvv"
-              name="cvv"
-              class="sp-input"
-              placeholder="123"
-              value="123"
-              maxlength="3"
-              autocomplete="off">
-          </div>
-        </div>
-
-        <div class="sp-field">
-          <label for="card_name" class="sp-label">Cardholder name</label>
-          <input
-            type="text"
-            id="card_name"
-            name="card_name"
-            class="sp-input"
-            placeholder="Name on card"
-            value="{{ subscription.vendor.user.get_full_name|default:subscription.vendor.user.username }}"
-            autocomplete="off">
-        </div>
-
-        <div class="sp-summary">
-          <div class="sp-summary-row">
-            <span>Plan</span>
-            <span>{{ plan.name }}</span>
-          </div>
-          <div class="sp-summary-row">
-            <span>Duration</span>
-            <span>{{ plan.duration_label }}</span>
-          </div>
-          <div class="sp-summary-row">
-            <span>Currency</span>
-            <span>{{ plan.currency }}</span>
-          </div>
-          <div class="sp-summary-total">
-            <span>Total</span>
-            <span>{{ plan.currency }} {{ plan.price }}</span>
-          </div>
-        </div>
-
         <div class="sp-actions">
-          <a href="{% url 'vendors:choose_plan' %}" class="sp-btn sp-btn-secondary">
+
+          <a href="{% url 'vendors:choose_plan' %}"
+             class="sp-btn sp-secondary">
+
             Cancel
+
           </a>
-          <button type="submit" class="sp-btn sp-btn-primary" id="sim-submit">
-            Pay {{ plan.currency }} {{ plan.price }}
+
+          <button
+            type="submit"
+            class="sp-btn sp-primary"
+            id="sim-submit">
+
+            Confirm Simulated Payment
+
           </button>
+
         </div>
+
       </form>
+
+      <p class="sp-footer">
+        UniMarket Development Environment
+      </p>
+
     </div>
   </div>
+
 </div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
 (function () {
-  var form = document.getElementById('sim-form');
-  var btn = document.getElementById('sim-submit');
-  if (!form || !btn) return;
+  const form = document.getElementById("sim-form");
+  const button = document.getElementById("sim-submit");
 
-  form.addEventListener('submit', function () {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="sp-spinner"></span> Processing payment…';
+  if (!form || !button) return;
+
+  form.addEventListener("submit", function () {
+    button.disabled = true;
+
+    button.innerHTML =
+      '<span class="sp-spinner"></span> Processing...';
   });
 })();
 </script>

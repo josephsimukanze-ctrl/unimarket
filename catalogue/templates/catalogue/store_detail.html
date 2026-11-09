@@ -1,108 +1,343 @@
-cat > catalogue/templates/catalogue/store_detail.html << 'EOF'
 {% extends "base.html" %}
 {% block title %}{{ store.name }} — UniMarket{% endblock %}
+
 {% block content %}
+<style>
+  .sd-wrap { max-width: 72rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .sd-wrap { padding-left: 1rem; padding-right: 1rem; } }
 
-{# ── Breadcrumb ────────────────────────────────────────── #}
-<nav class="flex items-center gap-1.5 text-xs text-ink-500 mb-4">
-  <a href="/" class="hover:text-orange-600">Home</a>
-  <span>/</span>
-  <a href="{% url 'catalogue:browse' %}" class="hover:text-orange-600">Browse</a>
-  <span>/</span>
-  <span class="text-ink-700 truncate">{{ store.name }}</span>
-</nav>
+  /* ── Breadcrumb ── */
+  .sd-breadcrumb {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 0.4rem; font-size: 0.75rem; color: #6b7280;
+    margin-bottom: 1rem; word-break: break-word;
+  }
+  .sd-breadcrumb a { color: #6b7280; text-decoration: none; }
+  .sd-breadcrumb a:hover { color: #ea580c; }
+  .sd-breadcrumb .current {
+    color: #111827; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 60%;
+  }
 
-{# ── Banner + profile card ─────────────────────────────── #}
-<div class="bg-white rounded-2xl border border-ink-200 overflow-hidden mb-6">
+  /* ── Store profile card ── */
+  .sd-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
 
-  {# Gradient banner #}
-  <div class="h-32 sm:h-40 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 relative overflow-hidden">
-    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.2),transparent_60%)]"></div>
-    <div class="absolute -bottom-16 -right-16 w-64 h-64 rounded-full bg-white/5"></div>
-  </div>
+  /* Banner */
+  .sd-banner {
+    height: 8rem;
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 55%, #c2410c 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  @media (min-width: 640px) { .sd-banner { height: 10rem; } }
+  .sd-banner::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at top right, rgba(255,255,255,0.2), transparent 60%);
+    pointer-events: none;
+  }
+  .sd-banner::after {
+    content: "";
+    position: absolute;
+    bottom: -4rem; right: -4rem;
+    width: 16rem; height: 16rem;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.05);
+    pointer-events: none;
+  }
 
-  {# Profile body #}
-  <div class="px-5 sm:px-8 pb-5 sm:pb-6 -mt-12 sm:-mt-14">
+  /* Profile body */
+  .sd-profile {
+    padding: 0 1rem 1.25rem;
+    margin-top: -3rem;
+    position: relative;
+  }
+  @media (min-width: 640px) {
+    .sd-profile { padding: 0 2rem 1.5rem; margin-top: -3.5rem; }
+  }
 
-    <div class="flex flex-col sm:flex-row sm:items-end gap-4">
+  .sd-profile-grid {
+    display: flex; flex-direction: column;
+    gap: 1rem;
+  }
+  @media (min-width: 640px) {
+    .sd-profile-grid { flex-direction: row; align-items: flex-end; gap: 1rem; }
+  }
 
-      {# Avatar #}
-      <div class="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-white p-1 shadow-lg shrink-0">
-        <div class="h-full w-full rounded-xl bg-orange-500 flex items-center justify-center text-white font-bold text-3xl sm:text-4xl">
-          {{ store.name|slice:":1"|upper }}
+  .sd-avatar-wrap {
+    width: 5rem; height: 5rem;
+    border-radius: 16px;
+    background: #fff;
+    padding: 0.25rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    flex-shrink: 0;
+  }
+  @media (min-width: 640px) { .sd-avatar-wrap { width: 6rem; height: 6rem; } }
+
+  .sd-avatar {
+    width: 100%; height: 100%;
+    border-radius: 12px;
+    background: #ffedd5; color: #c2410c;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900;
+    font-size: 1.75rem;
+  }
+  @media (min-width: 640px) { .sd-avatar { font-size: 2.25rem; } }
+
+  .sd-info { flex: 1; min-width: 0; }
+
+  .sd-title-row {
+    display: flex; flex-wrap: wrap;
+    align-items: flex-start; gap: 0.5rem;
+  }
+  .sd-title {
+    font-size: 1.5rem; font-weight: 800;
+    color: #111827; letter-spacing: -0.01em;
+    margin: 0; line-height: 1.2;
+    word-break: break-word;
+  }
+  @media (min-width: 640px) { .sd-title { font-size: 1.75rem; } }
+
+  .sd-verified {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    background: #dcfce7; color: #166534;
+    font-size: 0.65rem; font-weight: 800;
+    padding: 0.2rem 0.5rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+  }
+  .sd-verified svg { width: 0.75rem; height: 0.75rem; }
+
+  .sd-member-since {
+    font-size: 0.8rem; color: #6b7280;
+    margin: 0.35rem 0 0;
+  }
+
+  .sd-desc {
+    font-size: 0.85rem; color: #374151;
+    margin: 0.75rem 0 0;
+    line-height: 1.6; max-width: 42rem;
+    word-break: break-word;
+  }
+
+  .sd-meta-row {
+    display: flex; flex-wrap: wrap;
+    align-items: center; gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .sd-stat {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-size: 0.8rem;
+  }
+  .sd-stat svg { width: 1rem; height: 1rem; color: #ea580c; flex-shrink: 0; }
+  .sd-stat strong { color: #111827; font-weight: 800; }
+  .sd-stat span { color: #4b5563; }
+
+  .sd-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.6rem 1rem; border-radius: 10px;
+    font-size: 0.8rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 40px; box-sizing: border-box;
+    white-space: nowrap;
+  }
+  .sd-btn-primary { background: #ea580c; color: #fff; }
+  .sd-btn-primary:hover { background: #c2410c; }
+  .sd-btn-secondary {
+    background: #fff; color: #374151;
+    border: 1px solid #d1d5db;
+  }
+  .sd-btn-secondary:hover { background: #f9fafb; }
+
+  /* ── Products section ── */
+  .sd-products-head {
+    display: flex; flex-wrap: wrap;
+    align-items: flex-end; justify-content: space-between;
+    gap: 0.75rem; margin-bottom: 1rem;
+  }
+  .sd-products-title {
+    font-size: 1.15rem; font-weight: 800;
+    color: #111827; margin: 0;
+  }
+  .sd-products-sub {
+    font-size: 0.8rem; color: #6b7280;
+    margin: 0.25rem 0 0;
+  }
+  .sd-products-link {
+    font-size: 0.8rem; font-weight: 700;
+    color: #ea580c; text-decoration: none;
+    white-space: nowrap;
+  }
+  .sd-products-link:hover { text-decoration: underline; }
+
+  /* Product grid — matches dashboard and related-products patterns */
+  .sd-products-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  @media (min-width: 480px) {
+    .sd-products-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
+  }
+  @media (min-width: 768px) {
+    .sd-products-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+  }
+  @media (min-width: 1024px) {
+    .sd-products-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  }
+
+  /* ── Empty state ── */
+  .sd-empty {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; padding: 2.5rem 1.25rem;
+    text-align: center;
+  }
+  @media (min-width: 640px) { .sd-empty { padding: 3rem 1.5rem; } }
+  .sd-empty-icon {
+    width: 4rem; height: 4rem;
+    border-radius: 9999px;
+    background: #f3f4f6; color: #9ca3af;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  .sd-empty-title {
+    font-size: 1.05rem; font-weight: 800;
+    color: #111827; margin: 0;
+  }
+  .sd-empty-text {
+    font-size: 0.85rem; color: #4b5563;
+    margin: 0.5rem auto 0; max-width: 28rem;
+    line-height: 1.5;
+  }
+  .sd-empty-cta {
+    display: inline-flex; align-items: center;
+    margin-top: 1.25rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: 10px;
+    background: #ea580c; color: #fff;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none;
+    min-height: 42px; box-sizing: border-box;
+  }
+  .sd-empty-cta:hover { background: #c2410c; }
+</style>
+
+<div class="sd-wrap">
+
+  {# ── Breadcrumb ── #}
+  <nav class="sd-breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a>
+    <span aria-hidden="true">/</span>
+    <a href="{% url 'catalogue:browse' %}">Browse</a>
+    <span aria-hidden="true">/</span>
+    <span class="current">{{ store.name }}</span>
+  </nav>
+
+  {# ── Store profile card ── #}
+  <div class="sd-card">
+
+    <div class="sd-banner"></div>
+
+    <div class="sd-profile">
+      <div class="sd-profile-grid">
+
+        {# Avatar #}
+        <div class="sd-avatar-wrap">
+          <div class="sd-avatar">{{ store.name|slice:":1"|upper }}</div>
         </div>
-      </div>
 
-      {# Info #}
-      <div class="flex-1 min-w-0">
-        <div class="flex items-start gap-2 flex-wrap">
-          <h1 class="text-2xl sm:text-3xl font-bold text-ink-900 tracking-tight">{{ store.name }}</h1>
-          {% if store.vendor.status == 'verified' %}
-            <span class="inline-flex items-center gap-1 rounded-full bg-green-50 text-green-700 text-xs font-medium px-2 py-0.5 mt-1">
-              <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-              </svg>
-              Verified
-            </span>
-          {% endif %}
-        </div>
-
-        <p class="text-sm text-ink-500 mt-1">
-          Member since {{ store.created_at|date:"F Y" }}
-        </p>
-
-        {% if store.description %}
-          <p class="text-sm text-ink-700 mt-3 max-w-2xl">{{ store.description }}</p>
-        {% endif %}
-
-        {# Stats + action #}
-        <div class="mt-4 flex flex-wrap items-center gap-4 sm:gap-6">
-          <div class="flex items-center gap-1.5 text-sm">
-            <svg class="h-4 w-4 text-orange-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-            <span class="font-semibold text-ink-900">{{ products|length }}</span>
-            <span class="text-ink-500">product{{ products|length|pluralize }}</span>
+        {# Info #}
+        <div class="sd-info">
+          <div class="sd-title-row">
+            <h1 class="sd-title">{{ store.name }}</h1>
+            {% if store.vendor.status == 'verified' %}
+              <span class="sd-verified">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                Verified
+              </span>
+            {% endif %}
           </div>
 
-          {% if user.is_authenticated and user != store.vendor.user %}
-            <a href="{% url 'messaging:start_thread' products.0.slug %}"
-               class="btn-secondary btn-sm">Message seller</a>
+          <p class="sd-member-since">
+            Member since {{ store.created_at|date:"F Y" }}
+          </p>
+
+          {% if store.description %}
+            <p class="sd-desc">{{ store.description }}</p>
           {% endif %}
 
-          {% if user == store.vendor.user %}
-            <a href="{% url 'vendors:dashboard' %}" class="btn-primary btn-sm">Manage store</a>
-          {% endif %}
+          {# Meta + actions #}
+          <div class="sd-meta-row">
+            <span class="sd-stat">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+              </svg>
+              <strong>{{ products|length }}</strong>
+              <span>product{{ products|length|pluralize }}</span>
+            </span>
+
+            {% if user.is_authenticated and user != store.vendor.user and products %}
+              <a href="{% url 'messaging:start_thread' products.0.slug %}" class="sd-btn sd-btn-secondary">
+                Message seller
+              </a>
+            {% endif %}
+
+            {% if user == store.vendor.user %}
+              <a href="{% url 'vendors:dashboard' %}" class="sd-btn sd-btn-primary">
+                Manage store
+              </a>
+            {% endif %}
+          </div>
         </div>
+
       </div>
     </div>
   </div>
-</div>
 
-{# ── Products ─────────────────────────────────────────── #}
-<div class="flex items-end justify-between mb-4">
-  <div>
-    <h2 class="text-lg font-bold text-ink-900">Products</h2>
-    <p class="text-sm text-ink-500">{{ products|length }} active listing{{ products|length|pluralize }}</p>
-  </div>
-  <a href="{% url 'catalogue:browse' %}" class="text-sm text-orange-600 hover:underline font-medium">Browse all →</a>
-</div>
-
-{% if products %}
-  <div class="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-    {% for product in products %}
-      {% include "components/product_card.html" with product=product %}
-    {% endfor %}
-  </div>
-{% else %}
-  <div class="bg-white rounded-xl border border-ink-200 p-12 text-center">
-    <div class="mx-auto h-16 w-16 rounded-full bg-ink-100 text-ink-400 flex items-center justify-center mb-4">
-      <svg class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-      </svg>
+  {# ── Products section ── #}
+  <div class="sd-products-head">
+    <div>
+      <h2 class="sd-products-title">Products</h2>
+      <p class="sd-products-sub">{{ products|length }} active listing{{ products|length|pluralize }}</p>
     </div>
-    <p class="text-lg font-semibold text-ink-900">No products yet</p>
-    <p class="text-sm text-ink-500 mt-1">This store hasn't added any products yet.</p>
-    <a href="{% url 'catalogue:browse' %}" class="mt-5 inline-flex btn-primary">Browse marketplace</a>
+    <a href="{% url 'catalogue:browse' %}" class="sd-products-link">
+      Browse all →
+    </a>
   </div>
-{% endif %}
 
+  {% if products %}
+    <div class="sd-products-grid">
+      {% for product in products %}
+        {% include "components/product_card.html" with product=product %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="sd-empty">
+      <div class="sd-empty-icon">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+      </div>
+      <h2 class="sd-empty-title">No products yet</h2>
+      <p class="sd-empty-text">This store hasn't added any products yet.</p>
+      <a href="{% url 'catalogue:browse' %}" class="sd-empty-cta">
+        Browse marketplace
+      </a>
+    </div>
+  {% endif %}
+
+</div>
 {% endblock %}
