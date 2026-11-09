@@ -6,6 +6,7 @@ from django.views.decorators.http import require_POST
 
 from catalogue.models import Category
 from notifications.services import notify
+from payments.models import PlatformSettings
 from vendors.models import (
     Vendor,
     VendorStatus,
@@ -13,29 +14,52 @@ from vendors.models import (
     VerificationRequest,
 )
 
-from .forms import SiteSettingForm
+from .forms import PlatformSettingsForm, SiteSettingForm
 from .models import SiteSetting
 
 
-# ═══════════════════════════════════════════════════════
-# Site settings
-# ═══════════════════════════════════════════════════════
 @staff_member_required
 def settings_view(request):
-    settings_obj = SiteSetting.get()
+    site_settings = SiteSetting.get()
+    deposit_settings = PlatformSettings.get_solo()
 
     if request.method == "POST":
-        form = SiteSettingForm(request.POST, instance=settings_obj)
-        if form.is_valid():
-            form.save()
+        site_form = SiteSettingForm(request.POST, instance=site_settings)
+        deposit_form = PlatformSettingsForm(request.POST, instance=deposit_settings)
+
+        site_ok = site_form.is_valid()
+        deposit_ok = deposit_form.is_valid()
+
+        # Save each form independently
+        if site_ok:
+            site_form.save()
+        if deposit_ok:
+            deposit_form.save()
+
+        if site_ok and deposit_ok:
             messages.success(request, "Settings saved successfully.")
             return redirect("system:settings")
+
+        if not site_ok:
+            for field, errors in site_form.errors.items():
+                for err in errors:
+                    messages.error(request, f"Site settings — {field}: {err}")
+        if not deposit_ok:
+            for field, errors in deposit_form.errors.items():
+                for err in errors:
+                    messages.error(request, f"Deposit account — {field}: {err}")
     else:
-        form = SiteSettingForm(instance=settings_obj)
+        site_form = SiteSettingForm(instance=site_settings)
+        deposit_form = PlatformSettingsForm(instance=deposit_settings)
 
-    return render(request, "system/settings.html", {"form": form})
-
-
+    return render(
+        request,
+        "system/settings.html",
+        {
+            "site_form": site_form,
+            "deposit_form": deposit_form,
+        },
+    )
 # ═══════════════════════════════════════════════════════
 # Verification center
 # ═══════════════════════════════════════════════════════
@@ -101,7 +125,7 @@ def verification_center(request):
 def verify_vendor(request, vendor_id):
     vendor = get_object_or_404(Vendor, id=vendor_id)
     was_suspended = vendor.is_suspended
-    vendor.mark_verified(force=True)   # ← admin override
+    vendor.mark_verified(force=True)
 
     if was_suspended:
         messages.success(
@@ -110,7 +134,8 @@ def verify_vendor(request, vendor_id):
         )
     else:
         messages.success(
-            request, f"Vendor “{vendor.display_name}” verified."
+            request,
+            f"Vendor “{vendor.display_name}” verified.",
         )
     return redirect("system:verification_center")
 
@@ -284,3 +309,33 @@ def reject_subscription(request, subscription_id):
         f"Subscription for “{vendor_name}” rejected.",
     )
     return redirect("system:verification_center")
+
+
+# ═══════════════════════════════════════════════════════
+# Deposit account — dedicated save endpoint
+# ═══════════════════════════════════════════════════════
+@staff_member_required
+@require_POST
+def deposit_settings_save(request):
+    """
+    Dedicated save endpoint for the deposit wallet.
+    Independent of the site-settings form — so editing the deposit wallet
+    never fails because of an unrelated site-setting validation error.
+    """
+    ps = PlatformSettings.get_solo()
+    form = PlatformSettingsForm(request.POST, instance=ps)
+
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Deposit account saved.")
+    else:
+        error_lines = []
+        for field, errors in form.errors.items():
+            for err in errors:
+                error_lines.append(f"{field}: {err}")
+        messages.error(
+            request,
+            "Deposit account not saved — " + " | ".join(error_lines),
+        )
+
+    return redirect("system:settings")

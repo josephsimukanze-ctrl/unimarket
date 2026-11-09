@@ -1,4 +1,7 @@
 from django import forms
+
+from payments.models import PlatformSettings
+
 from .models import SiteSetting
 
 
@@ -65,12 +68,98 @@ class SiteSettingForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        # Ensure every non-checkbox, non-select widget has the ss-input class
-        # (in case some field isn't covered by the Meta.widgets dict above)
-        for name, field in self.fields.items():
+        # Defensive widget class injection
+        for field in self.fields.values():
             if isinstance(field.widget, forms.CheckboxInput):
                 continue
             existing = field.widget.attrs.get("class", "")
             if "ss-input" not in existing:
                 field.widget.attrs["class"] = f"ss-input {existing}".strip()
+
+
+# ═══════════════════════════════════════════════════════
+# Platform deposit wallet  (staff-managed)
+# ═══════════════════════════════════════════════════════
+
+class PlatformSettingsForm(forms.ModelForm):
+    """
+    Staff-facing form for the platform's deposit wallet — the account
+    buyers send money to when topping up their wallet.
+    """
+
+    class Meta:
+        model = PlatformSettings
+        fields = [
+            "deposit_wallet_name",
+            "deposit_wallet_number",
+            "deposit_wallet_network",
+            "deposit_currency",
+        ]
+        widgets = {
+            "deposit_wallet_name": forms.TextInput(attrs={
+                "class": "ss-input",
+                "placeholder": "e.g. UniMarket Ltd",
+                "autocomplete": "organization",
+            }),
+            "deposit_wallet_number": forms.TextInput(attrs={
+                "class": "ss-input",
+                "placeholder": "0977000000",
+                "inputmode": "tel",
+            }),
+            # NOTE: no choices= on these widgets — the model provides them.
+            # Prevents drift between widget choices and field choices.
+            "deposit_wallet_network": forms.Select(attrs={
+                "class": "ss-input",
+            }),
+            "deposit_currency": forms.Select(attrs={
+                "class": "ss-input",
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Prepend a blank option to the network select so the initial
+        # state is "unselected" — otherwise the browser picks Airtel
+        # by default, which trips the both-or-neither rule on first save.
+        self.fields["deposit_wallet_network"].choices = (
+            [("", "— Select —")] + list(PlatformSettings.Network.choices)
+        )
+
+        # Defensive widget class injection (same as SiteSettingForm)
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.CheckboxInput):
+                continue
+            existing = field.widget.attrs.get("class", "")
+            if "ss-input" not in existing:
+                field.widget.attrs["class"] = f"ss-input {existing}".strip()
+
+    def clean(self):
+        cleaned = super().clean()
+        name    = (cleaned.get("deposit_wallet_name") or "").strip()
+        number  = (cleaned.get("deposit_wallet_number") or "").strip()
+        network = cleaned.get("deposit_wallet_network") or ""
+
+        # Both-or-neither: if any of the three is set, all three must be set.
+        # Leaving all three blank = "deposits disabled", which is valid.
+        provided = [bool(name), bool(number), bool(network)]
+        if any(provided) and not all(provided):
+            if not name:
+                self.add_error(
+                    "deposit_wallet_name",
+                    "Fill this in if you want to enable deposits.",
+                )
+            if not number:
+                self.add_error(
+                    "deposit_wallet_number",
+                    "Fill this in if you want to enable deposits.",
+                )
+            if not network:
+                self.add_error(
+                    "deposit_wallet_network",
+                    "Choose a network to enable deposits.",
+                )
+
+        cleaned["deposit_wallet_name"] = name
+        cleaned["deposit_wallet_number"] = number
+        return cleaned

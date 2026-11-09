@@ -9,7 +9,7 @@
   .ck-help  { font-size:.75rem; color:#6b7280; font-weight:400; }
   .ck-card  { background:#fff; border:1px solid #e5e7eb; border-radius:16px; }
   .ck-err   { margin-top:.35rem; font-size:.8rem; color:#dc2626; }
-  /* Style Django's rendered widgets (they already carry FIELD_CLASS classes, but ensure consistency) */
+  /* Style Django's rendered widgets */
   .ck-form input[type="text"],
   .ck-form input[type="tel"],
   .ck-form select,
@@ -19,6 +19,55 @@
   }
   .ck-form input:focus, .ck-form select:focus, .ck-form textarea:focus {
     border-color:#ea580c; box-shadow:0 0 0 3px rgba(234,88,12,.12);
+  }
+
+  /* ── Payout preview card ── */
+  .ck-payout-card {
+    background:#fff; border:1px solid #fdba74; border-radius:16px;
+    padding:1rem; background:#fff7ed;
+  }
+  .ck-payout-title {
+    font-size:.7rem; font-weight:800; color:#9a3412;
+    text-transform:uppercase; letter-spacing:.05em;
+    margin:0 0 .65rem;
+  }
+  .ck-payout-row {
+    display:flex; justify-content:space-between; gap:.5rem;
+    font-size:.8rem; padding:.35rem 0;
+    border-bottom:1px dashed #fed7aa;
+  }
+  .ck-payout-row:last-of-type { border-bottom:0; }
+  .ck-payout-row .k { color:#9a3412; }
+  .ck-payout-row .v {
+    color:#111827; font-weight:700;
+    text-align:right;
+    overflow-wrap:break-word; word-break:break-word;
+    min-width:0;
+  }
+  .ck-payout-instructions {
+    background:#fff;
+    border-left:3px solid #f97316;
+    border-radius:4px;
+    padding:.5rem .65rem;
+    font-size:.72rem;
+    color:#4b5563;
+    line-height:1.5;
+    margin:.6rem 0 0;
+    overflow-wrap:break-word; word-break:break-word;
+  }
+  .ck-payout-note {
+    font-size:.7rem; color:#92400e;
+    margin:.65rem 0 0; line-height:1.5;
+  }
+  .ck-payout-warn {
+    background:#fef2f2;
+    border:1px solid #fecaca;
+    border-radius:10px;
+    padding:.65rem .75rem;
+    font-size:.75rem;
+    color:#991b1b;
+    line-height:1.5;
+    margin:0;
   }
 </style>
 
@@ -110,7 +159,7 @@
             {% if form.country.errors %}<p class="ck-err">{{ form.country.errors|join:", " }}</p>{% endif %}
           </div>
 
-          {# ── TRANSPORT COMPANY (real field: shipping_method) ── #}
+          {# TRANSPORT COMPANY #}
           <div class="ck-span2">
             <label for="{{ form.shipping_method.id_for_label }}" class="ck-label">
               {{ form.shipping_method.label }} <span style="color:#dc2626;">*</span>
@@ -120,7 +169,7 @@
             {% if form.shipping_method.errors %}<p class="ck-err">{{ form.shipping_method.errors|join:", " }}</p>{% endif %}
           </div>
 
-          {# Address line 1 (real field: address_line1) #}
+          {# Address line 1 #}
           <div class="ck-span2">
             <label for="{{ form.address_line1.id_for_label }}" class="ck-label">
               {{ form.address_line1.label }} <span style="color:#dc2626;">*</span>
@@ -147,7 +196,7 @@
             {% if form.city.errors %}<p class="ck-err">{{ form.city.errors|join:", " }}</p>{% endif %}
           </div>
 
-          {# Region / province (real field: region) #}
+          {# Region #}
           <div>
             <label for="{{ form.region.id_for_label }}" class="ck-label">
               {{ form.region.label }} <span class="ck-help">(optional)</span>
@@ -238,6 +287,70 @@
           <span>{{ currency }} {{ subtotal }}</span>
         </div>
       </div>
+
+      {# ── Payout preview (single-vendor only) ── #}
+      {% if items %}
+        {% with vendor=items.0.variant.product.store.vendor ps=items.0.variant.product.store.vendor.payment_settings %}
+          <div class="ck-payout-card">
+            <p class="ck-payout-title">How you'll pay</p>
+
+            {% if ps.has_payout_info %}
+              {% if ps.payout_method == "mobile_money" %}
+                <div class="ck-payout-row">
+                  <span class="k">Mobile money</span>
+                  <span class="v">
+                    {% if ps.mobile_money_network %}{{ ps.get_mobile_money_network_display }}{% else %}Mobile money{% endif %}
+                  </span>
+                </div>
+                {# NEW: receiver's name on the wallet #}
+                <div class="ck-payout-row">
+                  <span class="k">Name</span>
+                  <span class="v">{{ ps.mobile_money_name|default:vendor.display_name }}</span>
+                </div>
+                <div class="ck-payout-row">
+                  <span class="k">Number</span>
+                  <span class="v">{{ ps.mobile_money_number }}</span>
+                </div>
+              {% elif ps.payout_method == "bank_transfer" %}
+                <div class="ck-payout-row">
+                  <span class="k">Bank</span>
+                  <span class="v">{{ ps.bank_name }}</span>
+                </div>
+                {% if ps.bank_account_name %}
+                  <div class="ck-payout-row">
+                    <span class="k">Account name</span>
+                    <span class="v">{{ ps.bank_account_name }}</span>
+                  </div>
+                {% endif %}
+                <div class="ck-payout-row">
+                  <span class="k">Account no.</span>
+                  <span class="v">{{ ps.bank_account_number }}</span>
+                </div>
+                {% if ps.bank_branch %}
+                  <div class="ck-payout-row">
+                    <span class="k">Branch</span>
+                    <span class="v">{{ ps.bank_branch }}</span>
+                  </div>
+                {% endif %}
+              {% endif %}
+
+              {% if ps.payout_instructions %}
+                <p class="ck-payout-instructions">{{ ps.payout_instructions|linebreaksbr }}</p>
+              {% endif %}
+
+              <p class="ck-payout-note">
+                You'll pay <strong>{{ vendor.display_name }}</strong> directly after placing the order.
+                These details are also shown on your order page.
+              </p>
+            {% else %}
+              <p class="ck-payout-warn">
+                <strong>{{ vendor.display_name }}</strong> hasn't finished setting up payouts yet.
+                Please remove their items from your cart or try again later.
+              </p>
+            {% endif %}
+          </div>
+        {% endwith %}
+      {% endif %}
 
       <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:16px; padding:1rem;">
         <p style="font-size:.7rem; font-weight:800; color:#9a3412; text-transform:uppercase; letter-spacing:.05em; margin:0 0 .75rem;">Why buy with confidence</p>

@@ -1,27 +1,105 @@
+# payments/views.py
+import json
+import logging
 import os
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 import requests
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from catalogue.models import Inventory
 from notifications.services import notify
-from orders.models import Order, OrderItem, OrderStatus
+from orders.models import Order, OrderStatus, PaymentTransaction
 from vendors.models import VendorSubscription
 
 from .models import Payment, PaymentMethod, PaymentStatus
 
+logger = logging.getLogger(__name__)
+
 
 # ═══════════════════════════════════════════════════════════════
-# Order payment (simulated — COD or instant success)
+# Helpers
 # ═══════════════════════════════════════════════════════════════
 
+PAID_ORDER_STATUSES = (
+    OrderStatus.PAID,
+    OrderStatus.PROCESSING,
+    OrderStatus.SHIPPED,
+    OrderStatus.DELIVERED,
+)
+
+
+def _provider_for_network(network: str) -> PaymentTransaction.Provider:
+    network = (network or "").lower()
+    if network == "airtel":
+        return PaymentTransaction.Provider.AIRTEL
+    if network == "mtn":
+        return PaymentTransaction.Provider.MTN
+    return PaymentTransaction.Provider.MANUAL
+
+
+def _create_manual_transaction(
+    *,
+    order: Order,
+    method: str,
+    reference: str,
+    provider: PaymentTransaction.Provider,
+    withdrawal_charge: Decimal,
+) -> PaymentTransaction:
+    """Record a manual (buyer-supplied-reference) payment."""
+    return PaymentTransaction.objects.create(
+        order=order,
+        provider=provider,
+        status=PaymentTransaction.Status.PENDING,
+        partner_reference=(
+            reference
+            or f"MAN-{order.order_number}-{int(timezone.now().timestamp())}"
+        ),
+        amount=order.total,
+        currency=order.currency,
+        payer_msisdn=order.shipping_address.get("phone", ""),
+        raw_request={
+            "mode": "manual",
+            "method": method,
+            "withdrawal_charge": str(withdrawal_charge),
+            "submitted_at": timezone.now().isoformat(),
+        },
+    )
+
+
+def _notify_seller_manual_payment(
+    order: Order, reference: str, withdrawal_charge: Decimal
+) -> None:
+    """Fire-and-forget notification — called after the DB write commits."""
+    try:
+        notify(
+            recipient=order.vendor.user,
+            title=f"Payment submitted for order {order.order_number}",
+            body=(
+                f"{order.buyer.username} says they paid "
+                f"{order.currency} {order.total} "
+                f"(charge: {order.currency} {withdrawal_charge}). "
+                f"Reference: {reference}. Please confirm in your dashboard."
+            ),
+            url=f"/orders/seller/{order.order_number}/",
+        )
+    except Exception:
+        # Never let a notification failure break the buyer's checkout
+        logger.exception("Could not notify seller about manual payment")
+
+
+# ═══════════════════════════════════════════════════════════════
+# Order payment
+# ═══════════════════════════════════════════════════════════════
 
 @login_required
 def pay(request, order_number):
@@ -33,112 +111,322 @@ def pay(request, order_number):
         buyer=request.user,
     )
 
-    paid_statuses = (
-        OrderStatus.PAID,
-        OrderStatus.PROCESSING,
-        OrderStatus.SHIPPED,
-        OrderStatus.DELIVERED,
-    )
-
-    if order.status in paid_statuses:
+    if order.status in PAID_ORDER_STATUSES:
         messages.info(request, "This order is already paid.")
-        return redirect(
-            "orders:order_detail",
-            order_number=order.order_number,
-        )
+        return redirect("orders:order_detail", order_number=order.order_number)
 
     if order.status != OrderStatus.PENDING:
         messages.error(request, "This order cannot be paid.")
-        return redirect(
-            "orders:order_detail",
-            order_number=order.order_number,
+        return redirect("orders:order_detail", order_number=order.order_number)
+
+    if not order.has_frozen_payout:
+        messages.error(
+            request,
+            "This order can't be paid because the seller hasn't set up a payout "
+            "method. Please contact the seller or cancel this order.",
         )
+        return redirect("orders:order_detail", order_number=order.order_number)
 
     if request.method == "POST":
-        method = request.POST.get("method", "").strip()
-        reference = request.POST.get("reference", "").strip()
+        method = (request.POST.get("method") or "").strip()
+        manual_reference = (request.POST.get("manual_reference") or "").strip()
+        push_phone = (request.POST.get("push_phone") or "").strip()
+        withdrawal_charge_raw = (request.POST.get("withdrawal_charge") or "").strip()
 
-        valid_methods = dict(PaymentMethod.choices)
-
+        valid_methods = {"mobile_push", "mobile_manual", "bank_manual"}
         if method not in valid_methods:
             messages.error(request, "Please select a valid payment method.")
-            return redirect(
-                "orders:order_detail",
-                order_number=order.order_number,
-            )
+            return redirect("payments:pay", order_number=order.order_number)
 
-        # Do not simulate successful electronic payments.
-        # Airtel Money and MTN MoMo must be verified by their APIs.
-        if method != PaymentMethod.CASH_ON_DELIVERY:
-            messages.warning(
-                request,
-                "This payment provider is not yet connected. "
-                "Your order has not been charged or marked as paid. "
-                "Please choose another available payment method."
-            )
-            return render(
-                request,
-                "payments/pay.html",
-                {
-                    "order": order,
-                    "methods": PaymentMethod.choices,
-                },
-            )
+        # Method must match the seller's frozen payout_method
+        if method.startswith("mobile_") and order.payout_method != "mobile_money":
+            messages.error(request, "That payment method isn't available for this order.")
+            return redirect("payments:pay", order_number=order.order_number)
+        if method == "bank_manual" and order.payout_method != "bank_transfer":
+            messages.error(request, "That payment method isn't available for this order.")
+            return redirect("payments:pay", order_number=order.order_number)
 
-        try:
+        # ══════════════════════════════════════════════════════
+        # 1. PUSH (Airtel / MTN collect directly from buyer)
+        # ══════════════════════════════════════════════════════
+        if method == "mobile_push":
+            if not push_phone:
+                messages.error(request, "Enter the mobile money number to charge.")
+                return redirect("payments:pay", order_number=order.order_number)
+
+            try:
+                from payments.providers.airtel import initiate_collection as airtel_collect
+                from payments.providers.mtn import initiate_collection as mtn_collect
+            except ImportError:
+                messages.error(
+                    request,
+                    "Instant mobile money payments aren't available yet. "
+                    "Please choose 'Pay manually by mobile money' below.",
+                )
+                return redirect("payments:pay", order_number=order.order_number)
+
+            network = (order.payout_network or "").lower()
+            if network not in ("airtel", "mtn"):
+                messages.error(
+                    request,
+                    "This seller's mobile money network doesn't support push "
+                    "payments. Please pay manually.",
+                )
+                return redirect("payments:pay", order_number=order.order_number)
+
             with transaction.atomic():
-                payment = Payment.objects.create(
+                existing = PaymentTransaction.objects.filter(
                     order=order,
-                    method=method,
-                    status=PaymentStatus.PENDING,
+                    provider=_provider_for_network(network),
+                    status__in=[
+                        PaymentTransaction.Status.INITIATED,
+                        PaymentTransaction.Status.PENDING,
+                    ],
+                ).first()
+                if existing:
+                    messages.info(
+                        request,
+                        "A payment request is already pending on this order. "
+                        "Check your phone for the USSD prompt.",
+                    )
+                    return redirect(
+                        "orders:order_detail", order_number=order.order_number
+                    )
+
+                txn = PaymentTransaction.objects.create(
+                    order=order,
+                    provider=_provider_for_network(network),
+                    status=PaymentTransaction.Status.INITIATED,
+                    partner_reference=(
+                        f"ORD-{order.order_number}-{int(timezone.now().timestamp())}"
+                    ),
                     amount=order.total,
                     currency=order.currency,
-                    reference=(
-                        reference or
-                        f"COD-{order.order_number}-{timezone.now().timestamp()}"
-                    ),
-                    provider_response={
-                        "mode": "cash_on_delivery",
-                        "submitted_at": timezone.now().isoformat(),
-                        "message": "Payment due upon delivery.",
-                    },
+                    payer_msisdn=push_phone,
                 )
 
-                notify(
-                    recipient=order.vendor.user,
-                    title=f"New COD order {order.order_number}",
-                    body=(
-                        f"{order.buyer.username} selected cash on delivery "
-                        f"for {order.currency} {order.total}."
-                    ),
-                    url=f"/orders/seller/{order.order_number}/",
+            try:
+                if network == "airtel":
+                    provider_ref = airtel_collect(
+                        phone=push_phone,
+                        amount=order.total,
+                        currency=order.currency,
+                        reference=txn.partner_reference,
+                        transaction_id=str(txn.id),
+                    )
+                else:
+                    provider_ref = mtn_collect(
+                        phone=push_phone,
+                        amount=order.total,
+                        currency=order.currency,
+                        reference=txn.partner_reference,
+                    )
+            except ValidationError as e:
+                txn.mark_failed(str(e))
+                messages.error(request, str(e))
+                return redirect("payments:pay", order_number=order.order_number)
+            except Exception as e:
+                logger.exception(
+                    "Payment provider call failed for order %s",
+                    order.order_number,
                 )
+                txn.mark_failed(str(e))
+                messages.error(
+                    request,
+                    "The payment provider is unreachable right now. "
+                    "Please try 'Pay manually' instead.",
+                )
+                return redirect("payments:pay", order_number=order.order_number)
+
+            txn.provider_reference = provider_ref
+            txn.status = PaymentTransaction.Status.PENDING
+            txn.save(update_fields=["provider_reference", "status", "updated_at"])
 
             messages.success(
                 request,
-                f"Order confirmed! Pay {order.currency} {order.total} "
-                "when your order arrives.",
+                "Payment request sent to your phone. Enter your PIN to confirm — "
+                "this page will update when the payment clears.",
             )
+            return redirect("orders:order_detail", order_number=order.order_number)
 
-            return redirect(
-                "orders:order_detail",
-                order_number=order.order_number,
-            )
-
-        except Exception:
+        # ══════════════════════════════════════════════════════
+        # 2. MANUAL (mobile money or bank — buyer supplies ref + charge)
+        # ══════════════════════════════════════════════════════
+        if not manual_reference:
             messages.error(
                 request,
-                "We could not process your order. Please try again."
+                "Enter the transaction reference so the seller can confirm "
+                "your payment.",
             )
+            return redirect("payments:pay", order_number=order.order_number)
 
-    return render(
-        request,
-        "payments/pay.html",
-        {
-            "order": order,
-            "methods": PaymentMethod.choices,
-        },
+        # Withdrawal / transaction charge is REQUIRED — the seller needs
+        # it to reconcile the manual payment against their statement.
+        try:
+            withdrawal_charge = Decimal(withdrawal_charge_raw)
+            if withdrawal_charge < 0:
+                raise ValueError
+        except (InvalidOperation, ValueError):
+            messages.error(
+                request,
+                "Enter the withdrawal / transaction charge you were billed "
+                f"(in {order.currency}). Use 0 if there was none.",
+            )
+            return redirect("payments:pay", order_number=order.order_number)
+
+        try:
+            with transaction.atomic():
+                _create_manual_transaction(
+                    order=order,
+                    method=method,
+                    reference=manual_reference,
+                    provider=_provider_for_network(order.payout_network),
+                    withdrawal_charge=withdrawal_charge,
+                )
+                Payment.objects.create(
+                    order=order,
+                    method=(
+                        PaymentMethod.MOBILE_MONEY
+                        if method == "mobile_manual"
+                        else PaymentMethod.BANK_TRANSFER
+                    ),
+                    status=PaymentStatus.PENDING,
+                    amount=order.total,
+                    currency=order.currency,
+                    reference=manual_reference,
+                    provider_response={
+                        "mode": "manual",
+                        "method": method,
+                        "withdrawal_charge": str(withdrawal_charge),
+                        "submitted_at": timezone.now().isoformat(),
+                    },
+                )
+        except Exception:
+            logger.exception(
+                "Failed to record manual payment for order %s",
+                order.order_number,
+            )
+            messages.error(
+                request,
+                "We couldn't record your payment reference. Please try again.",
+            )
+            return redirect("payments:pay", order_number=order.order_number)
+
+        # Notify after the DB write commits — a failure here must not
+        # roll back the payment record.
+        _notify_seller_manual_payment(order, manual_reference, withdrawal_charge)
+
+        messages.success(
+            request,
+            "Thanks! We've recorded your reference. "
+            "The seller will confirm your payment shortly.",
+        )
+        return redirect("orders:order_detail", order_number=order.order_number)
+
+    return render(request, "orders/payment.html", {"order": order})
+
+
+# ═══════════════════════════════════════════════════════════════
+# Provider webhooks
+# ═══════════════════════════════════════════════════════════════
+
+@csrf_exempt
+@require_POST
+def airtel_webhook(request):
+    """
+    Airtel POSTs here after the buyer enters (or fails) their USSD PIN.
+    Status codes:
+      TS  = Transaction Success
+      TF  = Transaction Failed
+      TA  = Transaction Ambiguous
+      TIP = Transaction In Progress (leave PENDING)
+    """
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "invalid json"}, status=400)
+
+    txn_payload = payload.get("transaction") or {}
+    partner_ref = txn_payload.get("id", "")
+    provider_ref = txn_payload.get("airtel_money_id", "")
+    status_code = (txn_payload.get("status_code") or "").upper()
+
+    if not partner_ref:
+        return JsonResponse({"error": "missing transaction id"}, status=400)
+
+    txn = PaymentTransaction.objects.filter(
+        partner_reference=partner_ref,
+        provider=PaymentTransaction.Provider.AIRTEL,
+    ).first()
+    if not txn:
+        logger.warning("Airtel webhook: unknown txn %s", partner_ref)
+        return JsonResponse({"ok": True})
+
+    if status_code == "TS":
+        txn.mark_successful(provider_ref=provider_ref, response=payload)
+    elif status_code in ("TF", "TA"):
+        txn.mark_failed(
+            message=txn_payload.get("message", "Airtel payment failed"),
+            response=payload,
+        )
+    # TIP → no-op; a follow-up webhook will arrive
+
+    return JsonResponse({"ok": True})
+
+
+@csrf_exempt
+@require_POST
+def mtn_webhook(request):
+    """MTN MoMo callback."""
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "invalid json"}, status=400)
+
+    partner_ref = payload.get("externalId") or payload.get("referenceId")
+    status = (payload.get("status") or "").upper()
+
+    if not partner_ref:
+        return JsonResponse({"error": "missing reference"}, status=400)
+
+    txn = PaymentTransaction.objects.filter(
+        partner_reference=partner_ref,
+        provider=PaymentTransaction.Provider.MTN,
+    ).first()
+    if not txn:
+        logger.warning("MTN webhook: unknown txn %s", partner_ref)
+        return JsonResponse({"ok": True})
+
+    if status == "SUCCESSFUL":
+        txn.mark_successful(provider_ref=partner_ref, response=payload)
+    elif status in ("FAILED", "REJECTED", "TIMEOUT"):
+        txn.mark_failed(
+            message=payload.get("reason", "MTN payment failed"),
+            response=payload,
+        )
+
+    return JsonResponse({"ok": True})
+
+
+# ═══════════════════════════════════════════════════════════════
+# Polling
+# ═══════════════════════════════════════════════════════════════
+
+@login_required
+def payment_status(request, order_number):
+    """JSON polled by the buyer's order detail page."""
+    order = get_object_or_404(
+        Order, order_number=order_number, buyer=request.user
     )
+    latest = order.transactions.order_by("-created_at").first()
+    return JsonResponse({
+        "order_status": order.status,
+        "payment": {
+            "status": latest.status if latest else None,
+            "provider": latest.provider if latest else None,
+            "error": latest.error_message if latest else "",
+        },
+    })
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -149,8 +437,8 @@ def pay(request, order_number):
 def pay_subscription(request, subscription_id):
     """
     Starts subscription payment.
-    - If FLW is configured → redirects to real Flutterwave checkout.
-    - If FLW is NOT configured → renders a simulated payment page.
+    - If FLW_SECRET_KEY is set → redirect to Flutterwave checkout.
+    - Otherwise → render the simulated payment page.
     """
     subscription = get_object_or_404(
         VendorSubscription.objects.select_related("plan", "vendor"),
@@ -185,7 +473,6 @@ def pay_subscription(request, subscription_id):
 
     plan = subscription.plan
 
-    # ── Dev fallback: no Flutterwave key → show simulated payment page ──
     if not os.environ.get("FLW_SECRET_KEY"):
         return render(
             request,
@@ -193,7 +480,6 @@ def pay_subscription(request, subscription_id):
             {"subscription": subscription, "plan": plan},
         )
 
-    # ── Real Flutterwave flow ──
     callback_url = request.build_absolute_uri(
         reverse(
             "payments:subscription_callback",
@@ -260,21 +546,16 @@ def pay_subscription(request, subscription_id):
     return redirect(link)
 
 
-# ── NEW: simulated payment confirmation (dev only) ──
 @login_required
 @require_POST
 def simulate_confirm(request, subscription_id):
-    """
-    Dev-only endpoint. Called from the simulated payment form.
-    Marks the subscription as SUBMITTED — awaiting admin approval.
-    """
+    """Dev-only: mark the subscription SUBMITTED without charging anything."""
     subscription = get_object_or_404(
         VendorSubscription.objects.select_related("plan", "vendor"),
         id=subscription_id,
         vendor__user=request.user,
     )
 
-    # Safety: refuse to run when a real Flutterwave key is configured
     if os.environ.get("FLW_SECRET_KEY"):
         messages.error(
             request,
@@ -326,10 +607,7 @@ def simulate_confirm(request, subscription_id):
 
 @login_required
 def subscription_callback(request, subscription_id):
-    """
-    Flutterwave redirects here after real payment.
-    Verifies the transaction, then marks the subscription as SUBMITTED.
-    """
+    """Flutterwave redirects here after payment."""
     subscription = get_object_or_404(
         VendorSubscription.objects.select_related("plan", "vendor"),
         id=subscription_id,
@@ -424,8 +702,9 @@ def subscription_callback(request, subscription_id):
 
     messages.success(
         request,
-        f"Payment received! Your “{subscription.plan.name}” subscription "
-        "is now awaiting admin approval. You'll be notified once it's reviewed.",
+        f"Payment received! Your \u201c{subscription.plan.name}\u201d "
+        "subscription is now awaiting admin approval. "
+        "You'll be notified once it's reviewed.",
     )
     return redirect(
         "payments:subscription_success",
@@ -433,16 +712,8 @@ def subscription_callback(request, subscription_id):
     )
 
 
-# ═══════════════════════════════════════════════════════════════
-# Subscription success / failure pages
-# ═══════════════════════════════════════════════════════════════
-
 @login_required
 def subscription_success(request, subscription_id):
-    """
-    Displayed after payment submission.
-    Shows "awaiting approval" — not "active".
-    """
     subscription = get_object_or_404(
         VendorSubscription.objects.select_related("plan", "vendor"),
         id=subscription_id,
@@ -469,15 +740,29 @@ def subscription_success(request, subscription_id):
 
 @login_required
 def subscription_failed(request, subscription_id):
-    """Displayed when a subscription payment attempt fails or is cancelled."""
     subscription = get_object_or_404(
         VendorSubscription.objects.select_related("plan", "vendor"),
         id=subscription_id,
         vendor__user=request.user,
     )
-
     return render(
         request,
         "payments/subscription_failed.html",
         {"subscription": subscription},
     )
+
+
+@login_required
+def subscription_status(request, subscription_id):
+    """JSON polled by the vendor's pending-subscription page."""
+    sub = get_object_or_404(
+        VendorSubscription,
+        id=subscription_id,
+        vendor__user=request.user,
+    )
+    return JsonResponse({
+        "status": sub.status,
+        "is_active": sub.is_active,
+        "is_submitted": sub.is_submitted,
+        "payment_reference": sub.payment_reference,
+    })

@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
@@ -7,20 +8,28 @@ from django.utils.text import slugify
 from catalogue.models import Category, Product, ProductStatus
 from disputes.models import Dispute, DisputeStatus
 from orders.models import Order, OrderStatus
+from payments.models import PlatformSettings
+from system.forms import PlatformSettingsForm, SiteSettingForm
+from system.models import SiteSetting
 
-from .forms import BecomeSellerForm, SellerCategoryForm
+from .forms import (
+    BecomeSellerForm,
+    SellerCategoryForm,
+    VendorPaymentSettingsForm,
+)
 from .models import (
     Store,
     SubscriptionPlan,
     Vendor,
+    VendorPaymentSettings,
     VendorStatus,
     VendorSubscription,
 )
 
 
-# ─────────────────────────────────────────────────────
-# Become a seller — store details only
-# ─────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
+# Become a seller
+# ═══════════════════════════════════════════════════════
 @login_required
 def become_seller(request):
     if hasattr(request.user, "vendor"):
@@ -43,23 +52,19 @@ def become_seller(request):
     return render(request, "vendors/become_seller.html", {"form": form})
 
 
-# ─────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
 # Choose a subscription plan
-# ─────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
 @login_required
 def choose_plan(request):
-    # Only redirect away if the vendor is already VERIFIED (they don't need plans)
     if hasattr(request.user, "vendor"):
         vendor = request.user.vendor
         if vendor.is_verified and vendor.active_subscription:
             messages.info(request, "You already have an active seller account.")
             return redirect("vendors:dashboard")
-        # Otherwise fall through — let them pick a plan to fix their subscription
 
     pending = request.session.get("pending_vendor")
 
-    # If they have an existing vendor, rebuild pending from it so the
-    # plan picker works for renewals/rejections
     if not pending and hasattr(request.user, "vendor"):
         v = request.user.vendor
         pending = {
@@ -92,12 +97,12 @@ def choose_plan(request):
         {"plans": plans, "pending": pending},
     )
 
-# ─────────────────────────────────────────────────────
+
+# ═══════════════════════════════════════════════════════
 # Create vendor + store, then redirect to payment
-# ─────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
 @login_required
 def subscribe(request, plan_slug):
-    # Only block if vendor is already verified with active subscription
     if hasattr(request.user, "vendor"):
         vendor = request.user.vendor
         if vendor.is_verified and vendor.active_subscription:
@@ -106,7 +111,6 @@ def subscribe(request, plan_slug):
 
     pending = request.session.get("pending_vendor")
 
-    # Rebuild pending from existing vendor if needed
     if not pending and hasattr(request.user, "vendor"):
         v = request.user.vendor
         pending = {
@@ -129,10 +133,8 @@ def subscribe(request, plan_slug):
         )
         return redirect("vendors:choose_plan")
 
-    # ── Branch: existing vendor (renewal/rejection) vs. new vendor ──
     if hasattr(request.user, "vendor"):
         vendor = request.user.vendor
-        # Cancel any old pending/rejected subscription so the new one is clean
         vendor.subscriptions.filter(
             status__in=[
                 VendorSubscription.Status.PENDING,
@@ -147,7 +149,6 @@ def subscribe(request, plan_slug):
             status=VendorSubscription.Status.PENDING,
         )
     else:
-        # New vendor — validate name uniqueness
         slug = slugify(pending["display_name"])
         if (
             Vendor.objects.filter(slug=slug).exists()
@@ -196,9 +197,10 @@ def subscribe(request, plan_slug):
         subscription_id=subscription.id,
     )
 
-# ─────────────────────────────────────────────────────
+
+# ═══════════════════════════════════════════════════════
 # Vendor dashboard
-# ─────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
 @login_required
 def dashboard(request):
     vendor = get_object_or_404(
@@ -210,12 +212,7 @@ def dashboard(request):
 
     latest_sub = vendor.subscriptions.first()
 
-    # ── Gate: BOTH verified status AND active subscription required ──
-    # A vendor can be `verified` but have a rejected/expired subscription
-    # (e.g. admin clicked "Verify" on the vendor directly, bypassing the
-    # subscription approval flow). In that case, still gate them out.
     if not vendor.is_verified or not vendor.active_subscription:
-
         if not latest_sub:
             messages.warning(
                 request,
@@ -225,7 +222,6 @@ def dashboard(request):
             return redirect("vendors:choose_plan")
 
         if latest_sub.status == VendorSubscription.Status.SUBMITTED:
-            # Allowed: renders the gated dashboard with the approval banner
             pass
 
         elif latest_sub.status == VendorSubscription.Status.PENDING:
@@ -252,7 +248,6 @@ def dashboard(request):
             return redirect("vendors:choose_plan")
 
         else:
-            # EXPIRED, CANCELLED, or any unexpected state
             messages.warning(
                 request,
                 "Your subscription is not active. "
@@ -260,8 +255,6 @@ def dashboard(request):
             )
             return redirect("vendors:choose_plan")
 
-    # ── Stats (only reached for verified + active-subscription vendors,
-    #            or vendors with a SUBMITTED subscription) ──
     stores = vendor.stores.all()
 
     vendor_orders = Order.objects.filter(vendor=vendor)
@@ -319,14 +312,59 @@ def dashboard(request):
     )
 
 
-# ─────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
+# Payment settings (seller — currency + payout details)
+# ═══════════════════════════════════════════════════════
+@login_required
+def payment_settings(request):
+    vendor = get_object_or_404(Vendor, user=request.user)
+
+    if not vendor.is_verified:
+        messages.warning(
+            request,
+            "Your seller account is not yet verified. "
+            "You can configure payment settings once your account is approved.",
+        )
+        return redirect("vendors:dashboard")
+
+    settings_obj = vendor.payment_settings
+
+    if request.method == "POST":
+        form = VendorPaymentSettingsForm(
+            request.POST,
+            instance=settings_obj,
+        )
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                "Payment settings saved successfully.",
+            )
+            return redirect("vendors:payment_settings")
+    else:
+        form = VendorPaymentSettingsForm(instance=settings_obj)
+
+    platform = PlatformSettings.get_solo()
+
+    return render(
+        request,
+        "vendors/payment_settings.html",
+        {
+            "form": form,
+            "vendor": vendor,
+            "settings_obj": settings_obj,
+            "deposit_receiver": platform.deposit_receiver,
+        },
+    )
+
+
+# ═══════════════════════════════════════════════════════
 # Seller: submit a category for approval
-# ─────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
 @login_required
 def add_category(request):
     vendor = get_object_or_404(Vendor, user=request.user)
 
-    # Must be verified AND have an active subscription.
     if not vendor.is_verified:
         messages.warning(
             request,
@@ -366,9 +404,9 @@ def add_category(request):
     )
 
 
-# ─────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
 # Seller: list my submitted categories + their status
-# ─────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
 @login_required
 def my_categories(request):
     vendor = get_object_or_404(Vendor, user=request.user)
@@ -395,15 +433,11 @@ def my_categories(request):
     )
 
 
-# ─────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
 # Cancel a pending/submitted subscription
-# ─────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
 @login_required
 def abandon_subscription(request):
-    """
-    Cancel a subscription that is PENDING or SUBMITTED (not yet approved).
-    Deletes the placeholder vendor + store so the user can start over.
-    """
     if request.method != "POST":
         return redirect("vendors:dashboard")
 

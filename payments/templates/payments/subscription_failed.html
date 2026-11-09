@@ -52,6 +52,35 @@
     border-radius: 4px;
     font-family: monospace;
     font-size: 0.75rem;
+    overflow-wrap: break-word;
+    word-break: break-all;
+  }
+
+  /* NEW: distinct style for the provider's error message */
+  .pf-error-reason {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    text-align: left;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  .pf-error-reason strong { color: #7f1d1d; }
+  .pf-error-code {
+    display: inline-block;
+    background: #fff;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    padding: 0.1rem 0.35rem;
+    font-family: monospace;
+    font-size: 0.72rem;
+    color: #7f1d1d;
+    margin-left: 0.25rem;
   }
 
   .pf-btn {
@@ -88,10 +117,23 @@
       Nothing has been charged.
     </p>
 
+    {# NEW: show the provider's actual reason when we have one #}
+    {% if failure_reason %}
+      <div class="pf-error-reason">
+        <strong>What went wrong</strong><br>
+        {{ failure_reason }}
+        {% if failure_code %}
+          <span class="pf-error-code">{{ failure_code }}</span>
+        {% endif %}
+      </div>
+    {% endif %}
+
     <div class="pf-detail">
       <strong>What to do:</strong><br>
-      • Try again — use a different card or payment method<br>
-      • If you were charged but see this page, contact support with your transaction reference
+      • Check that your mobile money number is correct and has enough balance<br>
+      • If you entered your PIN but got this page, check your SMS — you may have been charged<br>
+      • Still stuck? Contact support with your transaction reference below
+
       {% if subscription.payment_reference %}
         <br><strong>Reference:</strong> <code>{{ subscription.payment_reference }}</code>
       {% endif %}

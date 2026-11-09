@@ -1,0 +1,716 @@
+{% extends "base.html" %}
+{% block title %}Complete payment — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .pay-wrap { max-width: 60rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .pay-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .pay-breadcrumb {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 0.4rem; font-size: 0.75rem; color: #6b7280;
+    margin-bottom: 1rem; word-break: break-word;
+  }
+  .pay-breadcrumb a { color: #6b7280; text-decoration: none; }
+  .pay-breadcrumb a:hover { color: #ea580c; }
+  .pay-breadcrumb .current {
+    color: #111827; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 50%;
+  }
+
+  .pay-header { margin-bottom: 1.5rem; }
+  .pay-h1 {
+    font-size: 1.5rem; font-weight: 800;
+    color: #111827; letter-spacing: -0.01em; margin: 0;
+  }
+  .pay-sub {
+    font-size: 0.85rem; color: #4b5563;
+    margin: 0.35rem 0 0; line-height: 1.5;
+  }
+  .pay-sub strong { color: #111827; font-weight: 700; }
+
+  /* ── Tab switcher ── */
+  .pay-tabs {
+    display: flex; gap: 0.4rem;
+    background: #f3f4f6; border-radius: 12px;
+    padding: 0.35rem; margin-bottom: 1.5rem;
+  }
+  .pay-tab {
+    flex: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.6rem 0.85rem;
+    border-radius: 9px;
+    font-size: 0.82rem; font-weight: 700;
+    color: #6b7280;
+    background: transparent;
+    border: 0; cursor: pointer;
+    min-height: 40px;
+    transition: background-color .15s, color .15s;
+  }
+  .pay-tab:hover { color: #374151; }
+  .pay-tab.is-active {
+    background: #fff; color: #ea580c;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+
+  .pay-pane { display: none; }
+  .pay-pane.is-active { display: block; }
+
+  .pay-grid { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
+  @media (min-width: 1024px) {
+    .pay-grid { grid-template-columns: minmax(0, 1fr) 21rem; }
+  }
+
+  .pay-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .pay-card { padding: 1.5rem; } }
+
+  .pay-card-title {
+    font-size: 1rem; font-weight: 800;
+    color: #111827; margin: 0 0 1rem;
+  }
+
+  .pay-methods { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; }
+  .pay-method { display: block; position: relative; cursor: pointer; }
+  .pay-method input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+  .pay-method-card {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    transition: border-color 0.15s, background-color 0.15s;
+    min-width: 0;
+  }
+  .pay-method:hover .pay-method-card { border-color: #fdba74; }
+  .pay-method input:checked + .pay-method-card {
+    border-color: #f97316; background: #fff7ed;
+  }
+  .pay-method-icon {
+    width: 2.5rem; height: 2.5rem;
+    border-radius: 10px;
+    background: #ffedd5; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .pay-method-text { flex: 1; min-width: 0; }
+  .pay-method-title {
+    font-size: 0.85rem; font-weight: 700;
+    color: #111827; margin: 0;
+  }
+  .pay-method-desc {
+    font-size: 0.7rem; color: #6b7280;
+    margin: 0.15rem 0 0; line-height: 1.4;
+    overflow-wrap: break-word; word-break: break-word;
+  }
+  .pay-method-desc strong { color: #111827; font-weight: 700; }
+
+  .pay-field { margin-bottom: 1rem; }
+  .pay-field:last-child { margin-bottom: 0; }
+
+  .pay-label {
+    display: block;
+    font-size: 0.8rem; font-weight: 700;
+    color: #374151; margin-bottom: 0.35rem;
+  }
+  .pay-label-required { color: #dc2626; margin-left: 0.15rem; }
+
+  .pay-input {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem;
+    color: #111827;
+    background: #fff;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .pay-input:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+  .pay-help {
+    font-size: 0.7rem; color: #6b7280;
+    margin: 0.35rem 0 0; line-height: 1.4;
+  }
+  .pay-help strong { color: #374151; }
+
+  .pay-panel {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+    padding: 0.85rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .pay-panel.is-visible { display: block; }
+  .pay-panel .pay-field:last-child { margin-bottom: 0; }
+  .pay-panel-amount {
+    display: flex; justify-content: space-between;
+    padding: 0.6rem 0.75rem;
+    background: #fff;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    color: #374151;
+  }
+  .pay-panel-amount strong {
+    font-size: 1rem; font-weight: 800; color: #9a3412;
+    overflow-wrap: break-word; word-break: break-word;
+  }
+  .pay-panel-instructions {
+    font-size: 0.75rem; color: #7c2d12;
+    line-height: 1.55; margin: 0 0 0.75rem;
+    overflow-wrap: break-word; word-break: break-word;
+  }
+  .pay-panel-instructions strong { color: #9a3412; }
+
+  .pay-submit {
+    width: 100%;
+    padding: 0.85rem 1.5rem;
+    border-radius: 12px;
+    background: #f97316;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border: 0;
+    cursor: pointer;
+    min-height: 48px;
+    box-sizing: border-box;
+    margin-top: 0.5rem;
+    transition: background-color 0.15s;
+  }
+  .pay-submit:hover { background: #ea580c; }
+  .pay-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .pay-aside { display: flex; flex-direction: column; gap: 1rem; }
+  @media (min-width: 1024px) {
+    .pay-aside { position: sticky; top: 1.5rem; align-self: start; }
+  }
+
+  .pay-summary-items {
+    display: flex; flex-direction: column;
+    gap: 0.75rem;
+    max-height: 16rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    margin-bottom: 1rem;
+  }
+  .pay-summary-item { display: flex; align-items: flex-start; gap: 0.75rem; min-width: 0; }
+  .pay-summary-thumb {
+    width: 3rem; height: 3rem;
+    border-radius: 8px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .pay-summary-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pay-summary-thumb .empty {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: #9ca3af; font-size: 0.6rem;
+  }
+  .pay-summary-info { flex: 1; min-width: 0; }
+  .pay-summary-name {
+    font-size: 0.85rem; font-weight: 600;
+    color: #111827; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .pay-summary-qty { font-size: 0.7rem; color: #6b7280; margin: 0.15rem 0 0; }
+  .pay-summary-price {
+    font-size: 0.85rem; font-weight: 700;
+    color: #111827; flex-shrink: 0; margin: 0;
+  }
+
+  .pay-divider { border: 0; border-top: 1px solid #f3f4f6; margin: 1rem 0; }
+
+  .pay-total-row {
+    display: flex; justify-content: space-between;
+    gap: 0.5rem; font-size: 0.85rem;
+  }
+  .pay-total-row span:first-child { color: #4b5563; }
+  .pay-total-row span:last-child { color: #111827; font-weight: 600; }
+
+  .pay-total-final {
+    display: flex; justify-content: space-between;
+    padding-top: 1rem; margin-top: 0.75rem;
+    border-top: 1px solid #f3f4f6;
+    font-size: 1.1rem; font-weight: 800; color: #111827;
+  }
+
+  .pay-trust {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 1rem;
+  }
+  .pay-trust-title {
+    font-size: 0.65rem; font-weight: 800;
+    color: #9a3412;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 0 0 0.5rem;
+  }
+  .pay-trust-text { font-size: 0.75rem; color: #7c2d12; line-height: 1.6; margin: 0; }
+
+  .pay-warn {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    font-size: 0.82rem;
+    color: #991b1b;
+    line-height: 1.55;
+    margin: 0 0 1rem;
+  }
+  .pay-warn a { color: #991b1b; font-weight: 700; }
+</style>
+
+<div class="pay-wrap">
+
+  {# ── Breadcrumb ── #}
+  <nav class="pay-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'orders:my_orders' %}">My orders</a>
+    <span aria-hidden="true">/</span>
+    <a href="{% url 'orders:order_detail' order.order_number %}">{{ order.order_number }}</a>
+    <span aria-hidden="true">/</span>
+    <span class="current">Payment</span>
+  </nav>
+
+  {# ── Header ── #}
+  <div class="pay-header">
+    <h1 class="pay-h1">Complete payment</h1>
+    <p class="pay-sub">
+      Order <strong>{{ order.order_number }}</strong>
+      · {{ order.items.all|length }} item{{ order.items.all|length|pluralize }}
+    </p>
+  </div>
+
+  {# ── Tab switcher ── #}
+  <div class="pay-tabs" role="tablist" aria-label="Payment mode">
+    <button type="button" role="tab" class="pay-tab is-active"
+            data-pane="pane-order" aria-selected="true">
+      Pay for this order
+    </button>
+    <button type="button" role="tab" class="pay-tab"
+            data-pane="pane-deposit" aria-selected="false">
+      Deposit to wallet
+    </button>
+  </div>
+
+  {# ══════════ PANE 1: Pay for this order ══════════ #}
+  <div class="pay-pane is-active" id="pane-order" role="tabpanel">
+    <div class="pay-grid">
+
+      {# ── LEFT: Payment form ── #}
+      <div class="pay-card">
+
+        {% if not order.has_frozen_payout %}
+          <h2 class="pay-card-title">Payment not available</h2>
+          <p class="pay-warn">
+            <strong>{{ order.vendor.display_name }}</strong> hasn't set up a payout
+            method yet, so we can't collect this payment. Please
+            <a href="{% url 'orders:order_detail' order.order_number %}">contact the seller</a>
+            or cancel this order.
+          </p>
+          <a href="{% url 'orders:my_orders' %}" class="pay-submit"
+             style="display:block; text-align:center; text-decoration:none;">
+            Back to my orders
+          </a>
+
+        {% else %}
+          <h2 class="pay-card-title">How would you like to pay?</h2>
+
+          <form method="post" id="payment-form" action="">
+            {% csrf_token %}
+
+            <div class="pay-methods">
+
+              {% if order.payout_method == "mobile_money" %}
+
+                {# Push #}
+                <label class="pay-method">
+                  <input type="radio" name="method" value="mobile_push" checked>
+                  <div class="pay-method-card">
+                    <div class="pay-method-icon">
+                      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                      </svg>
+                    </div>
+                    <div class="pay-method-text">
+                      <p class="pay-method-title">
+                        {% if order.payout_network == "airtel" %}Airtel Money
+                        {% elif order.payout_network == "mtn" %}MTN MoMo
+                        {% elif order.payout_network == "zamtel" %}Zamtel Kwacha
+                        {% else %}Mobile money{% endif %}
+                        — instant
+                      </p>
+                      <p class="pay-method-desc">
+                        Pay to <strong>{{ order.payout_mobile_name|default:order.vendor.display_name }}</strong> ·
+                        <strong>{{ order.payout_mobile_number }}</strong>.
+                        We'll send a USSD prompt to your phone.
+                      </p>
+                    </div>
+                  </div>
+                </label>
+
+                {# Manual mobile #}
+                <label class="pay-method">
+                  <input type="radio" name="method" value="mobile_manual">
+                  <div class="pay-method-card">
+                    <div class="pay-method-icon">
+                      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      </svg>
+                    </div>
+                    <div class="pay-method-text">
+                      <p class="pay-method-title">Pay manually by mobile money</p>
+                      <p class="pay-method-desc">
+                        Send to <strong>{{ order.payout_mobile_name|default:order.vendor.display_name }}</strong> ·
+                        <strong>{{ order.payout_mobile_number }}</strong>,
+                        then enter the transaction ID + the charge you were billed.
+                      </p>
+                    </div>
+                  </div>
+                </label>
+
+                {# Push panel #}
+                <div class="pay-panel is-visible" id="panel-mobile_push">
+                  <div class="pay-field">
+                    <label for="push_phone" class="pay-label">
+                      Your mobile money number <span class="pay-label-required">*</span>
+                    </label>
+                    <input type="tel" name="push_phone" id="push_phone"
+                           placeholder="0971234567" class="pay-input" inputmode="tel">
+                    <p class="pay-help">
+                      The number registered on your
+                      {% if order.payout_network == "airtel" %}Airtel Money
+                      {% elif order.payout_network == "mtn" %}MTN MoMo
+                      {% elif order.payout_network == "zamtel" %}Zamtel Kwacha
+                      {% else %}mobile money{% endif %}
+                      wallet.
+                    </p>
+                  </div>
+                </div>
+
+                {# Manual panel #}
+                <div class="pay-panel" id="panel-mobile_manual">
+                  <div class="pay-panel-amount">
+                    <span>Send to</span>
+                    <strong>{{ order.payout_mobile_number }}</strong>
+                  </div>
+                  <p class="pay-panel-instructions">
+                    <strong>{{ order.payout_mobile_name|default:order.vendor.display_name }}</strong> ·
+                    {% if order.payout_network %}{{ order.payout_network|upper }}{% else %}Mobile money{% endif %} ·
+                    send <strong>{{ order.currency }} {{ order.total }}</strong>.
+                    Use <strong>{{ order.order_number }}</strong> as the reference.
+                  </p>
+                  <div class="pay-field">
+                    <label for="manual_mobile_ref" class="pay-label">
+                      Transaction ID from SMS <span class="pay-label-required">*</span>
+                    </label>
+                    <input type="text" name="manual_reference" id="manual_mobile_ref"
+                           class="pay-input" placeholder="e.g. MP261109.1422.A12345">
+                    <p class="pay-help">You'll find this in the SMS you receive after sending the money.</p>
+                  </div>
+                  <div class="pay-field">
+                    <label for="manual_mobile_charge" class="pay-label">
+                      Withdrawal / transaction charge billed <span class="pay-label-required">*</span>
+                    </label>
+                    <input type="number" name="withdrawal_charge" id="manual_mobile_charge"
+                           class="pay-input" placeholder="0.00" step="0.01" min="0">
+                    <p class="pay-help">
+                      The mobile-money fee your provider charged for the transfer, in
+                      {{ order.currency }}. Enter <strong>0</strong> if there was none.
+                    </p>
+                  </div>
+                </div>
+
+              {% endif %}
+
+              {% if order.payout_method == "bank_transfer" %}
+
+                <label class="pay-method">
+                  <input type="radio" name="method" value="bank_manual" checked>
+                  <div class="pay-method-card">
+                    <div class="pay-method-icon">
+                      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/>
+                      </svg>
+                    </div>
+                    <div class="pay-method-text">
+                      <p class="pay-method-title">Bank transfer</p>
+                      <p class="pay-method-desc">
+                        Transfer to <strong>{{ order.payout_account_name|default:order.vendor.display_name }}</strong> ·
+                        <strong>{{ order.payout_bank_name }}</strong> ·
+                        <strong>{{ order.payout_account_no }}</strong>.
+                      </p>
+                    </div>
+                  </div>
+                </label>
+
+                <div class="pay-panel is-visible" id="panel-bank_manual">
+                  <div class="pay-panel-amount">
+                    <span>Send to</span>
+                    <strong>{{ order.payout_bank_name }}</strong>
+                  </div>
+                  <p class="pay-panel-instructions">
+                    Account name: <strong>{{ order.payout_account_name|default:order.vendor.display_name }}</strong><br>
+                    Account number: <strong>{{ order.payout_account_no }}</strong>
+                    {% if order.payout_branch %}<br>Branch: <strong>{{ order.payout_branch }}</strong>{% endif %}
+                    <br>Reference: <strong>{{ order.order_number }}</strong>
+                  </p>
+                  <div class="pay-field">
+                    <label for="manual_bank_ref" class="pay-label">
+                      Bank transfer reference <span class="pay-label-required">*</span>
+                    </label>
+                    <input type="text" name="manual_reference" id="manual_bank_ref"
+                           class="pay-input" placeholder="Reference shown on your statement">
+                    <p class="pay-help">The seller will match this against their bank statement.</p>
+                  </div>
+                  <div class="pay-field">
+                    <label for="manual_bank_charge" class="pay-label">
+                      Withdrawal / transfer charge billed <span class="pay-label-required">*</span>
+                    </label>
+                    <input type="number" name="withdrawal_charge" id="manual_bank_charge"
+                           class="pay-input" placeholder="0.00" step="0.01" min="0">
+                    <p class="pay-help">
+                      The bank fee charged for the transfer, in {{ order.currency }}.
+                      Enter <strong>0</strong> if there was none.
+                    </p>
+                  </div>
+                </div>
+
+              {% endif %}
+
+            </div>
+
+            <button type="submit" class="pay-submit" id="submit-btn">
+              Continue
+            </button>
+          </form>
+        {% endif %}
+
+      </div>
+
+      {# ── RIGHT: Order summary ── #}
+      <aside class="pay-aside">
+
+        <div class="pay-card">
+          <h2 class="pay-card-title">Order summary</h2>
+
+          <div class="pay-summary-items">
+            {% for item in order.items.all %}
+              <div class="pay-summary-item">
+                <div class="pay-summary-thumb">
+                  {% with item.variant.product.images.first as img %}
+                    {% if img %}
+                      <img src="{{ img.image.url }}" alt="" loading="lazy">
+                    {% else %}
+                      <div class="empty">—</div>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+                <div class="pay-summary-info">
+                  <p class="pay-summary-name">{{ item.variant.product.name }}</p>
+                  <p class="pay-summary-qty">Qty {{ item.quantity }}</p>
+                </div>
+                <p class="pay-summary-price">{{ order.currency }} {{ item.subtotal }}</p>
+              </div>
+            {% endfor %}
+          </div>
+
+          <hr class="pay-divider">
+
+          <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            <div class="pay-total-row">
+              <span>Subtotal</span>
+              <span>{{ order.currency }} {{ order.subtotal }}</span>
+            </div>
+            <div class="pay-total-row">
+              <span>Shipping</span>
+              <span>{{ order.currency }} {{ order.shipping_total }}</span>
+            </div>
+          </div>
+
+          <div class="pay-total-final">
+            <span>Total due</span>
+            <span>{{ order.currency }} {{ order.total }}</span>
+          </div>
+        </div>
+
+        <div class="pay-trust">
+          <p class="pay-trust-title">Buyer protection</p>
+          <p class="pay-trust-text">
+            Your payment is held until you confirm delivery. If something goes wrong,
+            open a dispute for a full refund.
+          </p>
+        </div>
+
+      </aside>
+    </div>
+  </div>
+
+  {# ══════════ PANE 2: Deposit to wallet ══════════ #}
+  <div class="pay-pane" id="pane-deposit" role="tabpanel">
+    <div class="pay-grid">
+
+      <div class="pay-card">
+        <h2 class="pay-card-title">Deposit to your wallet</h2>
+
+        {% if not deposit_receiver %}
+          <p class="pay-warn">
+            Deposits aren't available right now — the platform hasn't
+            configured a collection account yet.
+          </p>
+        {% else %}
+          <form method="post" action="{% url 'payments:deposit' %}">
+            {% csrf_token %}
+
+            <div class="pay-field">
+              <label for="deposit_amount" class="pay-label">
+                Amount ({{ deposit_currency }}) <span class="pay-label-required">*</span>
+              </label>
+              <input type="number" name="amount" id="deposit_amount"
+                     class="pay-input" placeholder="0.00"
+                     step="0.01" min="1" required>
+              <p class="pay-help">
+                Minimum deposit: <strong>{{ deposit_currency }} 1.00</strong>.
+              </p>
+            </div>
+
+            <div class="pay-field">
+              <label class="pay-label">Send to</label>
+              <div class="pay-panel-amount" style="margin-bottom:0.5rem;">
+                <span>{{ deposit_receiver.network|upper }}</span>
+                <strong>{{ deposit_receiver.number }}</strong>
+              </div>
+              <p class="pay-panel-instructions">
+                <strong>{{ deposit_receiver.name }}</strong> ·
+                {% if deposit_receiver.network %}{{ deposit_receiver.network|upper }}{% else %}Mobile money{% endif %}
+                · use your username <strong>{{ request.user.username }}</strong> as the reference.
+              </p>
+            </div>
+
+            <div class="pay-field">
+              <label for="deposit_reference" class="pay-label">
+                Transaction ID from SMS <span class="pay-label-required">*</span>
+              </label>
+              <input type="text" name="reference" id="deposit_reference"
+                     class="pay-input" placeholder="e.g. MP261109.1422.A12345" required>
+            </div>
+
+            <div class="pay-field">
+              <label for="deposit_charge" class="pay-label">
+                Withdrawal / transaction charge billed <span class="pay-label-required">*</span>
+              </label>
+              <input type="number" name="withdrawal_charge" id="deposit_charge"
+                     class="pay-input" placeholder="0.00" step="0.01" min="0" required>
+              <p class="pay-help">
+                The fee your provider charged for the transfer, in
+                {{ deposit_currency }}. Enter <strong>0</strong> if there was none.
+              </p>
+            </div>
+
+            <button type="submit" class="pay-submit">
+              I have paid · Submit deposit
+            </button>
+          </form>
+        {% endif %}
+      </div>
+
+      <aside class="pay-aside">
+        <div class="pay-trust">
+          <p class="pay-trust-title">How deposits work</p>
+          <p class="pay-trust-text">
+            You send the amount to the platform wallet shown, then enter the
+            transaction ID. An admin reviews the deposit and credits your wallet
+            once the transaction is confirmed.
+          </p>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  // Tab switching
+  var tabs = document.querySelectorAll('.pay-tab');
+  var panes = document.querySelectorAll('.pay-pane');
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) {
+        t.classList.toggle('is-active', t === tab);
+        t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+      });
+      var target = tab.getAttribute('data-pane');
+      panes.forEach(function (p) {
+        p.classList.toggle('is-active', p.id === target);
+      });
+    });
+  });
+
+  // Method switcher
+  var inputs = document.querySelectorAll('input[name="method"]');
+  var panels = {
+    mobile_push:   document.getElementById('panel-mobile_push'),
+    mobile_manual: document.getElementById('panel-mobile_manual'),
+    bank_manual:   document.getElementById('panel-bank_manual'),
+  };
+  var submitBtn = document.getElementById('submit-btn');
+  var totalLabel = '{{ order.currency }} {{ order.total }}';
+
+  function currentMethod() {
+    var el = document.querySelector('input[name="method"]:checked');
+    return el ? el.value : null;
+  }
+
+  function updateVisibility() {
+    var value = currentMethod();
+    Object.keys(panels).forEach(function (key) {
+      var panel = panels[key];
+      if (!panel) return;
+      var active = (key === value);
+      panel.classList.toggle('is-visible', active);
+      panel.querySelectorAll('input, select, textarea').forEach(function (i) {
+        if (i.type === 'hidden') return;
+        i.required = active;
+      });
+    });
+    if (!submitBtn) return;
+    switch (value) {
+      case 'mobile_push':
+        submitBtn.textContent = 'Send payment request · ' + totalLabel;
+        break;
+      case 'mobile_manual':
+      case 'bank_manual':
+        submitBtn.textContent = 'I have paid · Confirm';
+        break;
+      default:
+        submitBtn.textContent = 'Continue';
+    }
+  }
+
+  inputs.forEach(function (input) {
+    input.addEventListener('change', updateVisibility);
+  });
+  updateVisibility();
+})();
+</script>
+{% endblock %}

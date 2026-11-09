@@ -39,7 +39,6 @@
   }
   .ss-error { font-size: 0.75rem; color: #dc2626; margin-top: 0.35rem; }
 
-  /* ── INPUT STYLES — !important to guarantee ── */
   input.ss-input,
   select.ss-input,
   textarea.ss-input {
@@ -66,7 +65,6 @@
   textarea.ss-input { resize: vertical !important; min-height: 4rem !important; }
   select.ss-input { cursor: pointer !important; }
 
-  /* Checkbox rows */
   .ss-toggle {
     display: flex; align-items: flex-start; gap: 0.65rem;
     padding: 0.65rem 0.75rem;
@@ -92,7 +90,6 @@
     .ss-toggle-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
-  /* Sticky save bar */
   .ss-save-bar {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
     background: #fff; border-top: 1px solid #e5e7eb;
@@ -118,6 +115,11 @@
     padding: 0.75rem 1rem; border-radius: 10px;
     font-size: 0.85rem; margin-bottom: 1rem;
   }
+
+  .ss-hint {
+    font-size: 0.72rem; color: #6b7280;
+    margin: 0.35rem 0 0; line-height: 1.4;
+  }
 </style>
 
 <div class="ss-wrap">
@@ -125,9 +127,10 @@
   <h1 class="ss-h1">Site settings</h1>
   <p class="ss-sub">Controls platform-wide behavior. Changes take effect immediately.</p>
 
-  {% if form.non_field_errors %}
+  {% if site_form.non_field_errors or deposit_form.non_field_errors %}
     <div class="ss-alert">
-      {% for e in form.non_field_errors %}<p style="margin:0;">{{ e }}</p>{% endfor %}
+      {% for e in site_form.non_field_errors %}<p style="margin:0;">{{ e }}</p>{% endfor %}
+      {% for e in deposit_form.non_field_errors %}<p style="margin:0;">{{ e }}</p>{% endfor %}
     </div>
   {% endif %}
 
@@ -149,30 +152,30 @@
           <div>
             <label for="id_site_name" class="ss-label">Site name</label>
             <input type="text" name="site_name" id="id_site_name" class="ss-input"
-                   value="{{ form.site_name.value|default_if_none:'' }}"
+                   value="{{ site_form.site_name.value|default_if_none:'' }}"
                    placeholder="UniMarket" maxlength="100">
-            {% if form.site_name.errors %}<p class="ss-error">{{ form.site_name.errors|join:", " }}</p>{% endif %}
+            {% if site_form.site_name.errors %}<p class="ss-error">{{ site_form.site_name.errors|join:", " }}</p>{% endif %}
           </div>
           <div>
             <label for="id_support_email" class="ss-label">Support email</label>
             <input type="email" name="support_email" id="id_support_email" class="ss-input"
-                   value="{{ form.support_email.value|default_if_none:'' }}"
+                   value="{{ site_form.support_email.value|default_if_none:'' }}"
                    placeholder="support@unimarket.zm">
-            {% if form.support_email.errors %}<p class="ss-error">{{ form.support_email.errors|join:", " }}</p>{% endif %}
+            {% if site_form.support_email.errors %}<p class="ss-error">{{ site_form.support_email.errors|join:", " }}</p>{% endif %}
           </div>
           <div class="ss-span2">
             <label for="id_site_tagline" class="ss-label">Tagline</label>
             <input type="text" name="site_tagline" id="id_site_tagline" class="ss-input"
-                   value="{{ form.site_tagline.value|default_if_none:'' }}"
+                   value="{{ site_form.site_tagline.value|default_if_none:'' }}"
                    placeholder="Everything you need. All in one place." maxlength="200">
-            {% if form.site_tagline.errors %}<p class="ss-error">{{ form.site_tagline.errors|join:", " }}</p>{% endif %}
+            {% if site_form.site_tagline.errors %}<p class="ss-error">{{ site_form.site_tagline.errors|join:", " }}</p>{% endif %}
           </div>
           <div>
             <label for="id_support_phone" class="ss-label">Support phone</label>
             <input type="text" name="support_phone" id="id_support_phone" class="ss-input"
-                   value="{{ form.support_phone.value|default_if_none:'' }}"
+                   value="{{ site_form.support_phone.value|default_if_none:'' }}"
                    placeholder="+260 97 123 4567">
-            {% if form.support_phone.errors %}<p class="ss-error">{{ form.support_phone.errors|join:", " }}</p>{% endif %}
+            {% if site_form.support_phone.errors %}<p class="ss-error">{{ site_form.support_phone.errors|join:", " }}</p>{% endif %}
           </div>
         </div>
       </div>
@@ -191,7 +194,7 @@
       <div class="ss-card-body">
         <label class="ss-toggle">
           <input type="checkbox" name="maintenance_mode" id="id_maintenance_mode"
-                 {% if form.maintenance_mode.value %}checked{% endif %}>
+                 {% if site_form.maintenance_mode.value %}checked{% endif %}>
           <span style="min-width: 0;">
             <span class="ss-toggle-title">Enable maintenance mode</span>
             <span class="ss-toggle-text">Blocks all non-staff users.</span>
@@ -200,8 +203,8 @@
         <div style="margin-top: 1rem;">
           <label for="id_maintenance_message" class="ss-label">Maintenance message</label>
           <textarea name="maintenance_message" id="id_maintenance_message" class="ss-input" rows="3"
-                    placeholder="We're making improvements. Back in a few minutes.">{{ form.maintenance_message.value|default_if_none:'' }}</textarea>
-          {% if form.maintenance_message.errors %}<p class="ss-error">{{ form.maintenance_message.errors|join:", " }}</p>{% endif %}
+                    placeholder="We're making improvements. Back in a few minutes.">{{ site_form.maintenance_message.value|default_if_none:'' }}</textarea>
+          {% if site_form.maintenance_message.errors %}<p class="ss-error">{{ site_form.maintenance_message.errors|join:", " }}</p>{% endif %}
         </div>
       </div>
     </section>
@@ -221,8 +224,13 @@
           <div>
             <label for="id_default_currency" class="ss-label">Default currency</label>
             <select name="default_currency" id="id_default_currency" class="ss-input">
-              {% for value, label in form.default_currency.field.choices %}
-                <option value="{{ value }}" {% if form.default_currency.value == value %}selected{% endif %}>{{ label }}</option>
+              {% for value, label in site_form.default_currency.field.choices %}
+                <option value="{{ value }}" {% if site_form.default_currency.value == value %}selected{% endif %}>{{ label }}</option>
+              {% empty %}
+                {# fallback: widget carries hardcoded choices #}
+                {% for value, label in site_form.default_currency.field.widget.choices %}
+                  <option value="{{ value }}" {% if site_form.default_currency.value == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
               {% endfor %}
             </select>
           </div>
@@ -230,36 +238,36 @@
             <label for="id_minimum_order_amount" class="ss-label">Minimum order amount</label>
             <input type="number" step="0.01" min="0" name="minimum_order_amount"
                    id="id_minimum_order_amount" class="ss-input"
-                   value="{{ form.minimum_order_amount.value|default_if_none:'0.00' }}">
+                   value="{{ site_form.minimum_order_amount.value|default_if_none:'0.00' }}">
           </div>
           <div>
             <label for="id_default_commission_percent" class="ss-label">Commission %</label>
             <input type="number" step="0.01" min="0" max="100" name="default_commission_percent"
                    id="id_default_commission_percent" class="ss-input"
-                   value="{{ form.default_commission_percent.value|default_if_none:'5.00' }}">
+                   value="{{ site_form.default_commission_percent.value|default_if_none:'5.00' }}">
           </div>
           <div>
             <label for="id_free_shipping_threshold" class="ss-label">Free shipping above</label>
             <input type="number" step="0.01" min="0" name="free_shipping_threshold"
                    id="id_free_shipping_threshold" class="ss-input"
-                   value="{{ form.free_shipping_threshold.value|default_if_none:'0.00' }}">
+                   value="{{ site_form.free_shipping_threshold.value|default_if_none:'0.00' }}">
           </div>
           <div>
             <label for="id_default_shipping_fee" class="ss-label">Default shipping fee</label>
             <input type="number" step="0.01" min="0" name="default_shipping_fee"
                    id="id_default_shipping_fee" class="ss-input"
-                   value="{{ form.default_shipping_fee.value|default_if_none:'50.00' }}">
+                   value="{{ site_form.default_shipping_fee.value|default_if_none:'50.00' }}">
           </div>
         </div>
         <div class="ss-toggle-group" style="margin-top: 1rem;">
           <label class="ss-toggle">
             <input type="checkbox" name="allow_new_orders" id="id_allow_new_orders"
-                   {% if form.allow_new_orders.value %}checked{% endif %}>
+                   {% if site_form.allow_new_orders.value %}checked{% endif %}>
             <span class="ss-toggle-title">Allow new orders</span>
           </label>
           <label class="ss-toggle">
             <input type="checkbox" name="allow_new_listings" id="id_allow_new_listings"
-                   {% if form.allow_new_listings.value %}checked{% endif %}>
+                   {% if site_form.allow_new_listings.value %}checked{% endif %}>
             <span class="ss-toggle-title">Allow new listings</span>
           </label>
         </div>
@@ -279,27 +287,27 @@
       <div class="ss-card-body">
         <div class="ss-toggle-group">
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_auctions" id="id_enable_auctions" {% if form.enable_auctions.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_auctions" id="id_enable_auctions" {% if site_form.enable_auctions.value %}checked{% endif %}>
             <span class="ss-toggle-title">Auctions</span>
           </label>
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_wholesale" id="id_enable_wholesale" {% if form.enable_wholesale.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_wholesale" id="id_enable_wholesale" {% if site_form.enable_wholesale.value %}checked{% endif %}>
             <span class="ss-toggle-title">Wholesale</span>
           </label>
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_classifieds" id="id_enable_classifieds" {% if form.enable_classifieds.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_classifieds" id="id_enable_classifieds" {% if site_form.enable_classifieds.value %}checked{% endif %}>
             <span class="ss-toggle-title">Classifieds</span>
           </label>
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_reviews" id="id_enable_reviews" {% if form.enable_reviews.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_reviews" id="id_enable_reviews" {% if site_form.enable_reviews.value %}checked{% endif %}>
             <span class="ss-toggle-title">Reviews</span>
           </label>
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_messaging" id="id_enable_messaging" {% if form.enable_messaging.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_messaging" id="id_enable_messaging" {% if site_form.enable_messaging.value %}checked{% endif %}>
             <span class="ss-toggle-title">Messaging</span>
           </label>
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_disputes" id="id_enable_disputes" {% if form.enable_disputes.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_disputes" id="id_enable_disputes" {% if site_form.enable_disputes.value %}checked{% endif %}>
             <span class="ss-toggle-title">Disputes</span>
           </label>
         </div>
@@ -319,15 +327,15 @@
       <div class="ss-card-body">
         <div class="ss-toggle-group" style="grid-template-columns: 1fr;">
           <label class="ss-toggle">
-            <input type="checkbox" name="allow_buyer_signups" id="id_allow_buyer_signups" {% if form.allow_buyer_signups.value %}checked{% endif %}>
+            <input type="checkbox" name="allow_buyer_signups" id="id_allow_buyer_signups" {% if site_form.allow_buyer_signups.value %}checked{% endif %}>
             <span class="ss-toggle-title">Allow buyer signups</span>
           </label>
           <label class="ss-toggle">
-            <input type="checkbox" name="allow_seller_signups" id="id_allow_seller_signups" {% if form.allow_seller_signups.value %}checked{% endif %}>
+            <input type="checkbox" name="allow_seller_signups" id="id_allow_seller_signups" {% if site_form.allow_seller_signups.value %}checked{% endif %}>
             <span class="ss-toggle-title">Allow seller signups</span>
           </label>
           <label class="ss-toggle">
-            <input type="checkbox" name="require_vendor_verification" id="id_require_vendor_verification" {% if form.require_vendor_verification.value %}checked{% endif %}>
+            <input type="checkbox" name="require_vendor_verification" id="id_require_vendor_verification" {% if site_form.require_vendor_verification.value %}checked{% endif %}>
             <span class="ss-toggle-title">Require vendor verification</span>
           </label>
         </div>
@@ -347,30 +355,109 @@
       <div class="ss-card-body">
         <div class="ss-toggle-group">
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_card_payments" id="id_enable_card_payments" {% if form.enable_card_payments.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_card_payments" id="id_enable_card_payments" {% if site_form.enable_card_payments.value %}checked{% endif %}>
             <span class="ss-toggle-title">Card payments</span>
           </label>
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_mobile_money" id="id_enable_mobile_money" {% if form.enable_mobile_money.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_mobile_money" id="id_enable_mobile_money" {% if site_form.enable_mobile_money.value %}checked{% endif %}>
             <span class="ss-toggle-title">Mobile money</span>
           </label>
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_bank_transfer" id="id_enable_bank_transfer" {% if form.enable_bank_transfer.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_bank_transfer" id="id_enable_bank_transfer" {% if site_form.enable_bank_transfer.value %}checked{% endif %}>
             <span class="ss-toggle-title">Bank transfer</span>
           </label>
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_cash_on_delivery" id="id_enable_cash_on_delivery" {% if form.enable_cash_on_delivery.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_cash_on_delivery" id="id_enable_cash_on_delivery" {% if site_form.enable_cash_on_delivery.value %}checked{% endif %}>
             <span class="ss-toggle-title">Cash on delivery</span>
           </label>
         </div>
         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f3f4f6;">
           <label class="ss-toggle" style="background:#fef3c7; border-color:#fbbf24;">
-            <input type="checkbox" name="enable_flutterwave" id="id_enable_flutterwave" {% if form.enable_flutterwave.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_flutterwave" id="id_enable_flutterwave" {% if site_form.enable_flutterwave.value %}checked{% endif %}>
             <span style="min-width: 0;">
               <span class="ss-toggle-title">Flutterwave live payments</span>
               <span class="ss-toggle-text">When off, subscription payments use simulated mode for development.</span>
             </span>
           </label>
+        </div>
+      </div>
+    </section>
+
+    {# ══════════ DEPOSIT ACCOUNT ══════════ #}
+    <section class="ss-card" id="deposit">
+      <div class="ss-card-head">
+        <div class="ss-card-icon" style="background:#dbeafe; color:#1e40af;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/>
+          </svg>
+        </div>
+        <h2 class="ss-card-title">Deposit account</h2>
+      </div>
+      <div class="ss-card-body">
+        <p class="ss-hint" style="margin:0 0 1rem;">
+          Buyers send wallet top-ups to this account. Shown read-only to sellers
+          and on the buyer's Deposit tab. Leave all three blank to disable deposits.
+        </p>
+
+        <div class="ss-grid">
+          <div class="ss-span2">
+            <label for="id_deposit_wallet_name" class="ss-label">Wallet name</label>
+            <input type="text" name="deposit_wallet_name" id="id_deposit_wallet_name"
+                   class="ss-input"
+                   value="{{ deposit_form.deposit_wallet_name.value|default_if_none:'' }}"
+                   placeholder="e.g. UniMarket Ltd" maxlength="150">
+            {% if deposit_form.deposit_wallet_name.errors %}
+              <p class="ss-error">{{ deposit_form.deposit_wallet_name.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label for="id_deposit_wallet_network" class="ss-label">Network</label>
+            <select name="deposit_wallet_network" id="id_deposit_wallet_network" class="ss-input">
+              <option value="">— Select —</option>
+              {% for value, label in deposit_form.deposit_wallet_network.field.choices %}
+                {% if value %}
+                  <option value="{{ value }}" {% if deposit_form.deposit_wallet_network.value == value %}selected{% endif %}>{{ label }}</option>
+                {% endif %}
+              {% empty %}
+                {% for value, label in deposit_form.deposit_wallet_network.field.widget.choices %}
+                  {% if value %}
+                    <option value="{{ value }}" {% if deposit_form.deposit_wallet_network.value == value %}selected{% endif %}>{{ label }}</option>
+                  {% endif %}
+                {% endfor %}
+              {% endfor %}
+            </select>
+            {% if deposit_form.deposit_wallet_network.errors %}
+              <p class="ss-error">{{ deposit_form.deposit_wallet_network.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label for="id_deposit_wallet_number" class="ss-label">Wallet number</label>
+            <input type="tel" name="deposit_wallet_number" id="id_deposit_wallet_number"
+                   class="ss-input" inputmode="tel"
+                   value="{{ deposit_form.deposit_wallet_number.value|default_if_none:'' }}"
+                   placeholder="0977000000" maxlength="30">
+            {% if deposit_form.deposit_wallet_number.errors %}
+              <p class="ss-error">{{ deposit_form.deposit_wallet_number.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label for="id_deposit_currency" class="ss-label">Currency</label>
+            <select name="deposit_currency" id="id_deposit_currency" class="ss-input">
+              {% for value, label in deposit_form.deposit_currency.field.choices %}
+                <option value="{{ value }}" {% if deposit_form.deposit_currency.value == value %}selected{% endif %}>{{ label }}</option>
+              {% empty %}
+                {% for value, label in deposit_form.deposit_currency.field.widget.choices %}
+                  <option value="{{ value }}" {% if deposit_form.deposit_currency.value == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              {% endfor %}
+            </select>
+            {% if deposit_form.deposit_currency.errors %}
+              <p class="ss-error">{{ deposit_form.deposit_currency.errors|join:", " }}</p>
+            {% endif %}
+          </div>
         </div>
       </div>
     </section>
@@ -388,11 +475,11 @@
       <div class="ss-card-body">
         <div class="ss-toggle-group">
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_email_notifications" id="id_enable_email_notifications" {% if form.enable_email_notifications.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_email_notifications" id="id_enable_email_notifications" {% if site_form.enable_email_notifications.value %}checked{% endif %}>
             <span class="ss-toggle-title">Email notifications</span>
           </label>
           <label class="ss-toggle">
-            <input type="checkbox" name="enable_sms_notifications" id="id_enable_sms_notifications" {% if form.enable_sms_notifications.value %}checked{% endif %}>
+            <input type="checkbox" name="enable_sms_notifications" id="id_enable_sms_notifications" {% if site_form.enable_sms_notifications.value %}checked{% endif %}>
             <span class="ss-toggle-title">SMS notifications</span>
           </label>
         </div>

@@ -1,0 +1,610 @@
+{% extends "base.html" %}
+{% block title %}Payment settings — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .ps-wrap { max-width: 44rem; margin: 0 auto; padding: 0 0.75rem 6rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .ps-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .ps-header { margin-bottom: 1.5rem; }
+  .ps-h1 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0; line-height: 1.2; }
+  .ps-sub { font-size: 0.85rem; color: #4b5563; margin: 0.35rem 0 0; line-height: 1.5; }
+
+  .ps-back {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.75rem; color: #6b7280; text-decoration: none;
+    margin-bottom: 1rem;
+  }
+  .ps-back:hover { color: #ea580c; }
+
+  .ps-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .ps-card { padding: 1.75rem; } }
+
+  .ps-card-title {
+    font-size: 0.95rem; font-weight: 800;
+    color: #111827; margin: 0 0 0.35rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .ps-card-title svg { width: 1rem; height: 1rem; color: #ea580c; flex-shrink: 0; }
+  .ps-card-sub { font-size: 0.75rem; color: #6b7280; margin: 0 0 1rem; line-height: 1.5; }
+
+  .ps-field { margin-bottom: 1rem; }
+  .ps-field:last-child { margin-bottom: 0; }
+
+  .ps-label { display: block; font-size: 0.8rem; font-weight: 700; color: #374151; margin-bottom: 0.35rem; }
+  .ps-label-required { color: #dc2626; margin-left: 0.15rem; }
+  .ps-label-optional { color: #9ca3af; font-weight: 400; font-size: 0.75rem; }
+
+  .ps-input, .ps-select, .ps-textarea {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem; color: #111827; background: #fff;
+    outline: none; font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .ps-textarea { resize: vertical; min-height: 4rem; }
+  .ps-input:focus, .ps-select:focus, .ps-textarea:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+
+  .ps-help { font-size: 0.7rem; color: #6b7280; margin: 0.35rem 0 0; line-height: 1.4; }
+  .ps-error { font-size: 0.75rem; color: #dc2626; margin: 0.35rem 0 0; }
+
+  .ps-alert {
+    background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
+    padding: 0.75rem 1rem; border-radius: 10px;
+    font-size: 0.8rem; margin-bottom: 1rem; line-height: 1.5;
+  }
+
+  /* Method switcher */
+  .ps-methods {
+    display: grid; grid-template-columns: 1fr;
+    gap: 0.5rem; margin-bottom: 1rem;
+  }
+  @media (min-width: 480px) { .ps-methods { grid-template-columns: 1fr 1fr; } }
+  .ps-method {
+    display: flex; align-items: center; gap: 0.65rem;
+    padding: 0.85rem; border: 2px solid #e5e7eb; border-radius: 10px;
+    cursor: pointer; background: #fff;
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+  .ps-method:hover { border-color: #fdba74; }
+  .ps-method.is-selected {
+    border-color: #f97316; background: #fff7ed;
+  }
+  .ps-method input { accent-color: #ea580c; }
+  .ps-method-icon {
+    width: 2rem; height: 2rem; border-radius: 8px;
+    background: #ffedd5; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ps-method-icon svg { width: 1rem; height: 1rem; }
+  .ps-method-label { font-size: 0.8rem; font-weight: 700; color: #111827; }
+
+  /* Method-specific panels */
+  .ps-panel { display: none; padding-top: 0.5rem; }
+  .ps-panel.is-visible { display: block; }
+
+  /* Preview card (shows what buyers will see) */
+  .ps-preview {
+    background: #fff7ed;
+    border: 1px dashed #fdba74;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    color: #7c2d12;
+    line-height: 1.55;
+  }
+  .ps-preview-title {
+    font-size: 0.65rem; font-weight: 800;
+    color: #9a3412;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 0 0 0.5rem;
+  }
+  .ps-preview-row { margin: 0.15rem 0; }
+  .ps-preview-row strong { color: #111827; font-weight: 700; }
+
+  /* Platform deposit card */
+  .ps-deposit-card {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+  }
+  .ps-deposit-card .ps-card-title svg { color: #2563eb; }
+  .ps-deposit-card .ps-card-title { color: #1e3a8a; }
+  .ps-deposit-card .ps-card-sub { color: #1e40af; }
+
+  /* NEW: staff edit link in deposit card header */
+  .ps-deposit-header {
+    display: flex; align-items: flex-start;
+    justify-content: space-between; gap: 0.75rem;
+    margin-bottom: 0.35rem;
+  }
+  .ps-deposit-header .ps-card-title { margin-bottom: 0; }
+  .ps-deposit-edit {
+    font-size: 0.72rem; font-weight: 700;
+    color: #1e40af; text-decoration: underline;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .ps-deposit-edit:hover { color: #1e3a8a; }
+
+  .ps-deposit-row {
+    display: flex; justify-content: space-between; gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed #bfdbfe;
+    font-size: 0.82rem;
+  }
+  .ps-deposit-row:last-of-type { border-bottom: 0; }
+  .ps-deposit-row .k { color: #1e40af; }
+  .ps-deposit-row .v {
+    color: #111827; font-weight: 700; text-align: right;
+    overflow-wrap: break-word; word-break: break-word; min-width: 0;
+  }
+  .ps-deposit-note {
+    font-size: 0.7rem; color: #1e40af;
+    margin: 0.75rem 0 0; line-height: 1.5;
+  }
+  .ps-deposit-empty {
+    font-size: 0.8rem; color: #6b7280;
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 0.75rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* Dirty-changes indicator */
+  .ps-dirty-dot {
+    display: none;
+    width: 0.5rem; height: 0.5rem;
+    border-radius: 9999px;
+    background: #f97316;
+    margin-left: 0.25rem;
+    vertical-align: middle;
+  }
+  .ps-save-bar.is-dirty .ps-dirty-dot { display: inline-block; }
+
+  /* Save button (sticky) */
+  .ps-save-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+    background: #fff; border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+    padding: 0.75rem 1rem;
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 0.75rem; box-sizing: border-box;
+  }
+  .ps-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.65rem 1.25rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 44px; box-sizing: border-box;
+  }
+  .ps-btn-primary { background: #ea580c; color: #fff; }
+  .ps-btn-primary:hover { background: #c2410c; }
+  .ps-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .ps-btn-secondary {
+    border: 1px solid #d1d5db; background: #fff; color: #374151;
+  }
+  .ps-btn-secondary:hover { background: #f9fafb; }
+</style>
+
+<div class="ps-wrap">
+
+  <a href="{% url 'vendors:dashboard' %}" class="ps-back">
+    ← Back to dashboard
+  </a>
+
+  <div class="ps-header">
+    <h1 class="ps-h1">Payment settings</h1>
+    <p class="ps-sub">
+      Choose the currency you sell in and where you want to receive money from buyers.
+      These details are shown at checkout so buyers know where to pay.
+    </p>
+  </div>
+
+  {% if messages %}
+    <div aria-live="polite" style="margin-bottom: 1rem;">
+      {% for message in messages %}
+        <div class="ps-alert" style="
+          {% if message.tags == 'success' %}background:#f0fdf4; border-color:#bbf7d0; color:#166534;
+          {% elif message.tags == 'warning' %}background:#fffbeb; border-color:#fde68a; color:#92400e;
+          {% else %}background:#eff6ff; border-color:#bfdbfe; color:#1e40af;{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if form.non_field_errors %}
+    <div class="ps-alert" role="alert">
+      {% for error in form.non_field_errors %}
+        <p style="margin: 0;">{{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" id="payment-settings-form" novalidate>
+    {% csrf_token %}
+
+    {# ── Currency ── #}
+    <div class="ps-card">
+      <h2 class="ps-card-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Selling currency
+      </h2>
+      <p class="ps-card-sub">All your products will be priced and sold in this currency.</p>
+
+      <div class="ps-field">
+        <label for="{{ form.currency.id_for_label }}" class="ps-label">Currency</label>
+        {{ form.currency }}
+        <p class="ps-help">Buyers will pay in this currency. You can change it later, but existing listings won't be converted automatically.</p>
+        {% if form.currency.errors %}
+          <p class="ps-error" role="alert">{{ form.currency.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── Payout method ── #}
+    <div class="ps-card">
+      <h2 class="ps-card-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+        </svg>
+        Where to receive payment
+      </h2>
+      <p class="ps-card-sub">
+        Buyers will pay directly to this name / number / account. Make sure the details are correct.
+      </p>
+
+      {% if form.payout_method.errors %}
+        <p class="ps-error" role="alert" style="margin-bottom:0.75rem;">
+          {{ form.payout_method.errors|join:", " }}
+        </p>
+      {% endif %}
+
+      {% with current_method=form.payout_method.value|default:"mobile_money" %}
+      <div class="ps-methods">
+        <label class="ps-method {% if current_method == 'mobile_money' %}is-selected{% endif %}">
+          <input type="radio" name="payout_method" value="mobile_money"
+                 {% if current_method == 'mobile_money' %}checked{% endif %}>
+          <div class="ps-method-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <span class="ps-method-label">Mobile money</span>
+        </label>
+
+        <label class="ps-method {% if current_method == 'bank_transfer' %}is-selected{% endif %}">
+          <input type="radio" name="payout_method" value="bank_transfer"
+                 {% if current_method == 'bank_transfer' %}checked{% endif %}>
+          <div class="ps-method-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/>
+            </svg>
+          </div>
+          <span class="ps-method-label">Bank transfer</span>
+        </label>
+      </div>
+      {% endwith %}
+
+      {# Mobile money panel #}
+      <div class="ps-panel {% if form.payout_method.value == 'mobile_money' or not form.payout_method.value %}is-visible{% endif %}" id="mobile-money-panel">
+        <div class="ps-field">
+          <label for="{{ form.mobile_money_network.id_for_label }}" class="ps-label">
+            Network <span class="ps-label-required">*</span>
+          </label>
+          {{ form.mobile_money_network }}
+          {% if form.mobile_money_network.errors %}
+            <p class="ps-error" role="alert">{{ form.mobile_money_network.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div class="ps-field">
+          <label for="{{ form.mobile_money_name.id_for_label }}" class="ps-label">
+            Name registered on the wallet <span class="ps-label-required">*</span>
+          </label>
+          {{ form.mobile_money_name }}
+          <p class="ps-help">The name on this mobile money account. Buyers will see it at checkout.</p>
+          {% if form.mobile_money_name.errors %}
+            <p class="ps-error" role="alert">{{ form.mobile_money_name.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div class="ps-field">
+          <label for="{{ form.mobile_money_number.id_for_label }}" class="ps-label">
+            Mobile money number <span class="ps-label-required">*</span>
+          </label>
+          {{ form.mobile_money_number }}
+          <p class="ps-help">This number will be shown to buyers at checkout.</p>
+          {% if form.mobile_money_number.errors %}
+            <p class="ps-error" role="alert">{{ form.mobile_money_number.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Bank panel #}
+      <div class="ps-panel {% if form.payout_method.value == 'bank_transfer' %}is-visible{% endif %}" id="bank-panel">
+        <div class="ps-field">
+          <label for="{{ form.bank_name.id_for_label }}" class="ps-label">
+            Bank name <span class="ps-label-required">*</span>
+          </label>
+          {{ form.bank_name }}
+          {% if form.bank_name.errors %}
+            <p class="ps-error" role="alert">{{ form.bank_name.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div class="ps-field">
+          <label for="{{ form.bank_account_name.id_for_label }}" class="ps-label">
+            Account holder name <span class="ps-label-required">*</span>
+          </label>
+          {{ form.bank_account_name }}
+          {% if form.bank_account_name.errors %}
+            <p class="ps-error" role="alert">{{ form.bank_account_name.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div class="ps-field">
+          <label for="{{ form.bank_account_number.id_for_label }}" class="ps-label">
+            Account number <span class="ps-label-required">*</span>
+          </label>
+          {{ form.bank_account_number }}
+          {% if form.bank_account_number.errors %}
+            <p class="ps-error" role="alert">{{ form.bank_account_number.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div class="ps-field">
+          <label for="{{ form.bank_branch.id_for_label }}" class="ps-label">Branch</label>
+          {{ form.bank_branch }}
+        </div>
+      </div>
+
+      {# Live preview of what buyers will see #}
+      <div class="ps-preview" id="buyer-preview" aria-live="polite">
+        <p class="ps-preview-title">Buyers will see</p>
+        <p class="ps-preview-row" id="preview-line">—</p>
+        <p class="ps-preview-row" id="preview-instructions"></p>
+      </div>
+    </div>
+
+    {# ── Payout instructions (shared) ── #}
+    <div class="ps-card">
+      <h2 class="ps-card-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Payout instructions
+      </h2>
+      <p class="ps-card-sub">
+        Optional. Shown to buyers at checkout so they know exactly how to send money.
+      </p>
+
+      <div class="ps-field">
+        <label for="{{ form.payout_instructions.id_for_label }}" class="ps-label">
+          Instructions <span class="ps-label-optional">(optional)</span>
+        </label>
+        {{ form.payout_instructions }}
+        <p class="ps-help">
+          e.g. "Send to 0971234567 (MTN) and use your order number as reference".
+        </p>
+      </div>
+    </div>
+
+  </form>
+
+  {# ══════════ Platform deposit account (read-only, staff editable) ══════════ #}
+  <div class="ps-card ps-deposit-card">
+
+    <div class="ps-deposit-header">
+      <h2 class="ps-card-title">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/>
+        </svg>
+        Deposit account
+      </h2>
+
+      {% if request.user.is_staff %}
+        <a href="{% url 'system:settings' %}#deposit" class="ps-deposit-edit">
+  Edit
+</a>
+      {% endif %}
+    </div>
+
+    <p class="ps-card-sub">
+      Buyers send wallet top-ups to this account. It's configured by
+      UniMarket and shown to buyers on the payment page — you can't edit
+      it here, but it's good to know where deposits land.
+    </p>
+
+    {% if deposit_receiver %}
+      <div class="ps-deposit-row">
+        <span class="k">Name</span>
+        <span class="v">{{ deposit_receiver.name }}</span>
+      </div>
+      <div class="ps-deposit-row">
+        <span class="k">Network</span>
+        <span class="v">
+          {% if deposit_receiver.network %}{{ deposit_receiver.network|upper }}{% else %}—{% endif %}
+        </span>
+      </div>
+      <div class="ps-deposit-row">
+        <span class="k">Number</span>
+        <span class="v">{{ deposit_receiver.number }}</span>
+      </div>
+      <div class="ps-deposit-row">
+        <span class="k">Currency</span>
+        <span class="v">{{ deposit_receiver.currency }}</span>
+      </div>
+      <p class="ps-deposit-note">
+        If a buyer says they sent a deposit and it hasn't appeared yet, ask
+        them for the transaction ID from their SMS and contact support.
+      </p>
+    {% else %}
+      <p class="ps-deposit-empty">
+        The platform deposit account hasn't been configured yet.
+        Deposits will be unavailable until an admin sets it up.
+      </p>
+    {% endif %}
+  </div>
+
+  {# ── Sticky save bar ── #}
+  <div class="ps-save-bar" id="save-bar">
+    <a href="{% url 'vendors:dashboard' %}" class="ps-btn ps-btn-secondary">Cancel</a>
+    <button type="submit" form="payment-settings-form" class="ps-btn ps-btn-primary" id="save-btn">
+      Save settings<span class="ps-dirty-dot" aria-hidden="true"></span>
+    </button>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  var methods = document.querySelectorAll('input[name="payout_method"]');
+  var mobilePanel = document.getElementById('mobile-money-panel');
+  var bankPanel = document.getElementById('bank-panel');
+  var mobileNetwork = document.getElementById('{{ form.mobile_money_network.id_for_label }}');
+  var mobileName = document.getElementById('{{ form.mobile_money_name.id_for_label }}');
+  var mobileNumber = document.getElementById('{{ form.mobile_money_number.id_for_label }}');
+  var bankName = document.getElementById('{{ form.bank_name.id_for_label }}');
+  var bankAccount = document.getElementById('{{ form.bank_account_number.id_for_label }}');
+
+  var previewLine = document.getElementById('preview-line');
+  var previewInstructions = document.getElementById('preview-instructions');
+  var saveBar = document.getElementById('save-bar');
+  var form = document.getElementById('payment-settings-form');
+
+  function selectedMethod() {
+    var el = document.querySelector('input[name="payout_method"]:checked');
+    return el ? el.value : 'mobile_money';
+  }
+
+  function updatePanels() {
+    var value = selectedMethod();
+
+    methods.forEach(function (input) {
+      var card = input.closest('.ps-method');
+      if (input.checked) {
+        card.classList.add('is-selected');
+      } else {
+        card.classList.remove('is-selected');
+      }
+    });
+
+    if (value === 'mobile_money') {
+      mobilePanel.classList.add('is-visible');
+      bankPanel.classList.remove('is-visible');
+      if (mobileNetwork) mobileNetwork.required = true;
+      if (mobileName)    mobileName.required    = true;
+      if (mobileNumber)  mobileNumber.required  = true;
+      if (bankName)      bankName.required      = false;
+      if (bankAccount)   bankAccount.required   = false;
+    } else {
+      mobilePanel.classList.remove('is-visible');
+      bankPanel.classList.add('is-visible');
+      if (mobileNetwork) mobileNetwork.required = false;
+      if (mobileName)    mobileName.required    = false;
+      if (mobileNumber)  mobileNumber.required  = false;
+      if (bankName)      bankName.required      = true;
+      if (bankAccount)   bankAccount.required   = true;
+    }
+
+    updatePreview();
+  }
+
+  function updatePreview() {
+    var value = selectedMethod();
+    var line = '';
+    if (value === 'mobile_money') {
+      var net  = mobileNetwork ? mobileNetwork.value : '';
+      var name = mobileName    ? mobileName.value.trim() : '';
+      var num  = mobileNumber  ? mobileNumber.value.trim() : '';
+      line = 'Mobile money — ' +
+             (net ? net.toUpperCase() : '…') +
+             ' · ' + (name || '…') +
+             ' · ' + (num || '…');
+    } else {
+      var bank = bankName ? bankName.value.trim() : '';
+      var acc  = bankAccount ? bankAccount.value.trim() : '';
+      line = 'Bank transfer — ' +
+             (bank || '…') +
+             ' · ' + (acc || '…');
+    }
+    if (previewLine) {
+      previewLine.innerHTML = '<strong>' + escapeHtml(line) + '</strong>';
+    }
+
+    var instr = document.querySelector('#{{ form.payout_instructions.id_for_label }}');
+    if (previewInstructions && instr) {
+      previewInstructions.textContent = instr.value.trim();
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  var dirty = false;
+  function markDirty() {
+    if (!dirty) {
+      dirty = true;
+      saveBar.classList.add('is-dirty');
+    }
+  }
+
+  methods.forEach(function (input) {
+    input.addEventListener('change', function () {
+      markDirty();
+      updatePanels();
+    });
+  });
+
+  [mobileNetwork, mobileName, mobileNumber, bankName, bankAccount].forEach(function (el) {
+    if (!el) return;
+    el.addEventListener('input', function () {
+      markDirty();
+      updatePreview();
+    });
+  });
+
+  var instructions = document.querySelector('#{{ form.payout_instructions.id_for_label }}');
+  if (instructions) {
+    instructions.addEventListener('input', function () {
+      markDirty();
+      updatePreview();
+    });
+  }
+
+  window.addEventListener('beforeunload', function (e) {
+    if (dirty) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  form.addEventListener('submit', function () {
+    dirty = false;
+  });
+
+  updatePanels();
+  updatePreview();
+})();
+</script>
+{% endblock %}

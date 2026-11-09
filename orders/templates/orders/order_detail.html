@@ -323,6 +323,88 @@
     color: #fff;
   }
   .od-btn-danger:hover { background: #b91c1c; }
+
+  /* ── NEW: payout block, styled to match the rest ── */
+  .od-payout {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-color: #fdba74;
+    background: #fff7ed;
+  }
+  @media (min-width: 640px) { .od-payout { padding: 1.25rem 1.5rem; } }
+
+  .od-payout-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: #374151;
+    margin: 0 0 0.5rem;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  @media (min-width: 480px) {
+    .od-payout-row {
+      flex-direction: row;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+  }
+  .od-payout-row .k { color: #6b7280; }
+  .od-payout-row .v { font-weight: 700; color: #111827; }
+
+  .od-payout-amount {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    background: #fff;
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    color: #374151;
+  }
+  .od-payout-amount strong {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #9a3412;
+    word-break: break-all;
+  }
+
+  .od-payout-instructions {
+    background: #fff;
+    border-left: 3px solid #f97316;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    color: #374151;
+    line-height: 1.5;
+    margin: 0 0 0.75rem;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .od-payout-ref {
+    font-size: 0.7rem;
+    color: #6b7280;
+    margin: 0;
+    line-height: 1.5;
+  }
+  .od-payout-ref strong { color: #111827; }
+
+  .od-payout-missing {
+    font-size: 0.8rem;
+    color: #991b1b;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    margin: 0;
+    line-height: 1.5;
+  }
+  .od-payout-missing a { color: #991b1b; font-weight: 700; }
 </style>
 
 <div class="od-wrap">
@@ -389,6 +471,72 @@
       </div>
     {% endif %}
   </div>
+
+  {# ── NEW: Where to pay (frozen snapshot) ── #}
+  {% if order.status == 'pending' %}
+    <div class="od-card od-payout">
+      <h2 class="od-section-title">How to pay</h2>
+
+      {% if order.has_frozen_payout %}
+        <div class="od-payout-amount">
+          <span>Amount to send</span>
+          <strong>{{ order.currency }} {{ order.total }}</strong>
+        </div>
+
+        {% if order.payout_method == 'mobile_money' %}
+          <div class="od-payout-row">
+            <span class="k">Mobile money</span>
+            <span class="v">
+              {% if order.payout_network %}{{ order.payout_network|upper }} — {% endif %}
+              {{ order.payout_mobile_number }}
+            </span>
+          </div>
+        {% elif order.payout_method == 'bank_transfer' %}
+          {% if order.payout_bank_name %}
+            <div class="od-payout-row">
+              <span class="k">Bank</span>
+              <span class="v">{{ order.payout_bank_name }}</span>
+            </div>
+          {% endif %}
+          {% if order.payout_account_name %}
+            <div class="od-payout-row">
+              <span class="k">Account name</span>
+              <span class="v">{{ order.payout_account_name }}</span>
+            </div>
+          {% endif %}
+          {% if order.payout_account_no %}
+            <div class="od-payout-row">
+              <span class="k">Account number</span>
+              <span class="v">{{ order.payout_account_no }}</span>
+            </div>
+          {% endif %}
+          {% if order.payout_branch %}
+            <div class="od-payout-row">
+              <span class="k">Branch</span>
+              <span class="v">{{ order.payout_branch }}</span>
+            </div>
+          {% endif %}
+        {% endif %}
+
+        {% if order.payout_instructions %}
+          <div class="od-payout-instructions">
+            {{ order.payout_instructions|linebreaksbr }}
+          </div>
+        {% endif %}
+
+        <p class="od-payout-ref">
+          Use your order number <strong>{{ order.order_number }}</strong> as the
+          payment reference so the seller can match your payment.
+        </p>
+      {% else %}
+        <p class="od-payout-missing">
+          This order was placed before the seller finished setting up their
+          payout method. Please contact the seller via your
+          <a href="{% url 'orders:my_orders' %}">orders page</a> for payment details.
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
 
   {# ── Body ── #}
   <div class="od-body">

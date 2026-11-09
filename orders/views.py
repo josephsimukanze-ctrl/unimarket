@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -19,13 +20,27 @@ from .services import CartEmptyError, create_order_from_cart
 @login_required
 def checkout(request):
     cart = get_or_create_cart(request)
-    items = list(cart.items.select_related("variant__product").all())
+    items = list(cart.items.select_related("variant__product__store__vendor").all())
     if not items:
         messages.warning(request, "Your cart is empty.")
         return redirect("cart:cart_detail")
 
     subtotal = sum(item.subtotal for item in items)
     currency = items[0].variant.currency
+
+    # ── NEW: block checkout for any vendor without payout info ─────────
+    # This is the single place where the "payment settings → products"
+    # contract is enforced for buyers.
+    for item in items:
+        vendor = item.variant.product.store.vendor
+        ps = vendor.payment_settings
+        if not ps.has_payout_info:
+            messages.error(
+                request,
+                f"'{vendor.display_name}' hasn't finished setting up payouts yet. "
+                f"Please remove their items from your cart or try again later.",
+            )
+            return redirect("cart:cart_detail")
 
     if request.method == "POST":
         form = ShippingForm(request.POST)
@@ -34,6 +49,9 @@ def checkout(request):
                 order = create_order_from_cart(request, form.cleaned_data)
             except CartEmptyError:
                 messages.error(request, "Your cart is empty.")
+                return redirect("cart:cart_detail")
+            except ValidationError as e:
+                messages.error(request, e.messages[0] if e.messages else str(e))
                 return redirect("cart:cart_detail")
             except ValueError as e:
                 messages.error(request, str(e))
@@ -117,7 +135,17 @@ def seller_orders(request):
         .prefetch_related("items__variant__product__images")
         .order_by("-placed_at")
     )
-    return render(request, "orders/seller_orders.html", {"orders": orders, "vendor": vendor})
+
+    # Optional: quick "needs payout check" count for the dashboard header
+    unpaid_count = orders.filter(
+        status=OrderStatus.PENDING,
+    ).count()
+
+    return render(
+        request,
+        "orders/seller_orders.html",
+        {"orders": orders, "vendor": vendor, "unpaid_count": unpaid_count},
+    )
 
 
 @login_required
@@ -166,6 +194,18 @@ def seller_order_update_status(request, order_number):
             f"Cannot change status from {order.get_status_display()} to {new_status}.",
         )
         return redirect("orders:seller_order_detail", order_number=order.order_number)
+
+    # ── NEW: guard against marking PAID before payout info exists ─────
+    if new_status == OrderStatus.PAID and not order.has_frozen_payout:
+        # This should never happen if checkout is guarded, but defence-in-depth
+        ps = vendor.payment_settings
+        if not ps.has_payout_info:
+            messages.error(
+                request,
+                "Please complete your payout settings before marking orders as paid.",
+            )
+            return redirect("orders:seller_order_detail", order_number=order.order_number)
+        order.freeze_payout()
 
     # ── Auto-create Shipment + tracking number on SHIPPED ──
     if new_status == OrderStatus.SHIPPED and not order.shipments.exists():

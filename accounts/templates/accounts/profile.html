@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}My profile — UniMarket{% endblock %}
+
+{% block content %}
+<div style="max-width: 40rem; margin: 0 auto; padding: 2rem 0.75rem;">
+
+  <h1 style="font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0 0 1.5rem;">
+    My profile
+  </h1>
+
+  <form method="post" enctype="multipart/form-data"
+        style="background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 1.5rem;">
+    {% csrf_token %}
+
+    {# Avatar preview #}
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+      <div style="width: 4rem; height: 4rem; border-radius: 9999px; overflow: hidden; border: 2px solid #fed7aa; background: #ffedd5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        {% if user.has_avatar %}
+          <img src="{{ user.avatar_url }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+        {% else %}
+          <span style="color: #c2410c; font-size: 1.2rem; font-weight: 800;">{{ user.initials }}</span>
+        {% endif %}
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #374151; margin-bottom: 0.35rem;">
+          Profile picture
+        </label>
+        {{ form.avatar }}
+        <p style="font-size: 0.7rem; color: #6b7280; margin: 0.35rem 0 0;">
+          Square image recommended. Max 5 MB.
+        </p>
+      </div>
+    </div>
+
+    {# Other fields — iterate everything else #}
+    {% for field in form %}
+      {% if field.name != "avatar" %}
+        <div style="margin-bottom: 1rem;">
+          <label for="{{ field.id_for_label }}"
+                 style="display: block; font-size: 0.8rem; font-weight: 700; color: #374151; margin-bottom: 0.35rem;">
+            {{ field.label }}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            <p style="font-size: 0.75rem; color: #dc2626; margin-top: 0.35rem;">
+              {{ field.errors|join:", " }}
+            </p>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+      <a href="{% url 'dashboards:dashboard' %}"
+         style="flex: 1; text-align: center; border: 1px solid #d1d5db; background: #fff; padding: 0.65rem; border-radius: 10px; font-size: 0.85rem; font-weight: 700; color: #374151; text-decoration: none;">
+        Cancel
+      </a>
+      <button type="submit"
+              style="flex: 1; background: #ea580c; color: #fff; padding: 0.65rem; border-radius: 10px; font-size: 0.85rem; font-weight: 700; border: 0; cursor: pointer;">
+        Save changes
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

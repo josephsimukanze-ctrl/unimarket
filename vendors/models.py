@@ -93,8 +93,22 @@ class Vendor(models.Model):
             ]
         ).first()
 
+    @property
+    def payment_settings(self):
+        """
+        Get or create the vendor's payment settings.
+        Safe to call from templates — always returns a VendorPaymentSettings instance.
+        """
+        settings_obj, _ = VendorPaymentSettings.objects.get_or_create(vendor=self)
+        return settings_obj
+
+    @property
+    def selling_currency(self) -> str:
+        """The currency this vendor uses for all products."""
+        return self.payment_settings.currency
+
     # ── State transitions ────────────────────────────────
-    def mark_verified(self):
+    def mark_verified(self, force: bool = False):
         """Approve the vendor. Stamps verified_at if not already set."""
         self.status = VendorStatus.VERIFIED
         if not self.verified_at:
@@ -441,6 +455,135 @@ class VendorSubscription(models.Model):
         self.auto_suspended_at = timezone.now()
         self.save(update_fields=["auto_suspended_at", "updated_at"])
         self.vendor.mark_suspended()
+
+
+# ─────────────────────────────────────────────────────
+# Payment settings (per-vendor)
+# ─────────────────────────────────────────────────────
+
+class VendorPaymentSettings(models.Model):
+    """
+    Per-vendor payment configuration.
+
+    Determines:
+      - The currency this vendor sells in (used for all their product listings)
+      - Where buyers send money (mobile money number / bank account)
+      - Optional instructions shown at checkout
+    """
+
+    class MobileMoneyNetwork(models.TextChoices):
+        MTN = "mtn", "MTN MoMo"
+        ZAMTEL = "zamtel", "Zamtel Kwacha"
+        AIRTEL = "airtel", "Airtel Money"
+        OTHER = "other", "Other"
+
+    class PayoutMethod(models.TextChoices):
+        MOBILE_MONEY = "mobile_money", "Mobile Money"
+        BANK_TRANSFER = "bank_transfer", "Bank Transfer"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    vendor = models.OneToOneField(
+        Vendor,
+        on_delete=models.CASCADE,
+        related_name="payment_settings_obj",
+    )
+
+    # ── Selling currency ─────────────────────────────
+    currency = models.CharField(
+        max_length=3,
+        default="ZMW",
+        help_text="Currency used for all products this seller lists.",
+    )
+
+    # ── Payout method ────────────────────────────────
+    payout_method = models.CharField(
+        max_length=20,
+        choices=PayoutMethod.choices,
+        default=PayoutMethod.MOBILE_MONEY,
+        help_text="How you want to receive money from sales.",
+    )
+
+    # Mobile money
+    mobile_money_network = models.CharField(
+        max_length=20,
+        choices=MobileMoneyNetwork.choices,
+        blank=True,
+    )
+    # NEW: name registered on the wallet — shown to buyers, required for payouts
+    mobile_money_name = models.CharField(
+        max_length=150,
+        blank=True,
+        help_text=(
+            "Name registered on this mobile money wallet. "
+            "Shown to buyers at checkout."
+        ),
+    )
+    mobile_money_number = models.CharField(
+        max_length=30,
+        blank=True,
+        help_text="Number to receive payments / payouts, e.g. 0971234567.",
+    )
+
+    # Bank transfer
+    bank_name = models.CharField(max_length=100, blank=True)
+    bank_account_name = models.CharField(max_length=150, blank=True)
+    bank_account_number = models.CharField(max_length=50, blank=True)
+    bank_branch = models.CharField(max_length=100, blank=True)
+
+    # Optional instructions shown to buyers at checkout
+    payout_instructions = models.TextField(
+        blank=True,
+        help_text="Optional. Shown to buyers at checkout, e.g. "
+                  "'Send to 0971234567 and use your order number as reference'.",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Vendor payment settings"
+        verbose_name_plural = "Vendor payment settings"
+
+    def __str__(self) -> str:
+        return f"{self.vendor.display_name} — {self.currency}"
+
+    # ── Convenience ─────────────────────────────────
+    @property
+    def has_payout_info(self) -> bool:
+        """
+        True only when we have enough to actually receive money.
+        Name + number are both required for mobile money;
+        name + number are both required for bank.
+        """
+        if self.payout_method == self.PayoutMethod.MOBILE_MONEY:
+            return bool(self.mobile_money_name and self.mobile_money_number)
+        return bool(self.bank_account_name and self.bank_account_number)
+
+    @property
+    def payout_summary(self) -> str:
+        """Human-readable payout summary (includes receiver name)."""
+        if self.payout_method == self.PayoutMethod.MOBILE_MONEY:
+            network = self.get_mobile_money_network_display() or "Mobile Money"
+            name = self.mobile_money_name or "—"
+            return f"{network}: {self.mobile_money_number} ({name})"
+        name = self.bank_account_name or "—"
+        return f"{self.bank_name}: {self.bank_account_number} ({name})"
+
+    # NEW: moved into the class (was previously orphaned at module scope,
+    # so `order.freeze_payout()` calling `ps.snapshot()` would AttributeError)
+    def snapshot(self) -> dict:
+        """Frozen snapshot to store on an Order / SellerWithdrawal."""
+        return {
+            "payout_method":        self.payout_method,
+            "payout_network":       self.mobile_money_network,
+            "payout_mobile_name":   self.mobile_money_name,
+            "payout_mobile_number": self.mobile_money_number,
+            "payout_bank_name":     self.bank_name,
+            "payout_account_name":  self.bank_account_name,
+            "payout_account_no":    self.bank_account_number,
+            "payout_branch":        self.bank_branch,
+            "payout_instructions":  self.payout_instructions,
+        }
 
 
 # ─────────────────────────────────────────────────────

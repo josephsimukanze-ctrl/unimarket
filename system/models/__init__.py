@@ -19,7 +19,22 @@ class SiteSetting(models.Model):
     # ── Commerce ────────────────────────────────────────────
     allow_new_orders = models.BooleanField(default=True)
     allow_new_listings = models.BooleanField(default=True)
-    default_currency = models.CharField(max_length=3, default="ZMW")
+
+    # NEW: choices added so field.choices and widget.choices both work
+    default_currency = models.CharField(
+        max_length=3,
+        default="ZMW",
+        choices=[
+            ("ZMW", "ZMW — Zambian Kwacha"),
+            ("USD", "USD — US Dollar"),
+            ("EUR", "EUR — Euro"),
+            ("GBP", "GBP — British Pound"),
+            ("ZAR", "ZAR — South African Rand"),
+            ("KES", "KES — Kenyan Shilling"),
+            ("NGN", "NGN — Nigerian Naira"),
+        ],
+    )
+
     default_commission_percent = models.DecimalField(
         max_digits=5, decimal_places=2, default="5.00"
     )

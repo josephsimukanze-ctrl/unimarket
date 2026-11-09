@@ -116,6 +116,17 @@
     flex-shrink: 0;
   }
 
+  /* ── NEW: warning pill for orders needing payout setup ── */
+  .so-badge-warn {
+    background: #fef2f2; color: #991b1b;
+    border: 1px solid #fecaca;
+    margin-left: 0.35rem;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 700;
+  }
+  .so-badge-warn .so-badge-dot { background: #dc2626; }
+
   .so-manage {
     display: inline-flex; align-items: center; gap: 0.25rem;
     padding: 0.4rem 0.75rem;
@@ -275,6 +286,13 @@
                     <span class="so-badge-dot" style="background: #d97706;"></span>
                     {{ order.get_status_display }}
                   </span>
+                  {# NEW: warn when this pending order has no frozen payout #}
+                  {% if not order.has_frozen_payout %}
+                    <span class="so-badge so-badge-warn" title="This order was placed before you set up a payout method.">
+                      <span class="so-badge-dot"></span>
+                      Needs payout setup
+                    </span>
+                  {% endif %}
                 {% elif order.status == 'shipped' %}
                   <span class="so-badge so-badge-shipped">
                     <span class="so-badge-dot" style="background: #2563eb;"></span>
@@ -328,10 +346,19 @@
                 {{ order.get_status_display }}
               </span>
             {% elif order.status == 'pending' %}
-              <span class="so-badge so-badge-pending">
-                <span class="so-badge-dot" style="background: #d97706;"></span>
-                {{ order.get_status_display }}
-              </span>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; justify-content: flex-end;">
+                <span class="so-badge so-badge-pending">
+                  <span class="so-badge-dot" style="background: #d97706;"></span>
+                  {{ order.get_status_display }}
+                </span>
+                {# NEW: warn when this pending order has no frozen payout #}
+                {% if not order.has_frozen_payout %}
+                  <span class="so-badge so-badge-warn" title="This order was placed before you set up a payout method.">
+                    <span class="so-badge-dot"></span>
+                    Needs payout setup
+                  </span>
+                {% endif %}
+              </div>
             {% elif order.status == 'shipped' %}
               <span class="so-badge so-badge-shipped">
                 <span class="so-badge-dot" style="background: #2563eb;"></span>
