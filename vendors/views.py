@@ -33,8 +33,17 @@ from .models import (
 @login_required
 def become_seller(request):
     if hasattr(request.user, "vendor"):
-        messages.info(request, "You already have a seller account.")
-        return redirect("vendors:dashboard")
+        vendor = request.user.vendor
+        if vendor.is_verified and vendor.active_subscription:
+            # Fully set up — no need to warn, just show them their store
+            return redirect("vendors:dashboard")
+        # Exists but not fully set up — send them to the next step
+        messages.info(
+            request,
+            "You already have a seller account. "
+            "Let's finish setting up your subscription.",
+        )
+        return redirect("vendors:choose_plan")
 
     if request.method == "POST":
         form = BecomeSellerForm(request.POST)
@@ -57,10 +66,10 @@ def become_seller(request):
 # ═══════════════════════════════════════════════════════
 @login_required
 def choose_plan(request):
+    # Fully set up vendors get sent to their dashboard silently
     if hasattr(request.user, "vendor"):
         vendor = request.user.vendor
         if vendor.is_verified and vendor.active_subscription:
-            messages.info(request, "You already have an active seller account.")
             return redirect("vendors:dashboard")
 
     pending = request.session.get("pending_vendor")
@@ -75,7 +84,7 @@ def choose_plan(request):
         }
 
     if not pending:
-        messages.warning(request, "Please fill in your store details first.")
+        # No session and no vendor → the user hasn't filled the store form yet
         return redirect("vendors:become_seller")
 
     plans = (
@@ -106,7 +115,6 @@ def subscribe(request, plan_slug):
     if hasattr(request.user, "vendor"):
         vendor = request.user.vendor
         if vendor.is_verified and vendor.active_subscription:
-            messages.info(request, "You already have an active seller account.")
             return redirect("vendors:dashboard")
 
     pending = request.session.get("pending_vendor")
@@ -121,7 +129,6 @@ def subscribe(request, plan_slug):
         }
 
     if not pending:
-        messages.warning(request, "Please fill in your store details first.")
         return redirect("vendors:become_seller")
 
     plan = get_object_or_404(SubscriptionPlan, slug=plan_slug, is_active=True)
@@ -212,6 +219,7 @@ def dashboard(request):
 
     latest_sub = vendor.subscriptions.first()
 
+    # ── Redirect when setup is incomplete ──────────────────
     if not vendor.is_verified or not vendor.active_subscription:
         if not latest_sub:
             messages.warning(
@@ -222,6 +230,8 @@ def dashboard(request):
             return redirect("vendors:choose_plan")
 
         if latest_sub.status == VendorSubscription.Status.SUBMITTED:
+            # Awaiting admin review — show them a "wait" state instead of
+            # bouncing to a page that would say "already pending"
             pass
 
         elif latest_sub.status == VendorSubscription.Status.PENDING:
@@ -255,6 +265,7 @@ def dashboard(request):
             )
             return redirect("vendors:choose_plan")
 
+    # ── Vendor is fully set up — show the dashboard ──────
     stores = vendor.stores.all()
 
     vendor_orders = Order.objects.filter(vendor=vendor)
@@ -468,6 +479,9 @@ def abandon_subscription(request):
     sub.cancel()
     vendor.stores.all().delete()
     vendor.delete()
+
+    # Clear any stale session data
+    request.session.pop("pending_vendor", None)
 
     messages.success(
         request,
