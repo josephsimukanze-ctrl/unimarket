@@ -4,7 +4,7 @@ from django import forms
 from django.utils.text import slugify
 
 from catalogue.models import Category
-from payments.models import PlatformSettings   # ← NEW
+from payments.models import PlatformSettings
 
 from .models import (
     Store,
@@ -107,7 +107,6 @@ class SellerCategoryForm(forms.ModelForm):
         self.fields["parent"].empty_label = "— Select a parent category —"
         self.fields["slug"].required = False
         self.fields["image"].required = False
-        # Sellers cannot toggle is_active — staff controls approval
         self.fields["is_active"].disabled = True
         self.fields["is_active"].initial = False
 
@@ -132,7 +131,6 @@ class SellerCategoryForm(forms.ModelForm):
         return image
 
     def clean_slug(self):
-        """Ensure slug is unique; leave blank to auto-generate in save()."""
         slug = (self.cleaned_data.get("slug") or "").strip()
         if slug:
             qs = Category.objects.filter(slug=slug)
@@ -145,10 +143,6 @@ class SellerCategoryForm(forms.ModelForm):
         return slug
 
     def save(self, commit=True):
-        """
-        Set slug on the instance (not cleaned_data, which ModelForm doesn't
-        copy back) so the unique slug constraint doesn't blow up on INSERT.
-        """
         instance = super().save(commit=False)
         if not instance.slug:
             instance.slug = slugify(instance.name)
@@ -356,7 +350,7 @@ class VendorPaymentSettingsForm(forms.ModelForm):
 
 
 # ═══════════════════════════════════════════════════════
-# Staff: platform deposit account  (NEW)
+# Staff: platform deposit account
 # ═══════════════════════════════════════════════════════
 
 class PlatformSettingsForm(forms.ModelForm):
@@ -418,3 +412,95 @@ class PlatformSettingsForm(forms.ModelForm):
 
         cleaned["deposit_wallet_name"] = name
         return cleaned
+
+
+# ═══════════════════════════════════════════════════════
+# Seller: create an additional store  — NEW
+# ═══════════════════════════════════════════════════════
+
+class StoreForm(forms.ModelForm):
+    """
+    Seller-facing form to create an additional store.
+    Bound to the current vendor via `vendor=` kwarg in __init__.
+    """
+
+    class Meta:
+        model = Store
+        fields = ["name", "slug", "description", "logo", "banner"]
+        widgets = {
+            "name": forms.TextInput(attrs={
+                "class": FIELD_CLASS,
+                "placeholder": "e.g. Beauty Pala Premium",
+            }),
+            "slug": forms.TextInput(attrs={
+                "class": FIELD_CLASS,
+                "placeholder": "auto-generated from name if blank",
+            }),
+            "description": forms.Textarea(attrs={
+                "class": FIELD_CLASS,
+                "rows": 4,
+                "placeholder": "Tell buyers what your store is about.",
+            }),
+            "logo": forms.ClearableFileInput(attrs={
+                "class": FILE_CLASS,
+                "accept": "image/*",
+            }),
+            "banner": forms.ClearableFileInput(attrs={
+                "class": FILE_CLASS,
+                "accept": "image/*",
+            }),
+        }
+
+    def __init__(self, *args, vendor=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.vendor = vendor
+        self.fields["slug"].required = False
+        self.fields["logo"].required = False
+        self.fields["banner"].required = False
+
+    def clean_name(self):
+        name = (self.cleaned_data.get("name") or "").strip()
+        if not name:
+            raise forms.ValidationError("Store name is required.")
+
+        # Unique per vendor — a vendor can't create two stores with the same name.
+        if self.vendor:
+            qs = Store.objects.filter(vendor=self.vendor, name__iexact=name)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError(
+                    "You already have a store with this name."
+                )
+        return name
+
+    def clean_slug(self):
+        slug = (self.cleaned_data.get("slug") or "").strip()
+        if not slug:
+            return ""
+        # Slug is globally unique because it powers /catalogue/store/<slug>/
+        qs = Store.objects.filter(slug=slug)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError(
+                "A store with that URL already exists. "
+                "Try a different name or slug."
+            )
+        return slug
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.vendor:
+            instance.vendor = self.vendor
+        if not instance.slug:
+            base_slug = slugify(instance.name)
+            slug = base_slug
+            counter = 1
+            while Store.objects.filter(slug=slug).exists():
+                counter += 1
+                slug = f"{base_slug}-{counter}"
+            instance.slug = slug
+        if commit:
+            instance.save()
+        return instance

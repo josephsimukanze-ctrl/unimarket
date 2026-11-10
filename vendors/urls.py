@@ -27,4 +27,9 @@ urlpatterns = [
         views.abandon_subscription,
         name="abandon_subscription",
     ),
+
+    # Stores (create / edit / delete)
+    path("stores/new/", views.create_store, name="create_store"),
+    path("stores/<uuid:store_id>/edit/", views.edit_store, name="edit_store"),
+    path("stores/<uuid:store_id>/delete/", views.delete_store, name="delete_store"),
 ]

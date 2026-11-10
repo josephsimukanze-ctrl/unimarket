@@ -4,17 +4,18 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
-
+from orders.models import Order, OrderStatus
 from catalogue.models import Category, Product, ProductStatus
 from disputes.models import Dispute, DisputeStatus
 from orders.models import Order, OrderStatus
 from payments.models import PlatformSettings
 from system.forms import PlatformSettingsForm, SiteSettingForm
 from system.models import SiteSetting
-
+from django.views.decorators.http import require_POST
 from .forms import (
     BecomeSellerForm,
     SellerCategoryForm,
+    StoreForm,                 # NEW
     VendorPaymentSettingsForm,
 )
 from .models import (
@@ -35,9 +36,7 @@ def become_seller(request):
     if hasattr(request.user, "vendor"):
         vendor = request.user.vendor
         if vendor.is_verified and vendor.active_subscription:
-            # Fully set up — no need to warn, just show them their store
             return redirect("vendors:dashboard")
-        # Exists but not fully set up — send them to the next step
         messages.info(
             request,
             "You already have a seller account. "
@@ -66,7 +65,6 @@ def become_seller(request):
 # ═══════════════════════════════════════════════════════
 @login_required
 def choose_plan(request):
-    # Fully set up vendors get sent to their dashboard silently
     if hasattr(request.user, "vendor"):
         vendor = request.user.vendor
         if vendor.is_verified and vendor.active_subscription:
@@ -84,7 +82,6 @@ def choose_plan(request):
         }
 
     if not pending:
-        # No session and no vendor → the user hasn't filled the store form yet
         return redirect("vendors:become_seller")
 
     plans = (
@@ -219,7 +216,6 @@ def dashboard(request):
 
     latest_sub = vendor.subscriptions.first()
 
-    # ── Redirect when setup is incomplete ──────────────────
     if not vendor.is_verified or not vendor.active_subscription:
         if not latest_sub:
             messages.warning(
@@ -230,8 +226,6 @@ def dashboard(request):
             return redirect("vendors:choose_plan")
 
         if latest_sub.status == VendorSubscription.Status.SUBMITTED:
-            # Awaiting admin review — show them a "wait" state instead of
-            # bouncing to a page that would say "already pending"
             pass
 
         elif latest_sub.status == VendorSubscription.Status.PENDING:
@@ -265,7 +259,6 @@ def dashboard(request):
             )
             return redirect("vendors:choose_plan")
 
-    # ── Vendor is fully set up — show the dashboard ──────
     stores = vendor.stores.all()
 
     vendor_orders = Order.objects.filter(vendor=vendor)
@@ -480,7 +473,6 @@ def abandon_subscription(request):
     vendor.stores.all().delete()
     vendor.delete()
 
-    # Clear any stale session data
     request.session.pop("pending_vendor", None)
 
     messages.success(
@@ -488,3 +480,152 @@ def abandon_subscription(request):
         "Subscription cancelled. You can start again with a different plan.",
     )
     return redirect("vendors:become_seller")
+
+
+# ═══════════════════════════════════════════════════════
+# Seller: create an additional store  — NEW
+# ═══════════════════════════════════════════════════════
+@login_required
+def create_store(request):
+    """
+    Allow a verified vendor with an active subscription to create
+    an additional store, respecting their plan's store limit.
+    """
+    vendor = get_object_or_404(Vendor, user=request.user)
+
+    if not vendor.is_verified:
+        messages.warning(
+            request,
+            "Your seller account is not yet verified. "
+            "You can create additional stores once verified.",
+        )
+        return redirect("vendors:dashboard")
+
+    if not vendor.active_subscription:
+        messages.warning(
+            request,
+            "Your subscription is not active. Please renew to create a store.",
+        )
+        return redirect("vendors:choose_plan")
+
+    if vendor.store_count >= vendor.max_stores:
+        messages.warning(
+            request,
+            f"Your {vendor.active_subscription.plan.name} plan allows "
+            f"up to {vendor.max_stores} store"
+            f"{'s' if vendor.max_stores != 1 else ''}. "
+            "Upgrade your plan to add more stores.",
+        )
+        return redirect("vendors:dashboard")
+
+    if request.method == "POST":
+        form = StoreForm(request.POST, request.FILES, vendor=vendor)
+        if form.is_valid():
+            store = form.save()
+            messages.success(
+                request,
+                f'Store "{store.name}" created. '
+                f"You can now add products to it.",
+            )
+            return redirect("vendors:dashboard")
+    else:
+        form = StoreForm(vendor=vendor)
+
+    return render(
+        request,
+        "vendors/create_store.html",
+        {
+            "form": form,
+            "vendor": vendor,
+            "existing_stores": vendor.stores.all(),
+            "stores_remaining": vendor.stores_remaining,
+            "max_stores": vendor.max_stores,
+        },
+    )
+
+
+# ═══════════════════════════════════════════════════════
+# Seller: edit an existing store
+# ═══════════════════════════════════════════════════════
+@login_required
+def edit_store(request, store_id):
+    vendor = get_object_or_404(Vendor, user=request.user)
+    store = get_object_or_404(Store, id=store_id, vendor=vendor)
+
+    if not vendor.is_verified:
+        messages.warning(request, "Your account must be verified to edit stores.")
+        return redirect("vendors:dashboard")
+
+    if request.method == "POST":
+        form = StoreForm(
+            request.POST,
+            request.FILES,
+            instance=store,
+            vendor=vendor,
+        )
+        if form.is_valid():
+            store = form.save()
+            messages.success(request, f'Store "{store.name}" updated.')
+            return redirect("vendors:dashboard")
+    else:
+        form = StoreForm(instance=store, vendor=vendor)
+
+    return render(
+        request,
+        "vendors/edit_store.html",
+        {"form": form, "store": store, "vendor": vendor},
+    )
+
+
+# ═══════════════════════════════════════════════════════
+# Seller: delete a store (with product guard)
+# ═══════════════════════════════════════════════════════
+@login_required
+def delete_store(request, store_id):
+    vendor = get_object_or_404(Vendor, user=request.user)
+    store = get_object_or_404(Store, id=store_id, vendor=vendor)
+
+    product_count = store.products.count()
+    if product_count > 0:
+        messages.error(
+            request,
+            f'Cannot delete "{store.name}" — it still has '
+            f'{product_count} product{"s" if product_count != 1 else ""}. '
+            "Remove or transfer them first.",
+        )
+        return redirect("vendors:dashboard")
+
+    if vendor.stores.count() <= 1:
+        messages.error(
+            request,
+            "You can't delete your only store. "
+            "Create another store first, or contact support.",
+        )
+        return redirect("vendors:dashboard")
+
+    if request.method == "POST":
+        typed = (request.POST.get("confirm_name") or "").strip()
+        if typed != store.name:
+            messages.error(
+                request,
+                "Store name didn't match. Type the exact store name to confirm deletion.",
+            )
+            return redirect("vendors:delete_store", store_id=store.id)
+
+        name = store.name
+        store.delete()
+        messages.success(request, f'Store "{name}" deleted.')
+        return redirect("vendors:dashboard")
+
+    # GET: show confirmation
+    order_count = Order.objects.filter(vendor=vendor).count()
+    return render(
+        request,
+        "vendors/delete_store.html",
+        {
+            "store": store,
+            "vendor": vendor,
+            "product_count": product_count,
+            "order_count": order_count,
+        },
+    )

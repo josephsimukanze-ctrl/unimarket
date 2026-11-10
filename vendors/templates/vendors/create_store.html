@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Create a store — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .cs-wrap { max-width: 44rem; margin: 0 auto; padding: 0 0.75rem 5rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .cs-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .cs-back {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.75rem; color: #6b7280; text-decoration: none;
+    margin-bottom: 1rem;
+  }
+  .cs-back:hover { color: #ea580c; }
+
+  .cs-h1 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0; }
+  .cs-sub { font-size: 0.85rem; color: #4b5563; margin: 0.35rem 0 1.5rem; line-height: 1.5; }
+
+  .cs-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; padding: 1.25rem; box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .cs-card { padding: 1.75rem; } }
+
+  .cs-field { margin-bottom: 1rem; }
+  .cs-field:last-child { margin-bottom: 0; }
+
+  .cs-label {
+    display: block; font-size: 0.8rem; font-weight: 700;
+    color: #374151; margin-bottom: 0.35rem;
+  }
+  .cs-label-required { color: #dc2626; margin-left: 0.15rem; }
+
+  .cs-input, .cs-textarea {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db; border-radius: 8px;
+    padding: 0.6rem 0.75rem; font-size: 0.85rem;
+    color: #111827; background: #fff; outline: none;
+    font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .cs-textarea { resize: vertical; min-height: 5rem; }
+  .cs-input:focus, .cs-textarea:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+
+  .cs-help { font-size: 0.7rem; color: #6b7280; margin: 0.35rem 0 0; line-height: 1.4; }
+  .cs-error { font-size: 0.75rem; color: #dc2626; margin: 0.35rem 0 0; }
+
+  .cs-alert {
+    background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
+    padding: 0.75rem 1rem; border-radius: 10px;
+    font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;
+  }
+
+  .cs-actions {
+    display: flex; flex-direction: column-reverse; gap: 0.75rem;
+    margin-top: 1.5rem; padding-top: 1rem;
+    border-top: 1px solid #f3f4f6;
+  }
+  @media (min-width: 640px) {
+    .cs-actions { flex-direction: row; justify-content: flex-end; }
+  }
+  .cs-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.65rem 1.25rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 44px; box-sizing: border-box;
+  }
+  .cs-btn-primary { background: #ea580c; color: #fff; }
+  .cs-btn-primary:hover { background: #c2410c; }
+  .cs-btn-secondary { border: 1px solid #d1d5db; background: #fff; color: #374151; }
+  .cs-btn-secondary:hover { background: #f9fafb; }
+</style>
+
+<div class="cs-wrap">
+
+  <a href="{% url 'vendors:dashboard' %}" class="cs-back">← Back to dashboard</a>
+
+  <h1 class="cs-h1">Create a new store</h1>
+  <p class="cs-sub">
+    You can run multiple storefronts under your seller account — each with its own
+    products, branding, and URL. Your existing stores stay unchanged.
+  </p>
+
+  {% if form.non_field_errors %}
+    <div class="cs-alert">
+      {% for e in form.non_field_errors %}<p style="margin:0;">{{ e }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="cs-card" novalidate>
+    {% csrf_token %}
+
+    <div class="cs-field">
+      <label for="{{ form.name.id_for_label }}" class="cs-label">
+        Store name <span class="cs-label-required">*</span>
+      </label>
+      {{ form.name }}
+      <p class="cs-help">The public name buyers will see.</p>
+      {% if form.name.errors %}<p class="cs-error">{{ form.name.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="cs-field">
+      <label for="{{ form.slug.id_for_label }}" class="cs-label">URL slug</label>
+      {{ form.slug }}
+      <p class="cs-help">Your store's URL will be <code>/catalogue/store/&lt;slug&gt;/</code>. Auto-generated from the name if blank.</p>
+      {% if form.slug.errors %}<p class="cs-error">{{ form.slug.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="cs-field">
+      <label for="{{ form.description.id_for_label }}" class="cs-label">Description</label>
+      {{ form.description }}
+      {% if form.description.errors %}<p class="cs-error">{{ form.description.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="cs-field">
+      <label for="{{ form.logo.id_for_label }}" class="cs-label">Store logo</label>
+      {{ form.logo }}
+      <p class="cs-help">Optional. Square image recommended (400×400 or larger).</p>
+      {% if form.logo.errors %}<p class="cs-error">{{ form.logo.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="cs-field">
+      <label for="{{ form.banner.id_for_label }}" class="cs-label">Store banner</label>
+      {{ form.banner }}
+      <p class="cs-help">Optional. Wide image (e.g. 1600×400) shown at the top of the store page.</p>
+      {% if form.banner.errors %}<p class="cs-error">{{ form.banner.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="cs-actions">
+      <a href="{% url 'vendors:dashboard' %}" class="cs-btn cs-btn-secondary">Cancel</a>
+      <button type="submit" class="cs-btn cs-btn-primary">Create store</button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

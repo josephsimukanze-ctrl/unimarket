@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ store.name }} — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .es-wrap { max-width: 44rem; margin: 0 auto; padding: 0 0.75rem 5rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .es-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .es-back {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.75rem; color: #6b7280; text-decoration: none;
+    margin-bottom: 1rem;
+  }
+  .es-back:hover { color: #ea580c; }
+
+  .es-h1 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0; }
+  .es-sub { font-size: 0.85rem; color: #4b5563; margin: 0.35rem 0 1.5rem; line-height: 1.5; }
+
+  .es-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; padding: 1.25rem; box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .es-card { padding: 1.75rem; } }
+
+  .es-field { margin-bottom: 1rem; }
+  .es-field:last-child { margin-bottom: 0; }
+
+  .es-label {
+    display: block; font-size: 0.8rem; font-weight: 700;
+    color: #374151; margin-bottom: 0.35rem;
+  }
+  .es-label-required { color: #dc2626; margin-left: 0.15rem; }
+
+  .es-input, .es-textarea {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db; border-radius: 8px;
+    padding: 0.6rem 0.75rem; font-size: 0.85rem;
+    color: #111827; background: #fff; outline: none;
+    font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .es-textarea { resize: vertical; min-height: 5rem; }
+  .es-input:focus, .es-textarea:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+
+  .es-help { font-size: 0.7rem; color: #6b7280; margin: 0.35rem 0 0; line-height: 1.4; }
+  .es-error { font-size: 0.75rem; color: #dc2626; margin: 0.35rem 0 0; }
+
+  .es-alert {
+    background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
+    padding: 0.75rem 1rem; border-radius: 10px;
+    font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;
+  }
+
+  .es-actions {
+    display: flex; flex-direction: column-reverse; gap: 0.75rem;
+    margin-top: 1.5rem; padding-top: 1rem;
+    border-top: 1px solid #f3f4f6;
+  }
+  @media (min-width: 640px) {
+    .es-actions { flex-direction: row; justify-content: flex-end; }
+  }
+  .es-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.65rem 1.25rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 44px; box-sizing: border-box;
+  }
+  .es-btn-primary { background: #ea580c; color: #fff; }
+  .es-btn-primary:hover { background: #c2410c; }
+  .es-btn-secondary { border: 1px solid #d1d5db; background: #fff; color: #374151; }
+  .es-btn-secondary:hover { background: #f9fafb; }
+  .es-btn-danger { background: #dc2626; color: #fff; }
+  .es-btn-danger:hover { background: #b91c1c; }
+
+  /* Current media previews */
+  .es-preview-row {
+    display: flex; gap: 0.75rem; margin-bottom: 0.75rem;
+    font-size: 0.75rem; color: #6b7280;
+  }
+  .es-preview-thumb {
+    width: 3rem; height: 3rem; border-radius: 8px;
+    background: #f3f4f6; border: 1px solid #e5e7eb;
+    overflow: hidden; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .es-preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .es-preview-banner {
+    width: 100%; height: 4rem; border-radius: 8px;
+    background: #f3f4f6; border: 1px solid #e5e7eb;
+    overflow: hidden; margin-bottom: 0.5rem;
+  }
+  .es-preview-banner img { width: 100%; height: 100%; object-fit: cover; }
+</style>
+
+<div class="es-wrap">
+
+  <a href="{% url 'vendors:dashboard' %}" class="es-back">← Back to dashboard</a>
+
+  <h1 class="es-h1">Edit store</h1>
+  <p class="es-sub">
+    Update the details for <strong>{{ store.name }}</strong>.
+    Changes appear immediately on your public storefront.
+  </p>
+
+  {% if form.non_field_errors %}
+    <div class="es-alert">
+      {% for e in form.non_field_errors %}<p style="margin:0;">{{ e }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="es-card" novalidate>
+    {% csrf_token %}
+
+    <div class="es-field">
+      <label for="{{ form.name.id_for_label }}" class="es-label">
+        Store name <span class="es-label-required">*</span>
+      </label>
+      {{ form.name }}
+      <p class="es-help">The public name buyers will see.</p>
+      {% if form.name.errors %}<p class="es-error">{{ form.name.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="es-field">
+      <label for="{{ form.slug.id_for_label }}" class="es-label">URL slug</label>
+      {{ form.slug }}
+      <p class="es-help">
+        Your storefront URL: <code>/catalogue/store/&lt;slug&gt;/</code>.
+        Changing this breaks old links — use with care.
+      </p>
+      {% if form.slug.errors %}<p class="es-error">{{ form.slug.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="es-field">
+      <label for="{{ form.description.id_for_label }}" class="es-label">Description</label>
+      {{ form.description }}
+      {% if form.description.errors %}<p class="es-error">{{ form.description.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="es-field">
+      <label for="{{ form.logo.id_for_label }}" class="es-label">Store logo</label>
+      {% if store.logo %}
+        <div class="es-preview-row">
+          <div class="es-preview-thumb"><img src="{{ store.logo.url }}" alt=""></div>
+          <div style="display:flex; flex-direction:column; justify-content:center;">
+            <span style="font-weight:600; color:#111827;">Current logo</span>
+            <span style="font-size:0.7rem;">Upload a new file to replace it.</span>
+          </div>
+        </div>
+      {% endif %}
+      {{ form.logo }}
+      <p class="es-help">Square image recommended (400×400 or larger).</p>
+      {% if form.logo.errors %}<p class="es-error">{{ form.logo.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="es-field">
+      <label for="{{ form.banner.id_for_label }}" class="es-label">Store banner</label>
+      {% if store.banner %}
+        <div class="es-preview-banner"><img src="{{ store.banner.url }}" alt=""></div>
+        <p class="es-help" style="margin-bottom:0.5rem;">Current banner — upload a new file to replace.</p>
+      {% endif %}
+      {{ form.banner }}
+      <p class="es-help">Wide image (e.g. 1600×400) shown at the top of the store page.</p>
+      {% if form.banner.errors %}<p class="es-error">{{ form.banner.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="es-actions">
+      <a href="{% url 'vendors:dashboard' %}" class="es-btn es-btn-secondary">Cancel</a>
+      <button type="submit" class="es-btn es-btn-primary">Save changes</button>
+    </div>
+  </form>
+
+  {# ── Danger zone — delete store ── #}
+  <div class="es-card" style="margin-top:1rem; border-color:#fecaca;">
+    <h2 style="font-size:0.9rem; font-weight:800; color:#991b1b; margin:0 0 0.5rem;">
+      Delete this store
+    </h2>
+    <p style="font-size:0.8rem; color:#7f1d1d; margin:0 0 1rem; line-height:1.5;">
+      Deleting this store removes its storefront, but keeps any orders for the audit trail.
+      {% if store.products.exists %}
+        <br><strong>Blocked:</strong> this store still has {{ store.products.count }} product{{ store.products.count|pluralize }}. Remove or transfer them first.
+      {% elif vendor.stores.count <= 1 %}
+        <br><strong>Blocked:</strong> you can't delete your only store. Create another first.
+      {% endif %}
+    </p>
+
+    {% if not store.products.exists and vendor.stores.count > 1 %}
+      <form method="post" action="{% url 'vendors:delete_store' store.id %}"
+            onsubmit="return confirm('Delete “{{ store.name|escapejs }}”? This cannot be undone.');">
+        {% csrf_token %}
+        <button type="submit" class="es-btn es-btn-danger">Delete store</button>
+      </form>
+    {% else %}
+      <button type="button" class="es-btn es-btn-danger" disabled style="opacity:0.5; cursor:not-allowed;">
+        Delete store
+      </button>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

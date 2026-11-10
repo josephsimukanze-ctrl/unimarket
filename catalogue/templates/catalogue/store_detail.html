@@ -29,12 +29,14 @@
     margin-bottom: 1.5rem;
   }
 
-  /* Banner */
+  /* Banner — uses the uploaded banner if present */
   .sd-banner {
     height: 8rem;
     background: linear-gradient(135deg, #f97316 0%, #ea580c 55%, #c2410c 100%);
     position: relative;
     overflow: hidden;
+    background-size: cover;
+    background-position: center;
   }
   @media (min-width: 640px) { .sd-banner { height: 10rem; } }
   .sd-banner::before {
@@ -72,6 +74,7 @@
     .sd-profile-grid { flex-direction: row; align-items: flex-end; gap: 1rem; }
   }
 
+  /* Avatar — uses uploaded logo if present */
   .sd-avatar-wrap {
     width: 5rem; height: 5rem;
     border-radius: 16px;
@@ -89,7 +92,9 @@
     display: flex; align-items: center; justify-content: center;
     font-weight: 900;
     font-size: 1.75rem;
+    overflow: hidden;
   }
+  .sd-avatar img { width: 100%; height: 100%; object-fit: cover; }
   @media (min-width: 640px) { .sd-avatar { font-size: 2.25rem; } }
 
   .sd-info { flex: 1; min-width: 0; }
@@ -117,6 +122,18 @@
     margin-top: 0.25rem;
   }
   .sd-verified svg { width: 0.75rem; height: 0.75rem; }
+
+  .sd-vendor-type {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    background: #f3f4f6; color: #4b5563;
+    font-size: 0.65rem; font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+    text-transform: capitalize;
+  }
 
   .sd-member-since {
     font-size: 0.8rem; color: #6b7280;
@@ -146,6 +163,7 @@
 
   .sd-btn {
     display: inline-flex; align-items: center; justify-content: center;
+    gap: 0.35rem;
     padding: 0.6rem 1rem; border-radius: 10px;
     font-size: 0.8rem; font-weight: 700;
     text-decoration: none; border: 0; cursor: pointer;
@@ -159,6 +177,25 @@
     border: 1px solid #d1d5db;
   }
   .sd-btn-secondary:hover { background: #f9fafb; }
+
+  /* Owner-only actions row */
+  .sd-owner-actions {
+    display: flex; flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #f3f4f6;
+  }
+  .sd-btn-ghost {
+    background: #fff; color: #374151;
+    border: 1px solid #d1d5db;
+  }
+  .sd-btn-ghost:hover { background: #f9fafb; }
+  .sd-btn-ghost-green {
+    background: #fff; color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+  .sd-btn-ghost-green:hover { background: #f0fdf4; }
 
   /* ── Products section ── */
   .sd-products-head {
@@ -181,7 +218,7 @@
   }
   .sd-products-link:hover { text-decoration: underline; }
 
-  /* Product grid — matches dashboard and related-products patterns */
+  /* Product grid */
   .sd-products-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -247,20 +284,29 @@
   {# ── Store profile card ── #}
   <div class="sd-card">
 
-    <div class="sd-banner"></div>
+    {# Banner — uploaded image or gradient fallback #}
+    <div class="sd-banner"
+         {% if store.banner %}style="background-image: url('{{ store.banner.url }}');"{% endif %}></div>
 
     <div class="sd-profile">
       <div class="sd-profile-grid">
 
-        {# Avatar #}
+        {# Avatar — uploaded logo or initials #}
         <div class="sd-avatar-wrap">
-          <div class="sd-avatar">{{ store.name|slice:":1"|upper }}</div>
+          <div class="sd-avatar">
+            {% if store.logo %}
+              <img src="{{ store.logo.url }}" alt="{{ store.name }}">
+            {% else %}
+              {{ store.name|slice:":1"|upper }}
+            {% endif %}
+          </div>
         </div>
 
         {# Info #}
         <div class="sd-info">
           <div class="sd-title-row">
             <h1 class="sd-title">{{ store.name }}</h1>
+
             {% if store.vendor.status == 'verified' %}
               <span class="sd-verified">
                 <svg fill="currentColor" viewBox="0 0 20 20">
@@ -269,6 +315,8 @@
                 Verified
               </span>
             {% endif %}
+
+            <span class="sd-vendor-type">{{ store.vendor.get_vendor_type_display }}</span>
           </div>
 
           <p class="sd-member-since">
@@ -279,7 +327,7 @@
             <p class="sd-desc">{{ store.description }}</p>
           {% endif %}
 
-          {# Meta + actions #}
+          {# Meta row — stat + buyer actions #}
           <div class="sd-meta-row">
             <span class="sd-stat">
               <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -289,20 +337,50 @@
               <span>product{{ products|length|pluralize }}</span>
             </span>
 
+            {# Buyer: message the seller #}
             {% if user.is_authenticated and user != store.vendor.user and products %}
               <a href="{% url 'messaging:start_thread' products.0.slug %}" class="sd-btn sd-btn-secondary">
                 Message seller
               </a>
             {% endif %}
+          </div>
 
-            {% if user == store.vendor.user %}
+          {# ── Owner-only controls ── #}
+          {% if user == store.vendor.user %}
+            <div class="sd-owner-actions">
               <a href="{% url 'vendors:dashboard' %}" class="sd-btn sd-btn-primary">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                </svg>
                 Manage store
               </a>
-            {% endif %}
-          </div>
-        </div>
 
+              <a href="{% url 'vendors:edit_store' store.id %}" class="sd-btn sd-btn-ghost">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Edit details
+              </a>
+
+              <a href="{% url 'catalogue:product_create' %}" class="sd-btn sd-btn-ghost">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add product
+              </a>
+
+              {% if store.vendor.can_create_store %}
+                <a href="{% url 'vendors:create_store' %}" class="sd-btn sd-btn-ghost-green">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                  </svg>
+                  Add another store
+                </a>
+              {% endif %}
+            </div>
+          {% endif %}
+
+        </div>
       </div>
     </div>
   </div>
@@ -331,11 +409,24 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
         </svg>
       </div>
-      <h2 class="sd-empty-title">No products yet</h2>
-      <p class="sd-empty-text">This store hasn't added any products yet.</p>
-      <a href="{% url 'catalogue:browse' %}" class="sd-empty-cta">
-        Browse marketplace
-      </a>
+
+      {% if user == store.vendor.user %}
+        {# Owner viewing their own empty store #}
+        <h2 class="sd-empty-title">No products in this store yet</h2>
+        <p class="sd-empty-text">
+          Add your first product to start selling in {{ store.name }}.
+        </p>
+        <a href="{% url 'catalogue:product_create' %}" class="sd-empty-cta">
+          + Add your first product
+        </a>
+      {% else %}
+        {# Buyer viewing an empty store #}
+        <h2 class="sd-empty-title">No products yet</h2>
+        <p class="sd-empty-text">This store hasn't added any products yet.</p>
+        <a href="{% url 'catalogue:browse' %}" class="sd-empty-cta">
+          Browse marketplace
+        </a>
+      {% endif %}
     </div>
   {% endif %}
 

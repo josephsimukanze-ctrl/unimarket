@@ -46,6 +46,21 @@ class Vendor(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # ── Plan-tier store limits ──────────────────────────
+    # How many stores each plan allows.
+    # Adjust to match your business rules — or add a
+    # `max_stores` field on SubscriptionPlan if you want
+    # per-plan control via the admin.
+    MAX_STORES_BY_PLAN = {
+        "small":       1,
+        "basic":       1,
+        "standard":    3,
+        "premium":     5,
+        "quarterly":   3,
+        "half-yearly": 5,
+    }
+    DEFAULT_MAX_STORES = 1
+
     class Meta:
         ordering = ["-created_at"]
 
@@ -106,6 +121,45 @@ class Vendor(models.Model):
     def selling_currency(self) -> str:
         """The currency this vendor uses for all products."""
         return self.payment_settings.currency
+
+    # ── Store management ────────────────────────────────
+    @property
+    def max_stores(self) -> int:
+        """
+        Maximum number of stores this vendor can create, based on the
+        plan slug of their current active subscription.
+        """
+        active = self.active_subscription
+        if not active:
+            return 0
+        slug = (active.plan.slug or "").lower()
+        return self.MAX_STORES_BY_PLAN.get(slug, self.DEFAULT_MAX_STORES)
+
+    @property
+    def store_count(self) -> int:
+        """Number of stores this vendor currently has."""
+        return self.stores.count()
+
+    @property
+    def can_create_store(self) -> bool:
+        """
+        True only when:
+          - Vendor is verified
+          - Vendor has an active, non-expired subscription
+          - Store count is below their plan's limit
+        """
+        if not self.is_verified:
+            return False
+        if not self.active_subscription:
+            return False
+        return self.store_count < self.max_stores
+
+    @property
+    def stores_remaining(self) -> int:
+        """How many more stores this vendor can still create."""
+        if not self.can_create_store:
+            return 0
+        return max(self.max_stores - self.store_count, 0)
 
     # ── State transitions ────────────────────────────────
     def mark_verified(self, force: bool = False):
@@ -509,7 +563,6 @@ class VendorPaymentSettings(models.Model):
         choices=MobileMoneyNetwork.choices,
         blank=True,
     )
-    # NEW: name registered on the wallet — shown to buyers, required for payouts
     mobile_money_name = models.CharField(
         max_length=150,
         blank=True,
@@ -569,8 +622,6 @@ class VendorPaymentSettings(models.Model):
         name = self.bank_account_name or "—"
         return f"{self.bank_name}: {self.bank_account_number} ({name})"
 
-    # NEW: moved into the class (was previously orphaned at module scope,
-    # so `order.freeze_payout()` calling `ps.snapshot()` would AttributeError)
     def snapshot(self) -> dict:
         """Frozen snapshot to store on an Order / SellerWithdrawal."""
         return {

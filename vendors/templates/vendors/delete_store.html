@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ store.name }} — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .ds-wrap { max-width: 40rem; margin: 0 auto; padding: 0 0.75rem 4rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .ds-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .ds-back {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.75rem; color: #6b7280; text-decoration: none;
+    margin-bottom: 1rem;
+  }
+  .ds-back:hover { color: #ea580c; }
+
+  .ds-card {
+    background: #fff;
+    border: 1px solid #fecaca;
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .ds-card { padding: 1.75rem; } }
+
+  .ds-icon {
+    width: 3.5rem; height: 3.5rem; border-radius: 9999px;
+    background: #fee2e2; color: #dc2626;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .ds-h1 {
+    font-size: 1.35rem; font-weight: 800;
+    color: #111827; margin: 0 0 0.5rem; line-height: 1.3;
+  }
+  .ds-sub {
+    font-size: 0.85rem; color: #4b5563;
+    margin: 0 0 1.5rem; line-height: 1.6;
+  }
+
+  /* Store preview */
+  .ds-store-preview {
+    display: flex; gap: 0.85rem; align-items: center;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+  .ds-store-thumb {
+    width: 3rem; height: 3rem; border-radius: 10px;
+    background: #ffedd5; color: #c2410c;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1rem;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .ds-store-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .ds-store-info { min-width: 0; flex: 1; }
+  .ds-store-name {
+    font-size: 0.9rem; font-weight: 800;
+    color: #111827; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .ds-store-url {
+    font-size: 0.7rem; color: #6b7280;
+    margin: 0.15rem 0 0;
+    font-family: ui-monospace, monospace;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .ds-store-counts {
+    display: flex; gap: 0.75rem;
+    font-size: 0.7rem; color: #6b7280;
+    margin-top: 0.35rem;
+  }
+
+  /* Warning box */
+  .ds-warning {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    font-size: 0.8rem;
+    color: #7f1d1d;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+  .ds-warning strong { color: #991b1b; }
+  .ds-warning ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.25rem;
+  }
+  .ds-warning li { margin: 0.25rem 0; }
+
+  /* Info box — what stays */
+  .ds-info {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    font-size: 0.8rem;
+    color: #0c4a6e;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+  .ds-info strong { color: #075985; }
+
+  /* Confirmation field */
+  .ds-field { margin-bottom: 1rem; }
+  .ds-label {
+    display: block; font-size: 0.8rem; font-weight: 700;
+    color: #374151; margin-bottom: 0.35rem;
+  }
+  .ds-label code {
+    font-family: ui-monospace, monospace;
+    background: #f3f4f6; padding: 0.1rem 0.35rem; border-radius: 4px;
+    color: #dc2626; font-weight: 700;
+  }
+  .ds-input {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db; border-radius: 8px;
+    padding: 0.6rem 0.75rem; font-size: 0.85rem;
+    color: #111827; background: #fff; outline: none;
+    font-family: inherit;
+  }
+  .ds-input:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220,38,38,0.12);
+  }
+  .ds-help { font-size: 0.7rem; color: #6b7280; margin: 0.35rem 0 0; line-height: 1.4; }
+
+  /* Actions */
+  .ds-actions {
+    display: flex; flex-direction: column-reverse; gap: 0.75rem;
+    margin-top: 1.5rem; padding-top: 1rem;
+    border-top: 1px solid #f3f4f6;
+  }
+  @media (min-width: 640px) {
+    .ds-actions { flex-direction: row; justify-content: flex-end; }
+  }
+  .ds-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.65rem 1.25rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 44px; box-sizing: border-box;
+  }
+  .ds-btn-danger { background: #dc2626; color: #fff; }
+  .ds-btn-danger:hover:not(:disabled) { background: #b91c1c; }
+  .ds-btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ds-btn-secondary { border: 1px solid #d1d5db; background: #fff; color: #374151; }
+  .ds-btn-secondary:hover { background: #f9fafb; }
+</style>
+
+<div class="ds-wrap">
+
+  <a href="{% url 'vendors:dashboard' %}" class="ds-back">← Back to dashboard</a>
+
+  <div class="ds-card">
+
+    <div class="ds-icon">
+      <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+    </div>
+
+    <h1 class="ds-h1">Delete this store?</h1>
+    <p class="ds-sub">
+      You're about to permanently delete this store from your seller account.
+      This action <strong>cannot be undone</strong>.
+    </p>
+
+    {# ── Store preview ── #}
+    <div class="ds-store-preview">
+      <div class="ds-store-thumb">
+        {% if store.logo %}
+          <img src="{{ store.logo.url }}" alt="">
+        {% else %}
+          {{ store.name|slice:":1"|upper }}
+        {% endif %}
+      </div>
+      <div class="ds-store-info">
+        <p class="ds-store-name">{{ store.name }}</p>
+        <p class="ds-store-url">/catalogue/store/{{ store.slug }}/</p>
+        <div class="ds-store-counts">
+          <span>{{ product_count }} product{{ product_count|pluralize }}</span>
+          <span>·</span>
+          <span>Created {{ store.created_at|date:"M d, Y" }}</span>
+        </div>
+      </div>
+    </div>
+
+    {# ── What gets deleted ── #}
+    <div class="ds-warning">
+      <strong>What will be deleted:</strong>
+      <ul>
+        <li>The store name, description, logo and banner</li>
+        <li>The public storefront at <code>/catalogue/store/{{ store.slug }}/</code></li>
+        <li>All products, images, and variants in this store</li>
+      </ul>
+    </div>
+
+    {# ── What stays (audit) ── #}
+    {% if order_count > 0 %}
+      <div class="ds-info">
+        <strong>What stays for your records:</strong>
+        Your existing orders ({{ order_count }}) will remain accessible in
+        <a href="{% url 'orders:seller_orders' %}" style="color:#0369a1; font-weight:700; text-decoration:underline;">Incoming orders</a>
+        so buyers and admins can still see the transaction history.
+      </div>
+    {% endif %}
+
+    {# ── Confirm via typing store name ── #}
+    <form method="post" novalidate id="delete-form">
+      {% csrf_token %}
+
+      <div class="ds-field">
+        <label for="confirm-name" class="ds-label">
+          To confirm, type <code>{{ store.name }}</code> exactly below:
+        </label>
+        <input type="text"
+               id="confirm-name"
+               name="confirm_name"
+               class="ds-input"
+               placeholder="{{ store.name }}"
+               autocomplete="off"
+               required>
+        <p class="ds-help">
+          This extra step prevents accidental deletion with one click.
+        </p>
+      </div>
+
+      <div class="ds-actions">
+        <a href="{% url 'vendors:dashboard' %}" class="ds-btn ds-btn-secondary">
+          Cancel
+        </a>
+        <button type="submit"
+                class="ds-btn ds-btn-danger"
+                id="delete-btn"
+                disabled>
+          Delete store permanently
+        </button>
+      </div>
+    </form>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  var input = document.getElementById('confirm-name');
+  var button = document.getElementById('delete-btn');
+  var expected = "{{ store.name|escapejs }}".trim().toLowerCase();
+
+  function check() {
+    if (!input || !button) return;
+    var typed = (input.value || '').trim().toLowerCase();
+    button.disabled = (typed !== expected);
+  }
+
+  if (input) {
+    input.addEventListener('input', check);
+    input.addEventListener('change', check);
+  }
+})();
+</script>
+{% endblock %}
