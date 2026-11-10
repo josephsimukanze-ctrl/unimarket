@@ -5,18 +5,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#f97316">
+
+  {# NEW: SEO — page titles can override with {% block meta_description %} #}
+  <meta name="description" content="{% block meta_description %}UniMarket — buy, sell, and discover products from trusted local sellers.{% endblock %}">
+
+  {# NEW: prevent phone number auto-linking on iOS/Android #}
+  <meta name="format-detection" content="telephone=no">
+
   <title>{% block title %}UniMarket — Everything you need.{% endblock %}</title>
 
   <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+
+  {# Preconnect is faster than loading inter.css synchronously; font loaded async via media swap trick #}
   <link rel="preconnect" href="https://rsms.me/" crossorigin>
-  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
-  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=6">
+  <link rel="stylesheet"
+        href="https://rsms.me/inter/inter.css"
+        media="print"
+        onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://rsms.me/inter/inter.css"></noscript>
+
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=7">
 
   {# Prevent Alpine FOUC #}
   <style>[x-cloak]{display:none!important}</style>
 
   {# ── SAFETY NET: guaranteed ink palette ── #}
-  {# If tailwind.css is stale or ink classes fail to load, these rules keep every word visible. #}
+  {# See the note about these rules — they should be removed once tailwind.css is trusted. #}
   <style>
     body { color: #1e293b; }
 
@@ -48,12 +62,15 @@
     .bg-brand-600    { background-color: #0284c7 !important; }
     .bg-brand-100    { background-color: #e0f2fe !important; }
     .bg-brand-50     { background-color: #f0f9ff !important; }
+
+    {# NEW: prevent body scroll when mobile drawer is open #}
+    body.drawer-open { overflow: hidden; }
   </style>
 
   {% block head_extra %}{% endblock %}
 </head>
 
-<body class="min-h-full flex flex-col bg-white text-ink-800 antialiased overflow-x-hidden">
+<body class="min-h-full flex flex-col bg-white text-ink-800 antialiased">
 
   {# Skip link #}
   <a href="#main-content"
@@ -67,7 +84,7 @@
   {% include "components/navbar.html" %}
   {% include "components/megabar.html" %}
 
-  {# Flash messages #}
+  {# Flash messages — 'error' messages stay longer, 'info' auto-dismiss sooner #}
   {% if messages %}
     <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6" aria-live="polite">
       <div class="max-w-2xl mx-auto space-y-2">
@@ -75,7 +92,7 @@
           <div x-data="{ show: true }"
                x-show="show"
                x-cloak
-               x-init="setTimeout(() => show = false, 6000)"
+               x-init="setTimeout(() => show = false, {% if 'error' in message.tags %}12000{% elif 'warning' in message.tags %}9000{% else %}6000{% endif %})"
                x-transition:enter="transition ease-out duration-200"
                x-transition:enter-start="opacity-0 -translate-y-1"
                x-transition:enter-end="opacity-100 translate-y-0"
@@ -104,16 +121,20 @@
   {% endif %}
 
   {# ══ PAGE SHELL ══ #}
-  <div class="flex-1 w-full min-w-0"
-       x-data="{ sidebarOpen: false }"
-       @keydown.escape.window="sidebarOpen = false">
+  {% if not hide_sidebar %}
+    <div class="flex-1 w-full min-w-0"
+         x-data="{ sidebarOpen: false }"
+         x-effect="document.body.classList.toggle('drawer-open', sidebarOpen)"
+         @keydown.escape.window="sidebarOpen = false">
+  {% else %}
+    <div class="flex-1 w-full min-w-0">
+  {% endif %}
 
     <div class="w-full max-w-[1600px] mx-auto px-3 sm:px-5 lg:px-8 py-4 sm:py-6">
 
       <div class="{% if not hide_sidebar %}flex gap-4 lg:gap-6{% endif %} min-w-0">
 
         {% if not hide_sidebar %}
-          {# Desktop sidebar #}
           <aside class="hidden lg:block w-56 xl:w-60 shrink-0">
             <div class="sticky top-4">
               {% include "components/sidebar.html" %}
@@ -121,12 +142,10 @@
           </aside>
         {% endif %}
 
-        {# Main content — min-w-0 prevents overflow #}
         <main id="main-content"
               class="min-w-0 {% if not hide_sidebar %}flex-1{% else %}w-full{% endif %}">
 
           {% if not hide_sidebar %}
-            {# Mobile menu button — using gray-* so it never depends on ink palette #}
             <button type="button"
                     @click="sidebarOpen = true"
                     class="lg:hidden inline-flex items-center gap-2 mb-4 px-3 py-2 rounded-lg
@@ -135,7 +154,7 @@
               <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
               </svg>
-              Categories
+              Menu
             </button>
           {% endif %}
 
@@ -144,7 +163,6 @@
       </div>
     </div>
 
-    {# ══ Mobile slide-over drawer ══ #}
     {% if not hide_sidebar %}
       {# Backdrop #}
       <div x-show="sidebarOpen"
@@ -163,13 +181,13 @@
              x-transition:leave="transition transform duration-150 ease-in"
              x-transition:leave-start="translate-x-0"
              x-transition:leave-end="-translate-x-full"
+             x-trap.noscroll="sidebarOpen"
              class="fixed inset-y-0 left-0 z-50 w-[min(18rem,85vw)] bg-white shadow-2xl
                     lg:hidden overflow-y-auto overscroll-contain"
              role="dialog"
              aria-modal="true"
-             aria-label="Categories menu">
+             aria-label="Navigation menu">
 
-        {# Drawer header #}
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200
                     bg-white sticky top-0 z-10">
           <a href="/" class="text-lg font-bold text-orange-500 tracking-tight">UniMarket</a>
@@ -184,7 +202,6 @@
           </button>
         </div>
 
-        {# Drawer body #}
         <div class="p-3 sm:p-4">
           {% include "components/sidebar.html" %}
         </div>
@@ -194,7 +211,12 @@
 
   {% include "components/footer.html" %}
 
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+  {# Alpine loaded with defer + SRI hash for integrity #}
+  <script defer
+          src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"
+          integrity="sha256-9J0y0FwxW2vBW/v/EYVCdKq7oXPZ6j5C9t3W1B3RmRY="
+          crossorigin="anonymous"></script>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>
