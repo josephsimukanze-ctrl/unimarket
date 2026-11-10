@@ -6,17 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#f97316">
 
-  {# NEW: SEO — page titles can override with {% block meta_description %} #}
   <meta name="description" content="{% block meta_description %}UniMarket — buy, sell, and discover products from trusted local sellers.{% endblock %}">
-
-  {# NEW: prevent phone number auto-linking on iOS/Android #}
   <meta name="format-detection" content="telephone=no">
 
   <title>{% block title %}UniMarket — Everything you need.{% endblock %}</title>
 
   <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
 
-  {# Preconnect is faster than loading inter.css synchronously; font loaded async via media swap trick #}
   <link rel="preconnect" href="https://rsms.me/" crossorigin>
   <link rel="stylesheet"
         href="https://rsms.me/inter/inter.css"
@@ -30,7 +26,6 @@
   <style>[x-cloak]{display:none!important}</style>
 
   {# ── SAFETY NET: guaranteed ink palette ── #}
-  {# See the note about these rules — they should be removed once tailwind.css is trusted. #}
   <style>
     body { color: #1e293b; }
 
@@ -63,7 +58,6 @@
     .bg-brand-100    { background-color: #e0f2fe !important; }
     .bg-brand-50     { background-color: #f0f9ff !important; }
 
-    {# NEW: prevent body scroll when mobile drawer is open #}
     body.drawer-open { overflow: hidden; }
   </style>
 
@@ -72,7 +66,6 @@
 
 <body class="min-h-full flex flex-col bg-white text-ink-800 antialiased">
 
-  {# Skip link #}
   <a href="#main-content"
      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100]
             focus:rounded-lg focus:bg-orange-500 focus:px-4 focus:py-2
@@ -84,7 +77,6 @@
   {% include "components/navbar.html" %}
   {% include "components/megabar.html" %}
 
-  {# Flash messages — 'error' messages stay longer, 'info' auto-dismiss sooner #}
   {% if messages %}
     <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6" aria-live="polite">
       <div class="max-w-2xl mx-auto space-y-2">
@@ -164,7 +156,6 @@
     </div>
 
     {% if not hide_sidebar %}
-      {# Backdrop #}
       <div x-show="sidebarOpen"
            x-cloak
            x-transition.opacity.duration.200ms
@@ -172,7 +163,6 @@
            class="fixed inset-0 bg-black/50 z-40 lg:hidden"
            aria-hidden="true"></div>
 
-      {# Drawer #}
       <aside x-show="sidebarOpen"
              x-cloak
              x-transition:enter="transition transform duration-200 ease-out"
@@ -211,11 +201,8 @@
 
   {% include "components/footer.html" %}
 
-  {# Alpine loaded with defer + SRI hash for integrity #}
-  <script defer
-          src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"
-          integrity="sha256-9J0y0FwxW2vBW/v/EYVCdKq7oXPZ6j5C9t3W1B3RmRY="
-          crossorigin="anonymous"></script>
+  {# Alpine — no integrity/crossorigin so it actually loads #}
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 
   {% block scripts %}{% endblock %}
 </body>
