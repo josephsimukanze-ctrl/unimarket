@@ -8,14 +8,15 @@ from catalogue.models import Category
 from notifications.services import notify
 from payments.models import PlatformSettings
 from vendors.models import (
-    SubscriptionPlan,      # NEW
+    SubscriptionPlan,
     Vendor,
     VendorStatus,
     VendorSubscription,
     VerificationRequest,
 )
 
-from .forms import (      # SubscriptionPlanForm added
+from .forms import (
+    ParentCategoryForm,       # NEW
     PlatformSettingsForm,
     SiteSettingForm,
     SubscriptionPlanForm,
@@ -38,7 +39,6 @@ def settings_view(request):
         site_ok = site_form.is_valid()
         deposit_ok = deposit_form.is_valid()
 
-        # Save each form independently
         if site_ok:
             site_form.save()
         if deposit_ok:
@@ -327,10 +327,7 @@ def reject_subscription(request, subscription_id):
 @staff_member_required
 @require_POST
 def deposit_settings_save(request):
-    """
-    Dedicated save endpoint for the deposit wallet.
-    Independent of the site-settings form.
-    """
+    """Dedicated save endpoint for the deposit wallet."""
     ps = PlatformSettings.get_solo()
     form = PlatformSettingsForm(request.POST, instance=ps)
 
@@ -351,7 +348,7 @@ def deposit_settings_save(request):
 
 
 # ═══════════════════════════════════════════════════════
-# Subscription plans  — NEW
+# Subscription plans
 # ═══════════════════════════════════════════════════════
 @staff_member_required
 def plans_list(request):
@@ -411,3 +408,82 @@ def plan_toggle_active(request, plan_id):
     state = "active" if plan.is_active else "inactive"
     messages.success(request, f'Plan "{plan.name}" is now {state}.')
     return redirect("system:plans_list")
+
+
+# ═══════════════════════════════════════════════════════
+# Categories (staff-managed)  — NEW
+# ═══════════════════════════════════════════════════════
+@staff_member_required
+def categories_list(request):
+    """Tree view of all categories — parents expandable to children."""
+    parents = (
+        Category.objects.filter(parent__isnull=True)
+        .prefetch_related("children")
+        .order_by("name")
+    )
+    return render(
+        request,
+        "system/categories.html",
+        {"parents": parents},
+    )
+
+
+@staff_member_required
+def category_create(request):
+    """Create a new parent or sub-category."""
+    if request.method == "POST":
+        form = ParentCategoryForm(request.POST, request.FILES)
+        if form.is_valid():
+            category = form.save()
+            kind = (
+                f"sub-category of {category.parent.name}"
+                if category.parent
+                else "parent category"
+            )
+            messages.success(
+                request,
+                f'Category "{category.name}" created ({kind}).',
+            )
+            return redirect("system:categories_list")
+    else:
+        form = ParentCategoryForm()
+
+    return render(
+        request,
+        "system/category_form.html",
+        {"form": form, "is_edit": False},
+    )
+
+
+@staff_member_required
+def category_edit(request, category_id):
+    """Edit an existing category."""
+    category = get_object_or_404(Category, id=category_id)
+
+    if request.method == "POST":
+        form = ParentCategoryForm(request.POST, request.FILES, instance=category)
+        if form.is_valid():
+            category = form.save()
+            messages.success(request, f'Category "{category.name}" updated.')
+            return redirect("system:categories_list")
+    else:
+        form = ParentCategoryForm(instance=category)
+
+    return render(
+        request,
+        "system/category_form.html",
+        {"form": form, "category": category, "is_edit": True},
+    )
+
+
+@staff_member_required
+@require_POST
+def category_toggle_active(request, category_id):
+    """Flip a category between active and inactive."""
+    category = get_object_or_404(Category, id=category_id)
+    category.is_active = not category.is_active
+    category.save(update_fields=["is_active"])
+
+    state = "active" if category.is_active else "inactive"
+    messages.success(request, f'Category "{category.name}" is now {state}.')
+    return redirect("system:categories_list")

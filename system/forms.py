@@ -1,7 +1,8 @@
 from django import forms
 
+from catalogue.models import Category          # NEW
 from payments.models import PlatformSettings
-from vendors.models import SubscriptionPlan   # NEW
+from vendors.models import SubscriptionPlan
 
 from .models import SiteSetting
 
@@ -113,7 +114,6 @@ class PlatformSettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Prepend blank so the network starts unselected
         self.fields["deposit_wallet_network"].choices = (
             [("", "— Select —")] + list(PlatformSettings.Network.choices)
         )
@@ -155,7 +155,7 @@ class PlatformSettingsForm(forms.ModelForm):
 
 
 # ═══════════════════════════════════════════════════════
-# Subscription plans  (staff-managed)  — NEW
+# Subscription plans  (staff-managed)
 # ═══════════════════════════════════════════════════════
 
 class SubscriptionPlanForm(forms.ModelForm):
@@ -234,6 +234,103 @@ class SubscriptionPlanForm(forms.ModelForm):
             if qs.exists():
                 raise forms.ValidationError(
                     "A plan with that slug already exists."
+                )
+        return slug
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if not instance.slug:
+            from django.utils.text import slugify
+            instance.slug = slugify(instance.name)
+        if commit:
+            instance.save()
+        return instance
+
+
+# ═══════════════════════════════════════════════════════
+# Parent categories  (staff-managed)  — NEW
+# ═══════════════════════════════════════════════════════
+
+class ParentCategoryForm(forms.ModelForm):
+    """
+    Staff-facing form for creating/editing parent categories.
+    Leave `parent` blank to create a top-level (root) category.
+    Pick a parent to create a sub-category under it.
+    """
+
+    class Meta:
+        model = Category
+        fields = [
+            "parent",
+            "name",
+            "slug",
+            "description",
+            "image",
+            "is_active",
+        ]
+        widgets = {
+            "parent": forms.Select(attrs={"class": "ss-input"}),
+            "name": forms.TextInput(attrs={
+                "class": "ss-input",
+                "placeholder": "e.g. Electronics",
+            }),
+            "slug": forms.TextInput(attrs={
+                "class": "ss-input",
+                "placeholder": "auto-generated from name if blank",
+            }),
+            "description": forms.Textarea(attrs={
+                "class": "ss-input",
+                "rows": 3,
+                "placeholder": "Short description shown to sellers.",
+            }),
+            "is_active": forms.CheckboxInput(attrs={
+                "class": "h-4 w-4 rounded border-gray-300",
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Only allow choosing active categories as parents
+        self.fields["parent"].queryset = Category.objects.filter(is_active=True)
+        self.fields["parent"].required = False
+        self.fields["parent"].empty_label = "— None (this is a parent category) —"
+
+        self.fields["slug"].required = False
+        self.fields["image"].required = False
+
+        # Staff-created categories are approved by default
+        self.fields["is_active"].initial = True
+
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.CheckboxInput):
+                continue
+            existing = field.widget.attrs.get("class", "")
+            if "ss-input" not in existing:
+                field.widget.attrs["class"] = f"ss-input {existing}".strip()
+
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+        parent = self.cleaned_data.get("parent")
+
+        qs = Category.objects.filter(parent=parent, name__iexact=name)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError(
+                "A category with this name already exists under that parent."
+            )
+        return name
+
+    def clean_slug(self):
+        slug = (self.cleaned_data.get("slug") or "").strip()
+        if slug:
+            qs = Category.objects.filter(slug=slug)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError(
+                    "A category with this slug already exists."
                 )
         return slug
 

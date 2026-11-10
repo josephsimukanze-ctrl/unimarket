@@ -80,4 +80,12 @@ urlpatterns = [
         views.reject_subscription,
         name="reject_subscription",
     ),
+    path("categories/", views.categories_list, name="categories_list"),
+path("categories/new/", views.category_create, name="category_create"),
+path("categories/<uuid:category_id>/edit/", views.category_edit, name="category_edit"),
+path(
+    "categories/<uuid:category_id>/toggle/",
+    views.category_toggle_active,
+    name="category_toggle_active",
+),
 ]

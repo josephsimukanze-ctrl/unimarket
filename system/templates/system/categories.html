@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block title %}Categories — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .ct-wrap { max-width: 64rem; margin: 0 auto; padding: 0 0.75rem 4rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .ct-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .ct-header {
+    display: flex; flex-wrap: wrap; align-items: flex-start;
+    justify-content: space-between; gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .ct-h1 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0; }
+  .ct-sub { font-size: 0.85rem; color: #4b5563; margin: 0.25rem 0 0; line-height: 1.5; }
+
+  .ct-alert {
+    padding: 0.75rem 1rem; border-radius: 10px;
+    font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;
+  }
+  .ct-alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+  .ct-alert-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .ct-alert-error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+  .ct-alert-info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+
+  .ct-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 0.35rem; padding: 0.65rem 1.1rem;
+    border-radius: 10px; font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 42px; box-sizing: border-box; white-space: nowrap;
+    transition: background-color 0.15s;
+  }
+  .ct-btn-primary { background: #ea580c; color: #fff; }
+  .ct-btn-primary:hover { background: #c2410c; }
+  .ct-btn-secondary { border: 1px solid #d1d5db; background: #fff; color: #374151; }
+  .ct-btn-secondary:hover { background: #f9fafb; }
+  .ct-btn-sm { min-height: 30px; padding: 0.35rem 0.7rem; font-size: 0.72rem; }
+
+  .ct-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; overflow: hidden; margin-bottom: 1.5rem;
+  }
+
+  /* Parent category block */
+  .ct-parent {
+    border-top: 1px solid #f3f4f6;
+  }
+  .ct-parent:first-child { border-top: 0; }
+
+  .ct-parent-row {
+    display: flex; align-items: center; gap: 0.85rem;
+    padding: 1rem 1.25rem;
+    background: #fafafa;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s;
+  }
+  .ct-parent-row:hover { background: #fff7ed; }
+
+  .ct-thumb {
+    width: 2.5rem; height: 2.5rem; border-radius: 8px;
+    background: #f3f4f6; border: 1px solid #e5e7eb;
+    overflow: hidden; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #6b7280;
+  }
+  .ct-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  .ct-name-block { flex: 1; min-width: 0; }
+  .ct-name {
+    font-size: 0.9rem; font-weight: 800; color: #111827;
+    margin: 0; display: flex; align-items: center; gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .ct-slug {
+    font-size: 0.7rem; color: #6b7280;
+    font-family: ui-monospace, monospace;
+  }
+  .ct-count { font-size: 0.7rem; color: #6b7280; font-weight: 600; margin-top: 0.15rem; }
+
+  .ct-badge {
+    display: inline-block; font-size: 0.7rem; font-weight: 700;
+    padding: 2px 8px; border-radius: 9999px;
+  }
+  .ct-badge-on { background: #dcfce7; color: #166534; }
+  .ct-badge-off { background: #f3f4f6; color: #6b7280; }
+
+  .ct-chevron {
+    width: 1rem; height: 1rem; color: #6b7280;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .ct-parent.is-open .ct-chevron { transform: rotate(90deg); }
+
+  .ct-children {
+    display: none;
+    padding-left: 3rem;
+    background: #fff;
+  }
+  .ct-parent.is-open .ct-children { display: block; }
+
+  .ct-child-row {
+    display: flex; align-items: center; gap: 0.65rem;
+    padding: 0.65rem 1.25rem;
+    border-top: 1px solid #f3f4f6;
+    transition: background-color 0.12s;
+  }
+  .ct-child-row:hover { background: #fffbeb; }
+
+  .ct-child-thumb {
+    width: 2rem; height: 2rem; border-radius: 6px;
+    background: #f3f4f6; border: 1px solid #e5e7eb;
+    overflow: hidden; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #9ca3af; font-size: 0.6rem;
+  }
+  .ct-child-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  .ct-child-name {
+    font-size: 0.85rem; font-weight: 600; color: #111827;
+    margin: 0; flex: 1; min-width: 0;
+  }
+  .ct-child-slug {
+    font-size: 0.7rem; color: #6b7280;
+    font-family: ui-monospace, monospace;
+  }
+
+  .ct-actions {
+    display: flex; gap: 0.4rem; flex-shrink: 0;
+  }
+  .ct-actions form { display: inline; margin: 0; }
+
+  .ct-empty {
+    padding: 3rem 1.5rem; text-align: center;
+  }
+  .ct-empty-icon {
+    width: 3.5rem; height: 3.5rem; border-radius: 9999px;
+    background: #fff7ed; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  .ct-empty-title { font-size: 1rem; font-weight: 800; color: #111827; margin: 0; }
+  .ct-empty-text { font-size: 0.85rem; color: #6b7280; margin: 0.5rem auto 1.5rem; max-width: 28rem; line-height: 1.5; }
+</style>
+
+<div class="ct-wrap">
+
+  <div class="ct-header">
+    <div>
+      <h1 class="ct-h1">Categories</h1>
+      <p class="ct-sub">
+        Parent categories are top-level. Sellers pick from these when submitting sub-categories.
+      </p>
+    </div>
+    <a href="{% url 'system:category_create' %}" class="ct-btn ct-btn-primary">
+      + New category
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="ct-alert ct-alert-{% if m.tags == 'success' %}success{% elif m.tags == 'warning' %}warning{% elif m.tags == 'error' %}error{% else %}info{% endif %}">
+        {{ m }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if parents %}
+    <div class="ct-card">
+      {% for parent in parents %}
+        <div class="ct-parent" data-parent-id="{{ parent.id }}">
+          <div class="ct-parent-row" onclick="toggleParent('{{ parent.id }}')">
+            <svg class="ct-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+
+            <div class="ct-thumb">
+              {% if parent.image %}
+                <img src="{{ parent.image.url }}" alt="">
+              {% else %}
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 11V6a3 3 0 013-3z"/>
+                </svg>
+              {% endif %}
+            </div>
+
+            <div class="ct-name-block">
+              <p class="ct-name">
+                {{ parent.name }}
+                {% if parent.is_active %}
+                  <span class="ct-badge ct-badge-on">Active</span>
+                {% else %}
+                  <span class="ct-badge ct-badge-off">Inactive</span>
+                {% endif %}
+              </p>
+              <p class="ct-slug">{{ parent.slug }}</p>
+              <p class="ct-count">
+                {{ parent.children.count }} sub-categor{{ parent.children.count|pluralize:"y,ies" }}
+                · {{ parent.products.count }} product{{ parent.products.count|pluralize }}
+              </p>
+            </div>
+
+            <div class="ct-actions" onclick="event.stopPropagation();">
+              <a href="{% url 'system:category_edit' parent.id %}" class="ct-btn ct-btn-secondary ct-btn-sm">
+                Edit
+              </a>
+              <form method="post" action="{% url 'system:category_toggle_active' parent.id %}">
+                {% csrf_token %}
+                <button type="submit" class="ct-btn ct-btn-secondary ct-btn-sm">
+                  {% if parent.is_active %}Deactivate{% else %}Activate{% endif %}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div class="ct-children">
+            {% for child in parent.children.all %}
+              <div class="ct-child-row">
+                <div class="ct-child-thumb">
+                  {% if child.image %}
+                    <img src="{{ child.image.url }}" alt="">
+                  {% else %}
+                    —
+                  {% endif %}
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <p class="ct-child-name">
+                    {{ child.name }}
+                    {% if not child.is_active %}
+                      <span class="ct-badge ct-badge-off" style="margin-left:0.35rem;">Inactive</span>
+                    {% endif %}
+                  </p>
+                  <p class="ct-child-slug">{{ child.slug }}</p>
+                </div>
+                <div class="ct-actions">
+                  <a href="{% url 'system:category_edit' child.id %}" class="ct-btn ct-btn-secondary ct-btn-sm">
+                    Edit
+                  </a>
+                  <form method="post" action="{% url 'system:category_toggle_active' child.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="ct-btn ct-btn-secondary ct-btn-sm">
+                      {% if child.is_active %}Deactivate{% else %}Activate{% endif %}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            {% empty %}
+              <div style="padding: 1rem 1.25rem; font-size: 0.8rem; color: #6b7280; border-top: 1px solid #f3f4f6;">
+                No sub-categories yet.
+                <a href="{% url 'system:category_create' %}" style="color: #ea580c; font-weight: 600;">
+                  Add one
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="ct-card ct-empty">
+      <div class="ct-empty-icon">
+        <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 11V6a3 3 0 013-3z"/>
+        </svg>
+      </div>
+      <p class="ct-empty-title">No categories yet</p>
+      <p class="ct-empty-text">
+        Create your first parent category. Sellers can only submit sub-categories
+        under existing parents, so this is required before sellers can list anything.
+      </p>
+      <a href="{% url 'system:category_create' %}" class="ct-btn ct-btn-primary">
+        + Create first category
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+
+<script>
+function toggleParent(id) {
+  var el = document.querySelector('.ct-parent[data-parent-id="' + id + '"]');
+  if (el) el.classList.toggle('is-open');
+}
+</script>
+{% endblock %}

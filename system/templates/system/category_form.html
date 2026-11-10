@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Edit{% else %}New{% endif %} category — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .cf-wrap { max-width: 44rem; margin: 0 auto; padding: 0 0.75rem 5rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .cf-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .cf-back {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.75rem; color: #6b7280; text-decoration: none;
+    margin-bottom: 1rem;
+  }
+  .cf-back:hover { color: #ea580c; }
+
+  .cf-h1 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0; }
+  .cf-sub { font-size: 0.85rem; color: #4b5563; margin: 0.35rem 0 1.5rem; line-height: 1.5; }
+
+  .cf-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; padding: 1.25rem;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .cf-card { padding: 1.75rem; } }
+
+  .cf-field { margin-bottom: 1rem; }
+  .cf-field:last-child { margin-bottom: 0; }
+
+  .cf-label {
+    display: block; font-size: 0.8rem; font-weight: 700;
+    color: #374151; margin-bottom: 0.35rem;
+  }
+  .cf-label-required { color: #dc2626; margin-left: 0.15rem; }
+
+  .cf-input, .cf-select, .cf-textarea {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db; border-radius: 8px;
+    padding: 0.6rem 0.75rem; font-size: 0.85rem;
+    color: #111827; background: #fff; outline: none;
+    font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .cf-textarea { resize: vertical; min-height: 4rem; }
+  .cf-input:focus, .cf-select:focus, .cf-textarea:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+
+  .cf-help { font-size: 0.7rem; color: #6b7280; margin: 0.35rem 0 0; line-height: 1.4; }
+  .cf-error { font-size: 0.75rem; color: #dc2626; margin: 0.35rem 0 0; }
+
+  .cf-alert {
+    background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
+    padding: 0.75rem 1rem; border-radius: 10px;
+    font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;
+  }
+
+  .cf-toggle {
+    display: flex; align-items: flex-start; gap: 0.65rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid #e5e7eb; border-radius: 10px;
+    cursor: pointer; background: #fff; box-sizing: border-box;
+  }
+  .cf-toggle:hover { background: #f9fafb; border-color: #d1d5db; }
+  .cf-toggle input[type="checkbox"] {
+    flex-shrink: 0; margin-top: 0.15rem;
+    width: 1rem; height: 1rem;
+    accent-color: #ea580c; cursor: pointer;
+  }
+  .cf-toggle-title {
+    display: block; font-size: 0.8rem; font-weight: 600;
+    color: #111827; line-height: 1.3;
+  }
+  .cf-toggle-text {
+    display: block; font-size: 0.7rem; color: #6b7280;
+    margin-top: 0.15rem; line-height: 1.4;
+  }
+
+  .cf-actions {
+    display: flex; flex-direction: column-reverse; gap: 0.75rem;
+    margin-top: 1.5rem; padding-top: 1rem;
+    border-top: 1px solid #f3f4f6;
+  }
+  @media (min-width: 640px) {
+    .cf-actions { flex-direction: row; justify-content: flex-end; }
+  }
+  .cf-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.65rem 1.25rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 44px; box-sizing: border-box;
+  }
+  .cf-btn-primary { background: #ea580c; color: #fff; }
+  .cf-btn-primary:hover { background: #c2410c; }
+  .cf-btn-secondary { border: 1px solid #d1d5db; background: #fff; color: #374151; }
+  .cf-btn-secondary:hover { background: #f9fafb; }
+</style>
+
+<div class="cf-wrap">
+
+  <a href="{% url 'system:categories_list' %}" class="cf-back">
+    ← Back to categories
+  </a>
+
+  <h1 class="cf-h1">
+    {% if is_edit %}Edit category{% else %}New category{% endif %}
+  </h1>
+  <p class="cf-sub">
+    {% if is_edit %}
+      Update this category. Changes take effect immediately.
+    {% else %}
+      Leave <strong>Parent</strong> empty to create a top-level category.
+      Choose a parent to create a sub-category.
+    {% endif %}
+  </p>
+
+  {% if form.non_field_errors %}
+    <div class="cf-alert" role="alert">
+      {% for e in form.non_field_errors %}
+        <p style="margin:0;">{{ e }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="cf-card" novalidate>
+    {% csrf_token %}
+
+    <div class="cf-field">
+      <label for="{{ form.parent.id_for_label }}" class="cf-label">Parent category</label>
+      {{ form.parent }}
+      <p class="cf-help">Leave empty for a top-level category. Or select one to nest this under.</p>
+      {% if form.parent.errors %}<p class="cf-error">{{ form.parent.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="cf-field">
+      <label for="{{ form.name.id_for_label }}" class="cf-label">
+        Category name <span class="cf-label-required">*</span>
+      </label>
+      {{ form.name }}
+      {% if form.name.errors %}<p class="cf-error">{{ form.name.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="cf-field">
+      <label for="{{ form.slug.id_for_label }}" class="cf-label">Slug</label>
+      {{ form.slug }}
+      <p class="cf-help">Auto-generated from the name if left blank.</p>
+      {% if form.slug.errors %}<p class="cf-error">{{ form.slug.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="cf-field">
+      <label for="{{ form.description.id_for_label }}" class="cf-label">Description</label>
+      {{ form.description }}
+      {% if form.description.errors %}<p class="cf-error">{{ form.description.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="cf-field">
+      <label for="{{ form.image.id_for_label }}" class="cf-label">Image</label>
+      {{ form.image }}
+      <p class="cf-help">Optional. Square image recommended (400×400 or larger).</p>
+      {% if form.image.errors %}<p class="cf-error">{{ form.image.errors|join:", " }}</p>{% endif %}
+    </div>
+
+    <div class="cf-field">
+      <label class="cf-toggle">
+        {{ form.is_active }}
+        <span>
+          <span class="cf-toggle-title">Active</span>
+          <span class="cf-toggle-text">Sellers can pick this when submitting sub-categories.</span>
+        </span>
+      </label>
+    </div>
+
+    <div class="cf-actions">
+      <a href="{% url 'system:categories_list' %}" class="cf-btn cf-btn-secondary">Cancel</a>
+      <button type="submit" class="cf-btn cf-btn-primary">
+        {% if is_edit %}Save changes{% else %}Create category{% endif %}
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
