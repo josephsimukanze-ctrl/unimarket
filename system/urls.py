@@ -10,6 +10,23 @@ urlpatterns = [
     # used by the seller page's Edit link: {% url 'system:settings' %}#deposit
     path("settings/", views.settings_view, name="settings"),
 
+    # ── Deposit account save (dedicated endpoint) ──
+    path(
+        "settings/deposit/",
+        views.deposit_settings_save,
+        name="deposit_settings_save",
+    ),
+
+    # ── Subscription plans (NEW) ──
+    path("plans/", views.plans_list, name="plans_list"),
+    path("plans/new/", views.plan_create, name="plan_create"),
+    path("plans/<uuid:plan_id>/edit/", views.plan_edit, name="plan_edit"),
+    path(
+        "plans/<uuid:plan_id>/toggle/",
+        views.plan_toggle_active,
+        name="plan_toggle_active",
+    ),
+
     # ── Verification center ──
     path(
         "verifications/",
@@ -63,9 +80,4 @@ urlpatterns = [
         views.reject_subscription,
         name="reject_subscription",
     ),
-    path(
-    "settings/deposit/",
-    views.deposit_settings_save,
-    name="deposit_settings_save",
-),
 ]

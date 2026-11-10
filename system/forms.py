@@ -1,6 +1,7 @@
 from django import forms
 
 from payments.models import PlatformSettings
+from vendors.models import SubscriptionPlan   # NEW
 
 from .models import SiteSetting
 
@@ -68,7 +69,6 @@ class SiteSettingForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Defensive widget class injection
         for field in self.fields.values():
             if isinstance(field.widget, forms.CheckboxInput):
                 continue
@@ -106,27 +106,18 @@ class PlatformSettingsForm(forms.ModelForm):
                 "placeholder": "0977000000",
                 "inputmode": "tel",
             }),
-            # NOTE: no choices= on these widgets — the model provides them.
-            # Prevents drift between widget choices and field choices.
-            "deposit_wallet_network": forms.Select(attrs={
-                "class": "ss-input",
-            }),
-            "deposit_currency": forms.Select(attrs={
-                "class": "ss-input",
-            }),
+            "deposit_wallet_network": forms.Select(attrs={"class": "ss-input"}),
+            "deposit_currency": forms.Select(attrs={"class": "ss-input"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Prepend a blank option to the network select so the initial
-        # state is "unselected" — otherwise the browser picks Airtel
-        # by default, which trips the both-or-neither rule on first save.
+        # Prepend blank so the network starts unselected
         self.fields["deposit_wallet_network"].choices = (
             [("", "— Select —")] + list(PlatformSettings.Network.choices)
         )
 
-        # Defensive widget class injection (same as SiteSettingForm)
         for field in self.fields.values():
             if isinstance(field.widget, forms.CheckboxInput):
                 continue
@@ -140,8 +131,6 @@ class PlatformSettingsForm(forms.ModelForm):
         number  = (cleaned.get("deposit_wallet_number") or "").strip()
         network = cleaned.get("deposit_wallet_network") or ""
 
-        # Both-or-neither: if any of the three is set, all three must be set.
-        # Leaving all three blank = "deposits disabled", which is valid.
         provided = [bool(name), bool(number), bool(network)]
         if any(provided) and not all(provided):
             if not name:
@@ -163,3 +152,96 @@ class PlatformSettingsForm(forms.ModelForm):
         cleaned["deposit_wallet_name"] = name
         cleaned["deposit_wallet_number"] = number
         return cleaned
+
+
+# ═══════════════════════════════════════════════════════
+# Subscription plans  (staff-managed)  — NEW
+# ═══════════════════════════════════════════════════════
+
+class SubscriptionPlanForm(forms.ModelForm):
+    """
+    Staff-facing form to create/edit plans sellers subscribe to.
+    Rendered from system/templates/system/plan_form.html.
+    """
+
+    class Meta:
+        model = SubscriptionPlan
+        fields = [
+            "name",
+            "slug",
+            "description",
+            "price",
+            "currency",
+            "duration_days",
+            "is_active",
+            "sort_order",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={
+                "class": "ss-input",
+                "placeholder": "e.g. Basic",
+            }),
+            "slug": forms.TextInput(attrs={
+                "class": "ss-input",
+                "placeholder": "auto-generated from name if blank",
+            }),
+            "description": forms.Textarea(attrs={
+                "class": "ss-input",
+                "rows": 3,
+                "placeholder": "Short description shown to sellers.",
+            }),
+            "price": forms.NumberInput(attrs={
+                "class": "ss-input",
+                "step": "0.01",
+                "min": 0,
+            }),
+            "currency": forms.Select(
+                choices=[
+                    ("ZMW", "ZMW — Zambian Kwacha"),
+                    ("USD", "USD — US Dollar"),
+                ],
+                attrs={"class": "ss-input"},
+            ),
+            "duration_days": forms.NumberInput(attrs={
+                "class": "ss-input",
+                "min": 1,
+                "placeholder": "30",
+            }),
+            "is_active": forms.CheckboxInput(attrs={
+                "class": "h-4 w-4 rounded border-gray-300",
+            }),
+            "sort_order": forms.NumberInput(attrs={
+                "class": "ss-input",
+                "min": 0,
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.CheckboxInput):
+                continue
+            existing = field.widget.attrs.get("class", "")
+            if "ss-input" not in existing:
+                field.widget.attrs["class"] = f"ss-input {existing}".strip()
+
+    def clean_slug(self):
+        slug = (self.cleaned_data.get("slug") or "").strip()
+        if slug:
+            qs = SubscriptionPlan.objects.filter(slug=slug)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError(
+                    "A plan with that slug already exists."
+                )
+        return slug
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if not instance.slug:
+            from django.utils.text import slugify
+            instance.slug = slugify(instance.name)
+        if commit:
+            instance.save()
+        return instance

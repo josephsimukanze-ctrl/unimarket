@@ -3,50 +3,76 @@
 
 {% block content %}
 <style>
-  .vc-card      { background:#ffffff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden; margin-bottom:1.5rem; }
-  .vc-card-red  { border:2px solid #fca5a5; box-shadow:0 1px 2px rgba(0,0,0,.05); }
-  .vc-card-blue { border:2px solid #93c5fd; box-shadow:0 1px 2px rgba(0,0,0,.05); }
-  .vc-head      { padding:1rem 1.25rem; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between; gap:.5rem; flex-wrap:wrap; }
-  .vc-head-red  { background:#fef2f2; border-bottom-color:#fecaca; }
-  .vc-head-blue { background:#eff6ff; border-bottom-color:#bfdbfe; }
-  .vc-title     { font-weight:700; font-size:1rem; color:#111827; }
-  .vc-title-red { color:#7f1d1d; }
-  .vc-title-blue{ color:#1e3a8a; }
-  .vc-row       { padding:1rem 1.25rem; display:flex; flex-wrap:wrap; align-items:flex-start; gap:1rem; border-top:1px solid #f3f4f6; }
-  .vc-row:first-child { border-top:0; }
-  .vc-avatar    { width:3rem; height:3rem; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.8rem; flex-shrink:0; }
-  .vc-avatar-orange { background:#ffedd5; color:#9a3412; }
-  .vc-avatar-red    { background:#fee2e2; color:#991b1b; }
-  .vc-avatar-blue   { background:#dbeafe; color:#1e40af; }
-  .vc-name      { font-weight:700; font-size:.9rem; color:#111827; }
-  .vc-meta      { font-size:.75rem; color:#374151; margin-top:2px; line-height:1.4; }
-  .vc-meta-red  { font-size:.75rem; color:#b91c1c; font-weight:600; margin-top:2px; }
-  .vc-meta strong { color:#111827; }
-  .vc-badge     { display:inline-block; font-size:.7rem; font-weight:700; padding:2px 8px; border-radius:9999px; }
-  .vc-badge-amber { background:#fef3c7; color:#92400e; }
-  .vc-badge-red   { background:#fecaca; color:#7f1d1d; }
-  .vc-badge-orange{ background:#ffedd5; color:#9a3412; }
-  .vc-badge-blue  { background:#dbeafe; color:#1e40af; }
-  .vc-badge-purple{ background:#ede9fe; color:#6b21a8; }
-  .vc-btn       { display:inline-flex; align-items:center; gap:.35rem; border-radius:8px; padding:.55rem 1rem; font-size:.8rem; font-weight:700; cursor:pointer; border:0; min-height:36px; }
-  .vc-btn-green { background:#16a34a; color:#ffffff; }
-  .vc-btn-green:hover { background:#15803d; }
-  .vc-btn-red-outline { background:#ffffff; color:#b91c1c; border:1px solid #fca5a5; }
-  .vc-btn-red-outline:hover { background:#fef2f2; }
-  .vc-stats     { display:grid; grid-template-columns:repeat(2,1fr); gap:.75rem; margin-bottom:1.5rem; }
-  @media (min-width:640px){ .vc-stats{ grid-template-columns:repeat(3,1fr);} }
-  @media (min-width:1024px){ .vc-stats{ grid-template-columns:repeat(6,1fr);} }
-  .vc-stat      { background:#ffffff; border:1px solid #d1d5db; border-radius:12px; padding:1rem; text-decoration:none; color:inherit; display:block; transition:border-color .15s; }
-  .vc-stat:hover{ border-color:#fb923c; }
-  .vc-stat-label{ font-size:.7rem; font-weight:600; color:#374151; }
-  .vc-stat-num  { font-size:1.5rem; font-weight:800; color:#111827; margin-top:2px; }
-  .vc-stat-total{ background:#fff7ed; border-color:#fdba74; }
-  .vc-stat-total .vc-stat-label{ color:#9a3412; }
-  .vc-stat-total .vc-stat-num  { color:#7c2d12; }
-  .vc-dot       { display:inline-block; width:.5rem; height:.5rem; border-radius:9999px; }
-  .vc-ref       { display:inline-block; font-family:monospace; font-size:.7rem; background:#f3f4f6; color:#374151; padding:.15rem .5rem; border-radius:4px; margin-top:.35rem; }
+  .vc-wrap { max-width: 72rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .vc-wrap { padding-left: 1rem; padding-right: 1rem; } }
 
-  /* ── Rich subscription card ── */
+  .vc-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; margin-bottom: 1.5rem; }
+  .vc-card-red  { border: 2px solid #fca5a5; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .vc-card-blue { border: 2px solid #93c5fd; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+
+  .vc-head { padding: 1rem 1.25rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+  .vc-head-red  { background: #fef2f2; border-bottom-color: #fecaca; }
+  .vc-head-blue { background: #eff6ff; border-bottom-color: #bfdbfe; }
+  .vc-title { font-weight: 700; font-size: 1rem; color: #111827; margin: 0; }
+  .vc-title-red  { color: #7f1d1d; }
+  .vc-title-blue { color: #1e3a8a; }
+
+  .vc-badge { display: inline-block; font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px; }
+  .vc-badge-amber { background: #fef3c7; color: #92400e; }
+  .vc-badge-red   { background: #fecaca; color: #7f1d1d; }
+  .vc-badge-orange{ background: #ffedd5; color: #9a3412; }
+  .vc-badge-blue  { background: #dbeafe; color: #1e40af; }
+  .vc-badge-purple{ background: #ede9fe; color: #6b21a8; }
+  .vc-badge-gray  { background: #f3f4f6; color: #4b5563; }
+  .vc-badge-urgent{ background: #fecaca; color: #991b1b; border: 1px solid #f87171; }
+
+  .vc-avatar { width: 3rem; height: 3rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .8rem; flex-shrink: 0; }
+  .vc-avatar-orange { background: #ffedd5; color: #9a3412; }
+  .vc-avatar-red    { background: #fee2e2; color: #991b1b; }
+  .vc-avatar-blue   { background: #dbeafe; color: #1e40af; }
+
+  .vc-name { font-weight: 700; font-size: .9rem; color: #111827; margin: 0; }
+  .vc-meta { font-size: .75rem; color: #374151; margin-top: 2px; line-height: 1.4; }
+  .vc-meta-red { font-size: .75rem; color: #b91c1c; font-weight: 600; margin-top: 2px; }
+  .vc-meta strong { color: #111827; }
+
+  .vc-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
+    border-radius: 8px; padding: .55rem 1rem;
+    font-size: .8rem; font-weight: 700; cursor: pointer; border: 0;
+    min-height: 36px; text-decoration: none; white-space: nowrap;
+    transition: background-color .15s;
+  }
+  .vc-btn-green { background: #16a34a; color: #fff; }
+  .vc-btn-green:hover { background: #15803d; }
+  .vc-btn-red-outline { background: #fff; color: #b91c1c; border: 1px solid #fca5a5; }
+  .vc-btn-red-outline:hover { background: #fef2f2; }
+  .vc-btn-sm { min-height: 30px; padding: .35rem .7rem; font-size: .72rem; }
+
+  /* Filterable stat cards — anchor scrolls, and count is clickable */
+  .vc-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; margin-bottom: 1.5rem; }
+  @media (min-width: 640px) { .vc-stats { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 1024px) { .vc-stats { grid-template-columns: repeat(6, 1fr); } }
+  .vc-stat {
+    background: #fff; border: 1px solid #d1d5db; border-radius: 12px;
+    padding: 1rem; text-decoration: none; color: inherit; display: block;
+    transition: border-color .15s, box-shadow .15s, transform .12s;
+  }
+  .vc-stat:hover { border-color: #fb923c; box-shadow: 0 2px 8px rgba(251,146,60,.15); }
+  .vc-stat-empty { opacity: .55; pointer-events: none; }
+  .vc-stat-label { font-size: .7rem; font-weight: 600; color: #374151; }
+  .vc-stat-num { font-size: 1.5rem; font-weight: 800; color: #111827; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .vc-stat-total { background: #fff7ed; border-color: #fdba74; }
+  .vc-stat-total .vc-stat-label { color: #9a3412; }
+  .vc-stat-total .vc-stat-num { color: #7c2d12; }
+  .vc-dot { display: inline-block; width: .5rem; height: .5rem; border-radius: 9999px; }
+
+  /* Rows */
+  .vc-row { padding: 1rem 1.25rem; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1rem; border-top: 1px solid #f3f4f6; }
+  .vc-row:first-child { border-top: 0; }
+  .vc-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  /* Rich subscription card */
   .vc-sub-card {
     border-top: 1px solid #f3f4f6;
     padding: 1.25rem;
@@ -56,70 +82,100 @@
   }
   .vc-sub-card:first-child { border-top: 0; }
   @media (min-width: 768px) {
-    .vc-sub-card { grid-template-columns: minmax(0,1fr) auto; align-items: start; }
+    .vc-sub-card { grid-template-columns: minmax(0, 1fr) 11rem; align-items: start; }
   }
 
-  .vc-sub-top {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.85rem;
-    min-width: 0;
-  }
+  .vc-sub-top { display: flex; align-items: flex-start; gap: .85rem; min-width: 0; }
   .vc-sub-info { min-width: 0; flex: 1; }
   .vc-sub-title {
     display: flex; flex-wrap: wrap; align-items: center;
-    gap: 0.4rem;
-    font-size: 0.95rem; font-weight: 800;
+    gap: .4rem; font-size: .95rem; font-weight: 800;
     color: #111827; margin: 0;
   }
 
-  /* Details grid */
   .vc-sub-details {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.65rem;
-    margin-top: 0.75rem;
-    padding: 0.85rem;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
+    display: grid; grid-template-columns: 1fr; gap: .65rem;
+    margin-top: .75rem; padding: .85rem;
+    background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px;
   }
-  @media (min-width: 640px) {
-    .vc-sub-details { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  }
-  .vc-sub-field {
-    min-width: 0;
-    overflow-wrap: break-word;
-    word-break: break-word;
-  }
+  @media (min-width: 640px) { .vc-sub-details { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .vc-sub-field { min-width: 0; overflow-wrap: break-word; word-break: break-word; }
   .vc-sub-field-label {
-    font-size: 0.6rem; font-weight: 800;
-    color: #6b7280;
+    font-size: .6rem; font-weight: 800; color: #6b7280;
     text-transform: uppercase; letter-spacing: 0.05em;
-    margin: 0 0 0.15rem;
+    margin: 0 0 .15rem;
   }
   .vc-sub-field-value {
-    font-size: 0.8rem; font-weight: 700;
-    color: #111827; margin: 0;
-    word-break: break-all;
+    font-size: .8rem; font-weight: 700; color: #111827;
+    margin: 0; word-break: break-all;
   }
-  .vc-sub-field-value a {
-    color: #ea580c; text-decoration: none;
-  }
+  .vc-sub-field-value a { color: #ea580c; text-decoration: none; }
   .vc-sub-field-value a:hover { text-decoration: underline; }
 
-  /* Actions */
-  .vc-sub-actions {
-    display: flex; flex-direction: column;
-    gap: 0.5rem; flex-shrink: 0;
+  .vc-sub-actions { display: flex; flex-direction: column; gap: .5rem; flex-shrink: 0; }
+  @media (min-width: 768px) { .vc-sub-actions { width: 11rem; } }
+  .vc-sub-actions button { width: 100%; }
+
+  .vc-ref {
+    display: inline-block; font-family: ui-monospace, monospace;
+    font-size: .7rem; background: #f3f4f6; color: #374151;
+    padding: .15rem .5rem; border-radius: 4px; margin-top: .35rem;
   }
-  @media (min-width: 768px) {
-    .vc-sub-actions { width: 9rem; }
+
+  /* Age pill — shows how long a request has waited */
+  .vc-age { font-size: .65rem; font-weight: 700; padding: 1px 6px; border-radius: 9999px; }
+  .vc-age-fresh  { background: #dcfce7; color: #166534; }
+  .vc-age-aging  { background: #fef3c7; color: #92400e; }
+  .vc-age-stale  { background: #fecaca; color: #991b1b; }
+
+  /* Document preview for verification requests */
+  .vc-doc {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-size: .75rem; font-weight: 700;
+    color: #c2410c; text-decoration: none;
+    margin-top: .35rem;
   }
-  .vc-sub-actions button { width: 100%; justify-content: center; }
+  .vc-doc:hover { text-decoration: underline; }
+  .vc-doc-missing {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-size: .75rem; font-weight: 700;
+    color: #991b1b;
+    margin-top: .35rem;
+  }
+
+  /* Reject modal — replaces the browser prompt() */
+  .vc-modal {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.5);
+    display: none; align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .vc-modal.is-open { display: flex; }
+  .vc-modal-card {
+    background: #fff; border-radius: 16px; padding: 1.25rem;
+    max-width: 28rem; width: 100%;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  }
+  .vc-modal-title { font-size: 1rem; font-weight: 800; color: #111827; margin: 0 0 .35rem; }
+  .vc-modal-sub { font-size: .8rem; color: #6b7280; margin: 0 0 1rem; line-height: 1.5; }
+  .vc-modal-label { display: block; font-size: .8rem; font-weight: 700; color: #374151; margin-bottom: .35rem; }
+  .vc-modal-input {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db; border-radius: 8px;
+    padding: .6rem .75rem; font-size: .85rem; color: #111827;
+    background: #fff; outline: none; font-family: inherit;
+    resize: vertical; min-height: 4rem;
+  }
+  .vc-modal-input:focus { border-color: #ea580c; box-shadow: 0 0 0 3px rgba(234,88,12,.12); }
+  .vc-modal-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; }
+  .vc-modal-cancel {
+    display: inline-flex; align-items: center; padding: .55rem 1rem;
+    background: #fff; color: #374151; border: 1px solid #d1d5db; border-radius: 8px;
+    font-size: .8rem; font-weight: 700; cursor: pointer;
+  }
 </style>
 
-<div style="max-width:72rem; margin:0 auto; padding-bottom:2rem;">
+<div class="vc-wrap">
 
   {# Header #}
   <div style="margin-bottom:1.5rem; display:flex; align-items:center; gap:.75rem;">
@@ -134,11 +190,10 @@
     </div>
   </div>
 
-  {# Messages #}
   {% if messages %}
     <div style="margin-bottom:1.25rem; display:flex; flex-direction:column; gap:.5rem;">
       {% for message in messages %}
-        <div style="border-radius:8px; padding:.75rem 1rem; font-size:.85rem;
+        <div style="border-radius:8px; padding:.75rem 1rem; font-size:.85rem; line-height:1.5;
           {% if message.tags == 'success' %}background:#f0fdf4; border:1px solid #bbf7d0; color:#14532d;
           {% elif message.tags == 'error' %}background:#fef2f2; border:1px solid #fecaca; color:#7f1d1d;
           {% elif message.tags == 'warning' %}background:#fffbeb; border:1px solid #fde68a; color:#78350f;
@@ -149,37 +204,37 @@
     </div>
   {% endif %}
 
-  {# Stats #}
+  {# Stats — links dim when count is zero #}
   <div class="vc-stats">
-    <a href="#pending-subscriptions" class="vc-stat">
+    <a href="#pending-subscriptions" class="vc-stat {% if not pending_subs_count %}vc-stat-empty{% endif %}">
       <div style="display:flex; align-items:center; gap:.5rem;">
         <span class="vc-dot" style="background:#8b5cf6;"></span>
         <span class="vc-stat-label">Subscriptions</span>
       </div>
       <p class="vc-stat-num">{{ pending_subs_count }}</p>
     </a>
-    <a href="#pending-vendors" class="vc-stat">
+    <a href="#pending-vendors" class="vc-stat {% if not vendor_count %}vc-stat-empty{% endif %}">
       <div style="display:flex; align-items:center; gap:.5rem;">
         <span class="vc-dot" style="background:#f59e0b;"></span>
         <span class="vc-stat-label">Pending vendors</span>
       </div>
       <p class="vc-stat-num">{{ vendor_count }}</p>
     </a>
-    <a href="#suspended-vendors" class="vc-stat">
+    <a href="#suspended-vendors" class="vc-stat {% if not suspended_count %}vc-stat-empty{% endif %}">
       <div style="display:flex; align-items:center; gap:.5rem;">
         <span class="vc-dot" style="background:#ef4444;"></span>
         <span class="vc-stat-label">Suspended</span>
       </div>
       <p class="vc-stat-num">{{ suspended_count }}</p>
     </a>
-    <a href="#pending-categories" class="vc-stat">
+    <a href="#pending-categories" class="vc-stat {% if not category_count %}vc-stat-empty{% endif %}">
       <div style="display:flex; align-items:center; gap:.5rem;">
         <span class="vc-dot" style="background:#f97316;"></span>
         <span class="vc-stat-label">Pending categories</span>
       </div>
       <p class="vc-stat-num">{{ category_count }}</p>
     </a>
-    <a href="#verification-requests" class="vc-stat">
+    <a href="#verification-requests" class="vc-stat {% if not verification_count %}vc-stat-empty{% endif %}">
       <div style="display:flex; align-items:center; gap:.5rem;">
         <span class="vc-dot" style="background:#3b82f6;"></span>
         <span class="vc-stat-label">ID requests</span>
@@ -197,7 +252,7 @@
 
   {# All caught up #}
   {% if total_count == 0 and suspended_count == 0 %}
-    <div style="background:#ffffff; border:1px solid #d1d5db; border-radius:16px; padding:3rem 1.5rem; text-align:center;">
+    <div style="background:#fff; border:1px solid #d1d5db; border-radius:16px; padding:3rem 1.5rem; text-align:center;">
       <div style="width:3.5rem; height:3.5rem; border-radius:9999px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;">
         <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
@@ -228,20 +283,26 @@
               <div style="min-width:0;">
                 <p class="vc-name">{{ vendor.display_name }}</p>
                 <p class="vc-meta">{{ vendor.get_vendor_type_display }} · {{ vendor.user.email }}</p>
-                <p class="vc-meta-red">Suspended {{ vendor.updated_at|date:"M d, Y" }}</p>
+                <p class="vc-meta-red">
+                  Suspended {{ vendor.updated_at|date:"M d, Y" }}
+                  · {{ vendor.updated_at|timesince }} ago
+                </p>
               </div>
             </div>
-            <form method="post" action="{% url 'system:verify_vendor' vendor.id %}">
-              {% csrf_token %}
-              <button type="submit" class="vc-btn vc-btn-green">Un-suspend</button>
-            </form>
+            <div class="vc-actions">
+              <form method="post" action="{% url 'system:verify_vendor' vendor.id %}"
+                    onsubmit="return confirm('Un-suspend and verify {{ vendor.display_name|escapejs }}?');">
+                {% csrf_token %}
+                <button type="submit" class="vc-btn vc-btn-green">Un-suspend</button>
+              </form>
+            </div>
           </div>
         {% endfor %}
       </div>
     </section>
   {% endif %}
 
-  {# ══ PENDING SUBSCRIPTIONS — RICH CARDS ══ #}
+  {# ══ PENDING SUBSCRIPTIONS ══ #}
   {% if pending_subscriptions %}
     <section id="pending-subscriptions" class="vc-card vc-card-blue">
       <div class="vc-head vc-head-blue">
@@ -252,65 +313,65 @@
           <h2 class="vc-title vc-title-blue">Subscription payments</h2>
           <span class="vc-badge vc-badge-blue">{{ pending_subs_count }}</span>
         </div>
-        <a href="{% url 'system:pending_subscriptions' %}"
-           style="font-size:.75rem; color:#1e40af; font-weight:600; text-decoration:underline;">
+        <a href="{% url 'system:pending_subscriptions' %}" style="font-size:.75rem; color:#1e40af; font-weight:600; text-decoration:underline;">
           Full review page →
         </a>
       </div>
       <div>
         {% for sub in pending_subscriptions %}
           <div class="vc-sub-card">
-
-            {# Left column: who, what, when #}
             <div class="vc-sub-top">
               <div class="vc-avatar vc-avatar-blue">{{ sub.vendor.display_name|slice:":2"|upper }}</div>
-
               <div class="vc-sub-info">
                 <p class="vc-sub-title">
                   {{ sub.vendor.user.get_full_name|default:sub.vendor.user.username }}
                   <span class="vc-badge vc-badge-purple">{{ sub.plan.name }}</span>
+                  {# Age pill — how long has this been waiting? #}
+                  {% with days=sub.payment_submitted_at|timesince %}
+                    {% if "minute" in days or "hour" in days or days == "0 minutes" %}
+                      <span class="vc-age vc-age-fresh">{{ days }} ago</span>
+                    {% elif "day" in days %}
+                      <span class="vc-age {% if "1 day" in days or "2 days" in days or "3 days" in days %}vc-age-aging{% else %}vc-age-stale{% endif %}">{{ days }}</span>
+                    {% else %}
+                      <span class="vc-age vc-age-fresh">{{ days }} ago</span>
+                    {% endif %}
+                  {% endwith %}
                 </p>
                 <p class="vc-meta">
                   <strong>{{ sub.vendor.display_name }}</strong> · {{ sub.vendor.get_vendor_type_display }}
                 </p>
 
-                {# Contact + plan + payment details in a clean grid #}
                 <div class="vc-sub-details">
-
                   <div class="vc-sub-field">
                     <p class="vc-sub-field-label">Username</p>
                     <p class="vc-sub-field-value">{{ sub.vendor.user.username }}</p>
                   </div>
-
                   <div class="vc-sub-field">
                     <p class="vc-sub-field-label">Email</p>
                     <p class="vc-sub-field-value">
                       <a href="mailto:{{ sub.vendor.user.email }}">{{ sub.vendor.user.email }}</a>
                     </p>
                   </div>
-
                   <div class="vc-sub-field">
                     <p class="vc-sub-field-label">Phone</p>
                     <p class="vc-sub-field-value">{{ sub.vendor.user.phone|default:"—" }}</p>
                   </div>
-
                   <div class="vc-sub-field">
                     <p class="vc-sub-field-label">Plan</p>
                     <p class="vc-sub-field-value">
                       {{ sub.plan.name }} · {{ sub.plan.duration_label }}
                     </p>
                   </div>
-
                   <div class="vc-sub-field">
-                    <p class="vc-sub-field-label">Amount</p>
-                    <p class="vc-sub-field-value">{{ sub.plan.currency }} {{ sub.plan.price }}</p>
+                    <p class="vc-sub-field-label">Amount paid</p>
+                    <p class="vc-sub-field-value">
+                      {{ sub.currency }} {{ sub.amount_paid|default:sub.plan.price }}
+                    </p>
                   </div>
-
                   <div class="vc-sub-field">
                     <p class="vc-sub-field-label">Submitted</p>
                     <p class="vc-sub-field-value">{{ sub.payment_submitted_at|date:"M d, Y · H:i" }}</p>
                   </div>
-
                   {% if sub.payment_reference %}
                     <div class="vc-sub-field" style="grid-column: 1 / -1;">
                       <p class="vc-sub-field-label">Payment reference</p>
@@ -319,15 +380,13 @@
                       </p>
                     </div>
                   {% endif %}
-
                 </div>
               </div>
             </div>
 
-            {# Right column: actions #}
             <div class="vc-sub-actions">
               <form method="post" action="{% url 'system:approve_subscription' sub.id %}"
-                    onsubmit="return confirm('Approve “{{ sub.vendor.user.username|escapejs }}” and activate their store?');">
+                    onsubmit="return confirm('Approve {{ sub.vendor.user.username|escapejs }} and activate their store?');">
                 {% csrf_token %}
                 <button type="submit" class="vc-btn vc-btn-green">
                   <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -337,21 +396,12 @@
                 </button>
               </form>
 
-              <form method="post" action="{% url 'system:reject_subscription' sub.id %}"
-                    onsubmit="
-                      var reason = prompt('Reason for rejection (optional):');
-                      if (reason === null) return false;
-                      this.reason.value = reason;
-                      return true;
-                    ">
-                {% csrf_token %}
-                <input type="hidden" name="reason" value="">
-                <button type="submit" class="vc-btn vc-btn-red-outline">
-                  Reject
-                </button>
-              </form>
+              <button type="button"
+                      class="vc-btn vc-btn-red-outline"
+                      onclick="openRejectModal('{{ sub.id }}', '{{ sub.vendor.user.username|escapejs }}')">
+                Reject
+              </button>
             </div>
-
           </div>
         {% endfor %}
       </div>
@@ -374,15 +424,21 @@
               <div class="vc-avatar vc-avatar-orange">{{ vendor.display_name|slice:":2"|upper }}</div>
               <div style="min-width:0;">
                 <p class="vc-name">{{ vendor.display_name }}</p>
-                <p class="vc-meta">{{ vendor.get_vendor_type_display }} · {{ vendor.user.email }} · joined {{ vendor.created_at|date:"M d, Y" }}</p>
+                <p class="vc-meta">
+                  {{ vendor.get_vendor_type_display }} · {{ vendor.user.email }}
+                  · joined {{ vendor.created_at|date:"M d, Y" }}
+                  ({{ vendor.created_at|timesince }})
+                </p>
               </div>
             </div>
-            <div style="display:flex; gap:.5rem;">
-              <form method="post" action="{% url 'system:verify_vendor' vendor.id %}">
+            <div class="vc-actions">
+              <form method="post" action="{% url 'system:verify_vendor' vendor.id %}"
+                    onsubmit="return confirm('Verify {{ vendor.display_name|escapejs }}?');">
                 {% csrf_token %}
                 <button type="submit" class="vc-btn vc-btn-green">Verify</button>
               </form>
-              <form method="post" action="{% url 'system:suspend_vendor' vendor.id %}" onsubmit="return confirm('Suspend {{ vendor.display_name|escapejs }}?');">
+              <form method="post" action="{% url 'system:suspend_vendor' vendor.id %}"
+                    onsubmit="return confirm('Suspend {{ vendor.display_name|escapejs }}?');">
                 {% csrf_token %}
                 <button type="submit" class="vc-btn vc-btn-red-outline">Suspend</button>
               </form>
@@ -418,16 +474,21 @@
               <div style="min-width:0;">
                 <p class="vc-name">{% if cat.parent %}{{ cat.parent.name }} → {% endif %}{{ cat.name }}</p>
                 <p class="vc-meta">
-                  {% if cat.submitted_by %}Submitted by {{ cat.submitted_by.display_name }} ({{ cat.submitted_by.get_status_display }}){% else %}System category{% endif %} · {{ cat.created_at|date:"M d, Y" }}
+                  {% if cat.submitted_by %}Submitted by {{ cat.submitted_by.display_name }} ({{ cat.submitted_by.get_status_display }}){% else %}System category{% endif %}
+                  · {{ cat.created_at|date:"M d, Y" }}
                 </p>
+                {% if cat.description %}
+                  <p class="vc-meta" style="font-style:italic; margin-top:.35rem;">"{{ cat.description|truncatechars:100 }}"</p>
+                {% endif %}
               </div>
             </div>
-            <div style="display:flex; gap:.5rem;">
+            <div class="vc-actions">
               <form method="post" action="{% url 'system:approve_category' cat.id %}">
                 {% csrf_token %}
                 <button type="submit" class="vc-btn vc-btn-green">Approve</button>
               </form>
-              <form method="post" action="{% url 'system:reject_category' cat.id %}" onsubmit="return confirm('Reject and delete this category?');">
+              <form method="post" action="{% url 'system:reject_category' cat.id %}"
+                    onsubmit="return confirm('Reject and delete this category?');">
                 {% csrf_token %}
                 <button type="submit" class="vc-btn vc-btn-red-outline">Reject</button>
               </form>
@@ -452,18 +513,37 @@
           <div class="vc-row">
             <div style="flex:1; min-width:0;">
               <p class="vc-name">{{ req.vendor.display_name }}</p>
-              <p class="vc-meta">{{ req.vendor.user.email }} · submitted {{ req.created_at|date:"M d, Y" }}</p>
-              {% if req.notes %}<p class="vc-meta" style="font-style:italic;">"{{ req.notes|truncatechars:120 }}"</p>{% endif %}
-              <a href="{{ req.document.url }}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:.25rem; margin-top:.25rem; font-size:.75rem; font-weight:700; color:#c2410c; text-decoration:none;">
-                View document
-              </a>
+              <p class="vc-meta">
+                {{ req.vendor.user.email }}
+                · submitted {{ req.created_at|date:"M d, Y" }}
+                ({{ req.created_at|timesince }} ago)
+              </p>
+              {% if req.notes %}
+                <p class="vc-meta" style="font-style:italic;">"{{ req.notes|truncatechars:120 }}"</p>
+              {% endif %}
+              {% if req.document %}
+                <a href="{{ req.document.url }}" target="_blank" rel="noopener" class="vc-doc">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  View document
+                </a>
+              {% else %}
+                <span class="vc-doc-missing">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                  </svg>
+                  No document attached
+                </span>
+              {% endif %}
             </div>
-            <div style="display:flex; gap:.5rem;">
+            <div class="vc-actions">
               <form method="post" action="{% url 'system:approve_verification' req.id %}">
                 {% csrf_token %}
                 <button type="submit" class="vc-btn vc-btn-green">Approve</button>
               </form>
-              <form method="post" action="{% url 'system:reject_verification' req.id %}" onsubmit="return confirm('Reject this verification?');">
+              <form method="post" action="{% url 'system:reject_verification' req.id %}"
+                    onsubmit="return confirm('Reject this verification?');">
                 {% csrf_token %}
                 <button type="submit" class="vc-btn vc-btn-red-outline">Reject</button>
               </form>
@@ -475,4 +555,48 @@
   {% endif %}
 
 </div>
+
+{# ── Reject subscription modal ── #}
+<div class="vc-modal" id="reject-modal">
+  <div class="vc-modal-card">
+    <h3 class="vc-modal-title">Reject subscription?</h3>
+    <p class="vc-modal-sub" id="reject-modal-sub">This will notify the seller that their payment was not approved.</p>
+
+    <form method="post" id="reject-form">
+      {% csrf_token %}
+      <label for="reject-reason" class="vc-modal-label">Reason (optional)</label>
+      <textarea id="reject-reason" name="reason" class="vc-modal-input"
+                placeholder="e.g. Payment amount didn't match the plan price"></textarea>
+
+      <div class="vc-modal-actions">
+        <button type="button" class="vc-modal-cancel" onclick="closeRejectModal()">Cancel</button>
+        <button type="submit" class="vc-btn vc-btn-red-outline" style="background:#dc2626; color:#fff; border-color:#dc2626;">Reject subscription</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openRejectModal(subId, username) {
+  var modal = document.getElementById('reject-modal');
+  var form = document.getElementById('reject-form');
+  var sub = document.getElementById('reject-modal-sub');
+  form.action = '/system/subscriptions/' + subId + '/reject/';
+  sub.textContent = 'Rejecting the payment submitted by "' + username + '". They will be notified.';
+  modal.classList.add('is-open');
+  document.getElementById('reject-reason').focus();
+}
+
+function closeRejectModal() {
+  document.getElementById('reject-modal').classList.remove('is-open');
+}
+
+document.getElementById('reject-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeRejectModal();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeRejectModal();
+});
+</script>
 {% endblock %}

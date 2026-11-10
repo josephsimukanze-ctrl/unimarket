@@ -8,16 +8,24 @@ from catalogue.models import Category
 from notifications.services import notify
 from payments.models import PlatformSettings
 from vendors.models import (
+    SubscriptionPlan,      # NEW
     Vendor,
     VendorStatus,
     VendorSubscription,
     VerificationRequest,
 )
 
-from .forms import PlatformSettingsForm, SiteSettingForm
+from .forms import (      # SubscriptionPlanForm added
+    PlatformSettingsForm,
+    SiteSettingForm,
+    SubscriptionPlanForm,
+)
 from .models import SiteSetting
 
 
+# ═══════════════════════════════════════════════════════
+# Site settings
+# ═══════════════════════════════════════════════════════
 @staff_member_required
 def settings_view(request):
     site_settings = SiteSetting.get()
@@ -60,6 +68,8 @@ def settings_view(request):
             "deposit_form": deposit_form,
         },
     )
+
+
 # ═══════════════════════════════════════════════════════
 # Verification center
 # ═══════════════════════════════════════════════════════
@@ -319,8 +329,7 @@ def reject_subscription(request, subscription_id):
 def deposit_settings_save(request):
     """
     Dedicated save endpoint for the deposit wallet.
-    Independent of the site-settings form — so editing the deposit wallet
-    never fails because of an unrelated site-setting validation error.
+    Independent of the site-settings form.
     """
     ps = PlatformSettings.get_solo()
     form = PlatformSettingsForm(request.POST, instance=ps)
@@ -339,3 +348,66 @@ def deposit_settings_save(request):
         )
 
     return redirect("system:settings")
+
+
+# ═══════════════════════════════════════════════════════
+# Subscription plans  — NEW
+# ═══════════════════════════════════════════════════════
+@staff_member_required
+def plans_list(request):
+    """List all subscription plans with create/edit/toggle actions."""
+    plans = SubscriptionPlan.objects.all().order_by("sort_order", "price")
+    return render(request, "system/plans.html", {"plans": plans})
+
+
+@staff_member_required
+def plan_create(request):
+    """Create a new subscription plan."""
+    if request.method == "POST":
+        form = SubscriptionPlanForm(request.POST)
+        if form.is_valid():
+            plan = form.save()
+            messages.success(request, f'Plan "{plan.name}" created.')
+            return redirect("system:plans_list")
+    else:
+        form = SubscriptionPlanForm()
+
+    return render(
+        request,
+        "system/plan_form.html",
+        {"form": form, "is_edit": False},
+    )
+
+
+@staff_member_required
+def plan_edit(request, plan_id):
+    """Edit an existing subscription plan."""
+    plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+
+    if request.method == "POST":
+        form = SubscriptionPlanForm(request.POST, instance=plan)
+        if form.is_valid():
+            plan = form.save()
+            messages.success(request, f'Plan "{plan.name}" updated.')
+            return redirect("system:plans_list")
+    else:
+        form = SubscriptionPlanForm(instance=plan)
+
+    return render(
+        request,
+        "system/plan_form.html",
+        {"form": form, "plan": plan, "is_edit": True},
+    )
+
+
+@staff_member_required
+@require_POST
+def plan_toggle_active(request, plan_id):
+    """Flip a plan between active and inactive."""
+    plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+    plan.is_active = not plan.is_active
+    plan.save(update_fields=["is_active"])
+
+    state = "active" if plan.is_active else "inactive"
+    messages.success(request, f'Plan "{plan.name}" is now {state}.')
+    return redirect("system:plans_list")
