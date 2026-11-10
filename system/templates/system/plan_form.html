@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Edit{% else %}New{% endif %} plan — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .pf-wrap { max-width: 48rem; margin: 0 auto; padding: 0 0.75rem 5rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .pf-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .pf-back {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.75rem; color: #6b7280; text-decoration: none;
+    margin-bottom: 1rem;
+  }
+  .pf-back:hover { color: #ea580c; }
+
+  .pf-header { margin-bottom: 1.5rem; }
+  .pf-h1 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0; }
+  .pf-sub { font-size: 0.85rem; color: #4b5563; margin: 0.35rem 0 0; line-height: 1.5; }
+
+  .pf-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; padding: 1.25rem; margin-bottom: 1rem;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) { .pf-card { padding: 1.75rem; } }
+
+  /* Section headers inside the form */
+  .pf-section-title {
+    font-size: 0.7rem; font-weight: 800; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 0 0 0.75rem;
+  }
+  .pf-section + .pf-section {
+    margin-top: 1.25rem; padding-top: 1.25rem;
+    border-top: 1px solid #f3f4f6;
+  }
+
+  .pf-field { margin-bottom: 1rem; }
+  .pf-field:last-child { margin-bottom: 0; }
+
+  .pf-label {
+    display: block; font-size: 0.8rem; font-weight: 700;
+    color: #374151; margin-bottom: 0.35rem;
+  }
+  .pf-label-required { color: #dc2626; margin-left: 0.15rem; }
+
+  .pf-input, .pf-select, .pf-textarea {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid #d1d5db; border-radius: 8px;
+    padding: 0.6rem 0.75rem; font-size: 0.85rem;
+    color: #111827; background: #fff; outline: none;
+    font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .pf-textarea { resize: vertical; min-height: 4rem; }
+  .pf-input:focus, .pf-select:focus, .pf-textarea:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+  }
+  .pf-input.is-invalid, .pf-select.is-invalid, .pf-textarea.is-invalid {
+    border-color: #dc2626;
+  }
+
+  .pf-help { font-size: 0.7rem; color: #6b7280; margin: 0.35rem 0 0; line-height: 1.4; }
+  .pf-error { font-size: 0.75rem; color: #dc2626; margin: 0.35rem 0 0; line-height: 1.4; }
+
+  .pf-alert {
+    background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
+    padding: 0.75rem 1rem; border-radius: 10px;
+    font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;
+  }
+  .pf-alert-warning {
+    background: #fffbeb; border-color: #fde68a; color: #92400e;
+  }
+
+  .pf-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 640px) { .pf-grid { grid-template-columns: 1fr 1fr; } }
+
+  /* Character counter next to label */
+  .pf-counter {
+    font-size: 0.7rem; color: #9ca3af; font-weight: 400;
+    margin-left: 0.4rem;
+  }
+  .pf-counter.over { color: #dc2626; font-weight: 700; }
+
+  /* Live preview card — shows how the plan looks in the seller list */
+  .pf-preview {
+    background: #fff7ed; border: 1px dashed #fdba74;
+    border-radius: 12px; padding: 1rem; margin-top: 1rem;
+  }
+  .pf-preview-label {
+    font-size: 0.65rem; font-weight: 800;
+    color: #9a3412; text-transform: uppercase;
+    letter-spacing: 0.05em; margin: 0 0 0.65rem;
+  }
+  .pf-preview-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.75rem; font-size: 0.85rem;
+    padding: 0.5rem 0; border-bottom: 1px solid rgba(234, 88, 12, 0.15);
+  }
+  .pf-preview-row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .pf-preview-row:first-of-type { padding-top: 0; }
+  .pf-preview-name { font-weight: 700; color: #111827; }
+  .pf-preview-price { color: #111827; font-weight: 800; }
+  .pf-preview-duration { color: #7c2d12; font-size: 0.8rem; }
+
+  /* Toggle */
+  .pf-toggle {
+    display: flex; align-items: flex-start; gap: 0.65rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid #e5e7eb; border-radius: 10px;
+    cursor: pointer; background: #fff; box-sizing: border-box;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+  .pf-toggle:hover { background: #f9fafb; border-color: #d1d5db; }
+  .pf-toggle input[type="checkbox"] {
+    flex-shrink: 0; margin-top: 0.15rem;
+    width: 1rem; height: 1rem;
+    accent-color: #ea580c; cursor: pointer;
+  }
+  .pf-toggle-title {
+    display: block; font-size: 0.8rem; font-weight: 600;
+    color: #111827; line-height: 1.3;
+  }
+  .pf-toggle-text {
+    display: block; font-size: 0.7rem; color: #6b7280;
+    margin-top: 0.15rem; line-height: 1.4;
+  }
+
+  /* Sticky save bar */
+  .pf-actions {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+    background: #fff; border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+    padding: 0.75rem 1rem;
+    display: flex; justify-content: flex-end; gap: 0.75rem;
+    box-sizing: border-box;
+  }
+  .pf-actions-inner {
+    display: flex; gap: 0.75rem;
+    max-width: 48rem; margin: 0 auto; width: 100%;
+    justify-content: flex-end;
+  }
+
+  .pf-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 0.35rem;
+    padding: 0.65rem 1.25rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 44px; box-sizing: border-box;
+    transition: background-color 0.15s;
+  }
+  .pf-btn-primary { background: #ea580c; color: #fff; }
+  .pf-btn-primary:hover { background: #c2410c; }
+  .pf-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .pf-btn-secondary { border: 1px solid #d1d5db; background: #fff; color: #374151; }
+  .pf-btn-secondary:hover { background: #f9fafb; }
+</style>
+
+<div class="pf-wrap">
+
+  <a href="{% url 'system:plans_list' %}" class="pf-back">
+    ← Back to plans
+  </a>
+
+  <div class="pf-header">
+    <h1 class="pf-h1">
+      {% if is_edit %}Edit plan{% else %}New plan{% endif %}
+    </h1>
+    <p class="pf-sub">
+      {% if is_edit %}
+        Changes apply to new subscriptions. Existing subscriptions keep their original terms.
+      {% else %}
+        Create a plan sellers can subscribe to. It appears on the choose-plan page if active and priced above 0.
+      {% endif %}
+    </p>
+  </div>
+
+  {# Warning when editing a plan with active subscribers #}
+  {% if is_edit and active_subscriber_count %}
+    <div class="pf-alert pf-alert-warning" role="alert">
+      <strong>Heads up:</strong> this plan has
+      <strong>{{ active_subscriber_count }} active subscriber{{ active_subscriber_count|pluralize }}</strong>.
+      Changes to price or duration only affect new subscriptions —
+      existing subscribers are billed at the terms they signed up with.
+    </div>
+  {% endif %}
+
+  {% if form.non_field_errors %}
+    <div class="pf-alert" role="alert">
+      {% for e in form.non_field_errors %}
+        <p style="margin:0;">{{ e }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" id="plan-form" novalidate>
+    {% csrf_token %}
+
+    <div class="pf-card">
+
+      {# ── Identity ── #}
+      <div class="pf-section">
+        <p class="pf-section-title">Identity</p>
+
+        <div class="pf-field">
+          <label for="{{ form.name.id_for_label }}" class="pf-label">
+            Plan name <span class="pf-label-required">*</span>
+          </label>
+          {{ form.name }}
+          <p class="pf-help">Shown to sellers. Keep it short — e.g. "Basic", "Pro", "Annual".</p>
+          {% if form.name.errors %}<p class="pf-error">{{ form.name.errors|join:", " }}</p>{% endif %}
+        </div>
+
+        <div class="pf-field">
+          <label for="{{ form.slug.id_for_label }}" class="pf-label">
+            Slug
+            <span class="pf-counter" id="slug-counter">auto</span>
+          </label>
+          {{ form.slug }}
+          <p class="pf-help">URL-friendly identifier. Auto-generated from the name if left blank.</p>
+          {% if form.slug.errors %}<p class="pf-error">{{ form.slug.errors|join:", " }}</p>{% endif %}
+        </div>
+
+        <div class="pf-field">
+          <label for="{{ form.description.id_for_label }}" class="pf-label">
+            Description
+            <span class="pf-counter" id="desc-counter">0 / 200</span>
+          </label>
+          {{ form.description }}
+          {% if form.description.errors %}<p class="pf-error">{{ form.description.errors|join:", " }}</p>{% endif %}
+        </div>
+      </div>
+
+      {# ── Pricing ── #}
+      <div class="pf-section">
+        <p class="pf-section-title">Pricing &amp; duration</p>
+
+        <div class="pf-grid">
+          <div class="pf-field">
+            <label for="{{ form.price.id_for_label }}" class="pf-label">
+              Price <span class="pf-label-required">*</span>
+            </label>
+            {{ form.price }}
+            <p class="pf-help">Plans priced at 0 are hidden from sellers.</p>
+            {% if form.price.errors %}<p class="pf-error">{{ form.price.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="pf-field">
+            <label for="{{ form.currency.id_for_label }}" class="pf-label">Currency</label>
+            {{ form.currency }}
+            {% if form.currency.errors %}<p class="pf-error">{{ form.currency.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="pf-grid">
+          <div class="pf-field">
+            <label for="{{ form.duration_days.id_for_label }}" class="pf-label">
+              Duration (days) <span class="pf-label-required">*</span>
+            </label>
+            {{ form.duration_days }}
+            <p class="pf-help">30 = 1 month · 90 = 3 months · 180 = 6 months · 365 = 1 year.</p>
+            {% if form.duration_days.errors %}<p class="pf-error">{{ form.duration_days.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="pf-field">
+            <label for="{{ form.sort_order.id_for_label }}" class="pf-label">Sort order</label>
+            {{ form.sort_order }}
+            <p class="pf-help">Lower numbers appear first.</p>
+            {% if form.sort_order.errors %}<p class="pf-error">{{ form.sort_order.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# ── Availability ── #}
+      <div class="pf-section">
+        <p class="pf-section-title">Availability</p>
+
+        <label class="pf-toggle">
+          {{ form.is_active }}
+          <span>
+            <span class="pf-toggle-title">Active — visible to sellers</span>
+            <span class="pf-toggle-text">When off, this plan is hidden from the choose-plan page.</span>
+          </span>
+        </label>
+        {% if form.is_active.errors %}<p class="pf-error">{{ form.is_active.errors|join:", " }}</p>{% endif %}
+      </div>
+
+      {# ── Live preview ── #}
+      <div class="pf-preview">
+        <p class="pf-preview-label">Preview — how sellers see it</p>
+        <div class="pf-preview-row">
+          <div>
+            <span class="pf-preview-name" id="preview-name">Untitled plan</span>
+          </div>
+        </div>
+        <div class="pf-preview-row">
+          <span class="pf-preview-duration" id="preview-duration">30 days</span>
+          <span class="pf-preview-price" id="preview-price">ZMW 0.00</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pf-actions">
+      <div class="pf-actions-inner">
+        <a href="{% url 'system:plans_list' %}" class="pf-btn pf-btn-secondary">
+          Cancel
+        </a>
+        <button type="submit" class="pf-btn pf-btn-primary">
+          {% if is_edit %}Save changes{% else %}Create plan{% endif %}
+        </button>
+      </div>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  var nameInput = document.getElementById('{{ form.name.id_for_label }}');
+  var slugInput = document.getElementById('{{ form.slug.id_for_label }}');
+  var descInput = document.getElementById('{{ form.description.id_for_label }}');
+  var priceInput = document.getElementById('{{ form.price.id_for_label }}');
+  var currencySelect = document.getElementById('{{ form.currency.id_for_label }}');
+  var durationInput = document.getElementById('{{ form.duration_days.id_for_label }}');
+
+  var previewName = document.getElementById('preview-name');
+  var previewPrice = document.getElementById('preview-price');
+  var previewDuration = document.getElementById('preview-duration');
+  var descCounter = document.getElementById('desc-counter');
+  var slugCounter = document.getElementById('slug-counter');
+
+  function humanizeDuration(days) {
+    days = parseInt(days, 10);
+    if (!days || days < 1) return '—';
+    if (days === 30)  return '1 month';
+    if (days === 90)  return '3 months';
+    if (days === 180) return '6 months';
+    if (days === 365) return '1 year';
+    return days + ' days';
+  }
+
+  function updatePreview() {
+    // Name
+    var name = (nameInput && nameInput.value.trim()) || 'Untitled plan';
+    if (previewName) previewName.textContent = name;
+
+    // Slug hint
+    if (slugCounter) {
+      var slugVal = (slugInput && slugInput.value.trim()) || '';
+      slugCounter.textContent = slugVal ? 'custom' : 'auto';
+    }
+
+    // Description counter
+    if (descCounter && descInput) {
+      var len = descInput.value.length;
+      descCounter.textContent = len + ' / 200';
+      descCounter.classList.toggle('over', len > 200);
+    }
+
+    // Price
+    if (previewPrice) {
+      var price = (priceInput && priceInput.value) || '0';
+      var cur = (currencySelect && currencySelect.value) || 'ZMW';
+      // Format numeric with 2 decimals
+      var num = parseFloat(price);
+      if (isNaN(num)) num = 0;
+      previewPrice.textContent = cur + ' ' + num.toFixed(2);
+    }
+
+    // Duration
+    if (previewDuration) {
+      previewDuration.textContent = humanizeDuration(durationInput ? durationInput.value : 30);
+    }
+  }
+
+  [nameInput, slugInput, descInput, priceInput, currencySelect, durationInput].forEach(function (el) {
+    if (!el) return;
+    el.addEventListener('input', updatePreview);
+    el.addEventListener('change', updatePreview);
+  });
+
+  updatePreview();
+})();
+</script>
+{% endblock %}

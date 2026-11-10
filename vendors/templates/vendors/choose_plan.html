@@ -3,7 +3,7 @@
 
 {% block content %}
 <style>
-  .cp-wrap { max-width: 72rem; margin: 0 auto; padding: 0 0.75rem 2rem; }
+  .cp-wrap { max-width: 72rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
   @media (min-width: 640px) { .cp-wrap { padding-left: 1rem; padding-right: 1rem; } }
 
   .cp-header { text-align: center; margin-bottom: 2rem; }
@@ -14,12 +14,29 @@
   @media (min-width: 640px) { .cp-h1 { font-size: 2rem; } }
   .cp-sub { font-size: 0.9rem; color: #4b5563; margin: 0; line-height: 1.5; }
 
+  /* Pending store banner */
+  .cp-pending-banner {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+    color: #374151;
+    display: flex; align-items: center; gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .cp-pending-banner a { color: #ea580c; font-weight: 600; text-decoration: underline; }
+
+  /* Plan grid */
   .cp-plans {
     display: grid; grid-template-columns: 1fr;
     gap: 1rem; margin-bottom: 2rem;
   }
   @media (min-width: 768px) {
     .cp-plans { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
+    .cp-plans.cp-plans-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cp-plans.cp-plans-1 { grid-template-columns: minmax(0, 24rem); justify-content: center; }
   }
 
   .cp-plan {
@@ -30,19 +47,24 @@
     display: flex;
     flex-direction: column;
     position: relative;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
   }
   .cp-plan:hover {
     border-color: #fdba74;
     box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    transform: translateY(-2px);
   }
 
+  /* Featured / recommended plan — triggered by form-computed "recommended" flag */
   .cp-plan-featured {
     border-color: #f97316;
     box-shadow: 0 6px 20px rgba(249,115,22,0.12);
   }
+  .cp-plan-featured:hover {
+    box-shadow: 0 8px 24px rgba(249,115,22,0.18);
+  }
   .cp-plan-featured::before {
-    content: "Most popular";
+    content: "Recommended";
     position: absolute;
     top: -12px; left: 50%; transform: translateX(-50%);
     background: #f97316; color: #fff;
@@ -52,6 +74,9 @@
     border-radius: 9999px;
     white-space: nowrap;
   }
+
+  /* Unavailable plans (deactivated, but shown to logged-in vendors already on them) */
+  .cp-plan-disabled { opacity: 0.55; }
 
   .cp-plan-name {
     font-size: 1.2rem; font-weight: 800;
@@ -66,6 +91,7 @@
   .cp-plan-price {
     display: flex; align-items: baseline; gap: 0.35rem;
     margin: 0 0 0.25rem;
+    flex-wrap: wrap;
   }
   .cp-plan-currency {
     font-size: 0.85rem; font-weight: 700;
@@ -74,19 +100,36 @@
   .cp-plan-amount {
     font-size: 2.25rem; font-weight: 900;
     color: #ea580c; letter-spacing: -0.02em;
+    line-height: 1;
   }
   .cp-plan-period {
     font-size: 0.85rem; color: #6b7280;
   }
   .cp-plan-savings {
     font-size: 0.7rem; font-weight: 700;
-    color: #16a34a; margin: 0.25rem 0 1rem;
+    color: #16a34a; margin: 0.35rem 0 1rem;
+    min-height: 1em;
   }
 
   .cp-plan-desc {
     font-size: 0.8rem; color: #4b5563;
     line-height: 1.6; margin: 0 0 1.5rem;
     flex: 1;
+  }
+  .cp-plan-desc:empty { display: none; }
+
+  /* Feature list */
+  .cp-plan-features {
+    list-style: none; padding: 0; margin: 0 0 1.5rem;
+    display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .cp-plan-features li {
+    display: flex; align-items: flex-start; gap: 0.4rem;
+    font-size: 0.78rem; color: #374151; line-height: 1.5;
+  }
+  .cp-plan-features svg {
+    flex-shrink: 0; margin-top: 2px;
+    color: #16a34a;
   }
 
   .cp-plan-btn {
@@ -98,9 +141,34 @@
     text-decoration: none;
     min-height: 44px;
     box-sizing: border-box;
+    border: 0; cursor: pointer;
     transition: background-color 0.15s;
   }
   .cp-plan-btn:hover { background: #ea580c; }
+
+  /* Empty state */
+  .cp-empty {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .cp-empty-icon {
+    width: 3.5rem; height: 3.5rem; border-radius: 9999px;
+    background: #fff7ed; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  .cp-empty-title {
+    font-size: 1.05rem; font-weight: 800;
+    color: #111827; margin: 0 0 0.5rem;
+  }
+  .cp-empty-text {
+    font-size: 0.85rem; color: #6b7280;
+    line-height: 1.5; max-width: 32rem; margin: 0 auto;
+  }
 
   .cp-info {
     background: #fff7ed;
@@ -113,21 +181,10 @@
   }
   .cp-info h3 {
     font-size: 0.9rem; font-weight: 800;
-    color: #7c2d12; margin: 0 0 0.5rem;
+    color: #7c2d12; margin: 0 0 0.75rem;
   }
   .cp-info ul { margin: 0; padding-left: 1.25rem; }
   .cp-info li { margin-bottom: 0.35rem; }
-
-  .cp-pending-banner {
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 0.85rem 1rem;
-    margin-bottom: 1.5rem;
-    font-size: 0.85rem;
-    color: #374151;
-    display: flex; align-items: center; gap: 0.5rem;
-  }
 </style>
 
 <div class="cp-wrap">
@@ -135,7 +192,7 @@
   {% if messages %}
     <div style="margin-bottom: 1.25rem;">
       {% for message in messages %}
-        <div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:.75rem 1rem; border-radius:10px; font-size:.85rem; margin-bottom:.5rem;">
+        <div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:.75rem 1rem; border-radius:10px; font-size:.85rem; margin-bottom:.5rem; line-height:1.5;">
           {{ message }}
         </div>
       {% endfor %}
@@ -150,7 +207,7 @@
       </svg>
       <span>
         Store: <strong>{{ pending.display_name }}</strong>
-        · <a href="{% url 'vendors:become_seller' %}" style="color:#ea580c; font-weight:600; text-decoration:underline;">Edit details</a>
+        · <a href="{% url 'vendors:become_seller' %}">Edit details</a>
       </span>
     </div>
   {% endif %}
@@ -162,49 +219,92 @@
     </p>
   </div>
 
-  <div class="cp-plans">
-    {% for plan in plans %}
-      <div class="cp-plan {% if plan.slug == 'quarterly' %}cp-plan-featured{% endif %}">
+  {% if plans %}
+    <div class="cp-plans {% if plans|length == 2 %}cp-plans-2{% elif plans|length == 1 %}cp-plans-1{% endif %}">
+      {% for plan in plans %}
+        {% with monthly_price=plan.monthly_equivalent|default:None %}
+          <div class="cp-plan {% if plan.is_recommended %}cp-plan-featured{% endif %}">
 
-        <h2 class="cp-plan-name">{{ plan.name }}</h2>
-        <p class="cp-plan-duration">
-          {% if plan.duration_days == 30 %}1 month
-          {% elif plan.duration_days == 90 %}3 months
-          {% elif plan.duration_days == 180 %}6 months
-          {% else %}{{ plan.duration_days }} days
-          {% endif %}
-        </p>
+            <h2 class="cp-plan-name">{{ plan.name }}</h2>
+            <p class="cp-plan-duration">
+              {% if plan.duration_days == 30 %}1 month
+              {% elif plan.duration_days == 90 %}3 months
+              {% elif plan.duration_days == 180 %}6 months
+              {% elif plan.duration_days == 365 %}1 year
+              {% else %}{{ plan.duration_days }} days
+              {% endif %}
+            </p>
 
-        <p class="cp-plan-price">
-          <span class="cp-plan-currency">{{ plan.currency }}</span>
-          <span class="cp-plan-amount">{{ plan.price|floatformat:"0" }}</span>
-          <span class="cp-plan-period">
-            / {% if plan.duration_days == 30 %}mo{% elif plan.duration_days == 90 %}3mo{% elif plan.duration_days == 180 %}6mo{% else %}{{ plan.duration_days }}d{% endif %}
-          </span>
-        </p>
+            <p class="cp-plan-price">
+              <span class="cp-plan-currency">{{ plan.currency }}</span>
+              <span class="cp-plan-amount">{{ plan.price|floatformat:"0" }}</span>
+              <span class="cp-plan-period">
+                {% if plan.duration_days == 30 %}one-time
+                {% elif plan.duration_days == 90 %}for 3 months
+                {% elif plan.duration_days == 180 %}for 6 months
+                {% elif plan.duration_days == 365 %}for 1 year
+                {% else %}for {{ plan.duration_days }} days{% endif %}
+              </span>
+            </p>
 
-        {% if plan.slug == 'quarterly' %}
-          <p class="cp-plan-savings">Save 10% vs monthly</p>
-        {% elif plan.slug == 'half-yearly' %}
-          <p class="cp-plan-savings">Save 17% vs monthly</p>
-        {% else %}
-          <p class="cp-plan-savings" style="color:transparent;">&nbsp;</p>
-        {% endif %}
+            {% if plan.savings_label %}
+              <p class="cp-plan-savings">{{ plan.savings_label }}</p>
+            {% else %}
+              <p class="cp-plan-savings"></p>
+            {% endif %}
 
-        <p class="cp-plan-desc">{{ plan.description }}</p>
+            {% if plan.description %}
+              <p class="cp-plan-desc">{{ plan.description }}</p>
+            {% endif %}
 
-        <a href="{% url 'vendors:subscribe' plan.slug %}" class="cp-plan-btn">
-          Choose {{ plan.name }}
-        </a>
+            <ul class="cp-plan-features">
+              <li>
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span>Full seller dashboard access</span>
+              </li>
+              <li>
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span>List unlimited products</span>
+              </li>
+              <li>
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span>Accept orders and payments</span>
+              </li>
+            </ul>
+
+            <a href="{% url 'vendors:subscribe' plan.slug %}" class="cp-plan-btn">
+              Choose {{ plan.name }}
+            </a>
+          </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="cp-empty">
+      <div class="cp-empty-icon">
+        <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
       </div>
-    {% endfor %}
-  </div>
+      <p class="cp-empty-title">No plans available right now</p>
+      <p class="cp-empty-text">
+        Subscription plans are temporarily unavailable. Please try again shortly,
+        or contact support if this persists.
+      </p>
+    </div>
+  {% endif %}
 
   <div class="cp-info">
     <h3>How billing works</h3>
     <ul>
-      <li>Pay securely via Flutterwave — card, mobile money, or bank transfer.</li>
-      <li>Your subscription activates immediately after payment.</li>
+      <li>Pay securely via mobile money, bank transfer, or card.</li>
+      <li>Your subscription activates immediately after payment — no delays.</li>
       <li>We send reminders <strong>7 days, 3 days, and 1 day</strong> before your subscription expires.</li>
       <li>If you don't renew by the expiry date, you get a <strong>3-day grace period</strong> to complete payment.</li>
       <li>After the grace period, your store is automatically disabled until you renew.</li>

@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}Subscription plans — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .pl-wrap { max-width: 64rem; margin: 0 auto; padding: 0 0.75rem 4rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .pl-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .pl-header {
+    display: flex; flex-wrap: wrap; align-items: flex-start;
+    justify-content: space-between; gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .pl-h1 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0; }
+  .pl-sub { font-size: 0.85rem; color: #4b5563; margin: 0.25rem 0 0; }
+
+  .pl-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 0.35rem;
+    padding: 0.65rem 1.1rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 42px; box-sizing: border-box; white-space: nowrap;
+    transition: background-color 0.15s;
+  }
+  .pl-btn-primary { background: #ea580c; color: #fff; }
+  .pl-btn-primary:hover { background: #c2410c; }
+  .pl-btn-secondary { border: 1px solid #d1d5db; background: #fff; color: #374151; }
+  .pl-btn-secondary:hover { background: #f9fafb; }
+
+  .pl-alert {
+    padding: 0.75rem 1rem; border-radius: 10px;
+    font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;
+    background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+  }
+  .pl-alert-success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+  .pl-alert-warning { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+  .pl-alert-error   { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+
+  .pl-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; overflow: hidden;
+  }
+
+  .pl-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .pl-table thead { background: #f9fafb; }
+  .pl-table th {
+    text-align: left; padding: 0.75rem 1rem;
+    font-size: 0.7rem; font-weight: 800; color: #4b5563;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .pl-table td {
+    padding: 0.9rem 1rem;
+    border-top: 1px solid #f3f4f6;
+    vertical-align: middle;
+  }
+  .pl-table tbody tr { transition: background-color 0.12s; }
+  .pl-table tbody tr:hover { background: #fffbf5; }
+
+  /* Plan name + slug with clear hierarchy */
+  .pl-name-wrap { min-width: 0; }
+  .pl-name {
+    font-weight: 800; color: #111827;
+    display: flex; align-items: center; gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+  .pl-slug {
+    font-size: 0.7rem; color: #6b7280;
+    margin-top: 0.2rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .pl-desc {
+    font-size: 0.75rem; color: #4b5563;
+    margin-top: 0.25rem; line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Price + duration columns */
+  .pl-price {
+    font-weight: 800; color: #111827;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .pl-price-currency {
+    font-size: 0.7rem; color: #6b7280; font-weight: 700; margin-right: 0.15rem;
+  }
+  .pl-duration {
+    color: #4b5563;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .pl-badge {
+    display: inline-block; padding: 0.25rem 0.65rem;
+    border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+    white-space: nowrap;
+  }
+  .pl-badge-on { background: #dcfce7; color: #166534; }
+  .pl-badge-off { background: #f3f4f6; color: #6b7280; }
+
+  .pl-actions { display: flex; gap: 0.4rem; justify-content: flex-end; align-items: center; }
+  .pl-actions form { display: inline; margin: 0; }
+  .pl-actions .pl-btn { min-height: 34px; padding: 0.4rem 0.85rem; font-size: 0.78rem; }
+
+  /* Small "off" state button variant for toggle */
+  .pl-btn-danger {
+    border: 1px solid #fecaca; background: #fef2f2; color: #991b1b;
+  }
+  .pl-btn-danger:hover { background: #fee2e2; }
+
+  .pl-empty { padding: 3rem 1.5rem; text-align: center; }
+  .pl-empty-icon {
+    width: 3.5rem; height: 3.5rem; border-radius: 9999px;
+    background: #fff7ed; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  .pl-empty-title { font-size: 1rem; font-weight: 800; color: #111827; margin: 0; }
+  .pl-empty-text { font-size: 0.85rem; color: #6b7280; margin: 0.5rem auto 1.5rem; max-width: 28rem; line-height: 1.5; }
+
+  /* Mobile-friendly: wrap columns in cards instead of hiding */
+  @media (max-width: 720px) {
+    .pl-table thead { display: none; }
+    .pl-table tbody, .pl-table tr, .pl-table td { display: block; width: 100%; }
+    .pl-table tr {
+      padding: 1rem;
+      border-top: 1px solid #e5e7eb;
+    }
+    .pl-table tbody tr:first-child { border-top: 0; }
+    .pl-table td {
+      border: 0; padding: 0.25rem 0;
+    }
+    .pl-table td:last-child { padding-top: 0.75rem; }
+    .pl-actions { justify-content: flex-start; flex-wrap: wrap; }
+    .pl-price, .pl-duration { font-size: 0.85rem; }
+  }
+</style>
+
+<div class="pl-wrap">
+
+  <div class="pl-header">
+    <div>
+      <h1 class="pl-h1">Subscription plans</h1>
+      <p class="pl-sub">
+        Plans sellers choose from at signup. Changes take effect immediately for new subscriptions.
+      </p>
+    </div>
+    <a href="{% url 'system:plan_create' %}" class="pl-btn pl-btn-primary">
+      + New plan
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="pl-alert {% if m.tags == 'success' %}pl-alert-success{% elif m.tags == 'warning' %}pl-alert-warning{% elif m.tags == 'error' %}pl-alert-error{% endif %}">
+        {{ m }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if plans %}
+    <div class="pl-card">
+      <table class="pl-table">
+        <thead>
+          <tr>
+            <th>Plan</th>
+            <th>Price</th>
+            <th>Duration</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for plan in plans %}
+            <tr>
+              <td>
+                <div class="pl-name-wrap">
+                  <div class="pl-name">
+                    {{ plan.name }}
+                  </div>
+                  <div class="pl-slug" title="{{ plan.slug }}">{{ plan.slug }}</div>
+                  {% if plan.description %}
+                    <div class="pl-desc" title="{{ plan.description }}">{{ plan.description }}</div>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <div class="pl-price">
+                  <span class="pl-price-currency">{{ plan.currency }}</span>{{ plan.price }}
+                </div>
+              </td>
+              <td>
+                <div class="pl-duration">{{ plan.duration_label }}</div>
+              </td>
+              <td>
+                {% if plan.is_active %}
+                  <span class="pl-badge pl-badge-on">Active</span>
+                {% else %}
+                  <span class="pl-badge pl-badge-off">Inactive</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="pl-actions">
+                  <a href="{% url 'system:plan_edit' plan.id %}"
+                     class="pl-btn pl-btn-secondary">
+                    Edit
+                  </a>
+                  <form method="post"
+                        action="{% url 'system:plan_toggle_active' plan.id %}"
+                        onsubmit="return confirm('{% if plan.is_active %}Deactivate “{{ plan.name|escapejs }}”? Sellers won’t be able to pick it.{% else %}Activate “{{ plan.name|escapejs }}”?{% endif %}');">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="pl-btn {% if plan.is_active %}pl-btn-danger{% else %}pl-btn-secondary{% endif %}">
+                      {% if plan.is_active %}Deactivate{% else %}Activate{% endif %}
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="pl-card pl-empty">
+      <div class="pl-empty-icon">
+        <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2"/>
+        </svg>
+      </div>
+      <p class="pl-empty-title">No subscription plans yet</p>
+      <p class="pl-empty-text">
+        Sellers can't sign up until at least one active, priced plan exists.
+        Create your first plan to enable the seller signup flow.
+      </p>
+      <a href="{% url 'system:plan_create' %}" class="pl-btn pl-btn-primary">
+        + Create the first plan
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

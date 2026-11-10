@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% block title %}Pending subscriptions — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .ps-wrap { max-width: 64rem; margin: 0 auto; padding: 0 0.75rem 2rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .ps-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .ps-header {
+    display: flex; flex-wrap: wrap; align-items: flex-start;
+    justify-content: space-between; gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .ps-back {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.75rem; color: #6b7280; text-decoration: none;
+    margin-bottom: 1rem;
+  }
+  .ps-back:hover { color: #ea580c; }
+  .ps-h1 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0; }
+  .ps-sub { font-size: 0.85rem; color: #4b5563; margin: 0.35rem 0 0; line-height: 1.5; }
+
+  .ps-alert {
+    padding: 0.75rem 1rem; border-radius: 10px;
+    font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.5;
+  }
+  .ps-alert-success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; border: 1px solid #bbf7d0; }
+  .ps-alert-warning { background: #fffbeb; border-color: #fde68a; color: #92400e; border: 1px solid #fde68a; }
+  .ps-alert-error   { background: #fef2f2; border-color: #fecaca; color: #991b1b; border: 1px solid #fecaca; }
+  .ps-alert-info    { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; border: 1px solid #bfdbfe; }
+
+  .ps-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; overflow: hidden; margin-bottom: 1.5rem;
+  }
+  .ps-card-head {
+    padding: 1rem 1.25rem; background: #eff6ff;
+    border-bottom: 1px solid #bfdbfe;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem; flex-wrap: wrap;
+  }
+  .ps-card-title {
+    font-weight: 700; font-size: 1rem;
+    color: #1e3a8a; margin: 0;
+  }
+
+  .ps-badge {
+    display: inline-block; font-size: 0.7rem; font-weight: 700;
+    padding: 2px 8px; border-radius: 9999px;
+  }
+  .ps-badge-blue   { background: #dbeafe; color: #1e40af; }
+  .ps-badge-purple { background: #ede9fe; color: #6b21a8; }
+  .ps-badge-amber  { background: #fef3c7; color: #92400e; }
+  .ps-badge-red    { background: #fecaca; color: #991b1b; }
+
+  .ps-avatar {
+    width: 3rem; height: 3rem; border-radius: 9999px;
+    background: #dbeafe; color: #1e40af;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.8rem; flex-shrink: 0;
+  }
+
+  .ps-row {
+    border-top: 1px solid #f3f4f6;
+    padding: 1.25rem;
+    display: grid; grid-template-columns: 1fr; gap: 1rem;
+  }
+  .ps-row:first-child { border-top: 0; }
+  @media (min-width: 768px) {
+    .ps-row { grid-template-columns: minmax(0, 1fr) 11rem; align-items: start; }
+  }
+
+  .ps-row-left {
+    display: flex; align-items: flex-start; gap: 0.85rem;
+    min-width: 0;
+  }
+  .ps-row-info { min-width: 0; flex: 1; }
+
+  .ps-name {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 0.4rem; font-size: 0.95rem; font-weight: 800;
+    color: #111827; margin: 0;
+  }
+  .ps-meta {
+    font-size: 0.75rem; color: #374151;
+    margin-top: 0.35rem; line-height: 1.5;
+  }
+  .ps-meta strong { color: #111827; }
+
+  .ps-details {
+    display: grid; grid-template-columns: 1fr; gap: 0.65rem;
+    margin-top: 0.85rem; padding: 0.85rem;
+    background: #f9fafb; border: 1px solid #e5e7eb;
+    border-radius: 10px;
+  }
+  @media (min-width: 640px) {
+    .ps-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .ps-field { min-width: 0; overflow-wrap: break-word; word-break: break-word; }
+  .ps-field-label {
+    font-size: 0.6rem; font-weight: 800; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin: 0 0 0.15rem;
+  }
+  .ps-field-value {
+    font-size: 0.8rem; font-weight: 700;
+    color: #111827; margin: 0; word-break: break-all;
+  }
+  .ps-field-value a { color: #ea580c; text-decoration: none; }
+  .ps-field-value a:hover { text-decoration: underline; }
+
+  .ps-ref {
+    display: inline-block; font-family: ui-monospace, monospace;
+    font-size: 0.7rem; background: #e5e7eb; color: #374151;
+    padding: 0.15rem 0.5rem; border-radius: 4px;
+  }
+
+  .ps-actions { display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; }
+  @media (min-width: 768px) { .ps-actions { width: 11rem; } }
+  .ps-actions button { width: 100%; }
+
+  .ps-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 0.35rem; border-radius: 8px;
+    padding: 0.55rem 1rem; font-size: 0.8rem; font-weight: 700;
+    cursor: pointer; border: 0; min-height: 36px;
+    text-decoration: none; transition: background-color 0.15s;
+  }
+  .ps-btn-green { background: #16a34a; color: #fff; }
+  .ps-btn-green:hover { background: #15803d; }
+  .ps-btn-red { background: #fff; color: #b91c1c; border: 1px solid #fca5a5; }
+  .ps-btn-red:hover { background: #fef2f2; }
+
+  .ps-age { font-size: 0.65rem; font-weight: 700; padding: 1px 6px; border-radius: 9999px; }
+  .ps-age-fresh { background: #dcfce7; color: #166534; }
+  .ps-age-aging { background: #fef3c7; color: #92400e; }
+  .ps-age-stale { background: #fecaca; color: #991b1b; }
+
+  .ps-empty {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; padding: 3rem 1.5rem; text-align: center;
+  }
+  .ps-empty-icon {
+    width: 3.5rem; height: 3.5rem; border-radius: 9999px;
+    background: #dcfce7; color: #15803d;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  .ps-empty-title { font-weight: 700; color: #111827; margin: 0; font-size: 1.05rem; }
+  .ps-empty-text { font-size: 0.85rem; color: #374151; margin: 0.35rem 0 0; }
+</style>
+
+<div class="ps-wrap">
+
+  <a href="{% url 'system:verification_center' %}" class="ps-back">
+    ← Back to verification center
+  </a>
+
+  <div class="ps-header">
+    <div>
+      <h1 class="ps-h1">Pending subscriptions</h1>
+      <p class="ps-sub">
+        {% if pending_count %}
+          {{ pending_count }} subscription payment{{ pending_count|pluralize }} awaiting approval.
+        {% else %}
+          All caught up — no subscriptions awaiting review.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="ps-alert ps-alert-{% if m.tags == 'success' %}success{% elif m.tags == 'warning' %}warning{% elif m.tags == 'error' %}error{% else %}info{% endif %}">
+        {{ m }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if pending_subscriptions %}
+    <div class="ps-card">
+      <div class="ps-card-head">
+        <h2 class="ps-card-title">Awaiting approval</h2>
+        <span class="ps-badge ps-badge-blue">{{ pending_count }}</span>
+      </div>
+
+      <div>
+        {% for sub in pending_subscriptions %}
+          <div class="ps-row">
+            <div class="ps-row-left">
+              <div class="ps-avatar">{{ sub.vendor.display_name|slice:":2"|upper }}</div>
+
+              <div class="ps-row-info">
+                <p class="ps-name">
+                  {{ sub.vendor.user.get_full_name|default:sub.vendor.user.username }}
+                  <span class="ps-badge ps-badge-purple">{{ sub.plan.name }}</span>
+                  {% with age=sub.payment_submitted_at|timesince %}
+                    {% if "minute" in age or "hour" in age %}
+                      <span class="ps-age ps-age-fresh">{{ age }} ago</span>
+                    {% elif "1 day" in age or "2 days" in age or "3 days" in age %}
+                      <span class="ps-age ps-age-aging">{{ age }}</span>
+                    {% else %}
+                      <span class="ps-age ps-age-stale">{{ age }}</span>
+                    {% endif %}
+                  {% endwith %}
+                </p>
+                <p class="ps-meta">
+                  <strong>{{ sub.vendor.display_name }}</strong> · {{ sub.vendor.get_vendor_type_display }}
+                </p>
+
+                <div class="ps-details">
+                  <div class="ps-field">
+                    <p class="ps-field-label">Username</p>
+                    <p class="ps-field-value">{{ sub.vendor.user.username }}</p>
+                  </div>
+
+                  <div class="ps-field">
+                    <p class="ps-field-label">Email</p>
+                    <p class="ps-field-value">
+                      <a href="mailto:{{ sub.vendor.user.email }}">{{ sub.vendor.user.email }}</a>
+                    </p>
+                  </div>
+
+                  <div class="ps-field">
+                    <p class="ps-field-label">Phone</p>
+                    <p class="ps-field-value">{{ sub.vendor.user.phone|default:"—" }}</p>
+                  </div>
+
+                  <div class="ps-field">
+                    <p class="ps-field-label">Plan</p>
+                    <p class="ps-field-value">
+                      {{ sub.plan.name }} · {{ sub.plan.duration_label }}
+                    </p>
+                  </div>
+
+                  <div class="ps-field">
+                    <p class="ps-field-label">Amount</p>
+                    <p class="ps-field-value">
+                      {{ sub.currency }} {{ sub.amount_paid|default:sub.plan.price }}
+                    </p>
+                  </div>
+
+                  <div class="ps-field">
+                    <p class="ps-field-label">Submitted</p>
+                    <p class="ps-field-value">
+                      {{ sub.payment_submitted_at|date:"M d, Y · H:i" }}
+                    </p>
+                  </div>
+
+                  {% if sub.payment_reference %}
+                    <div class="ps-field" style="grid-column: 1 / -1;">
+                      <p class="ps-field-label">Payment reference</p>
+                      <p class="ps-field-value">
+                        <span class="ps-ref">{{ sub.payment_reference }}</span>
+                      </p>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="ps-actions">
+              <form method="post"
+                    action="{% url 'system:approve_subscription' sub.id %}"
+                    onsubmit="return confirm('Approve {{ sub.vendor.user.username|escapejs }} and activate their store?');">
+                {% csrf_token %}
+                <button type="submit" class="ps-btn ps-btn-green">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Approve
+                </button>
+              </form>
+
+              <button type="button"
+                      class="ps-btn ps-btn-red"
+                      onclick="openReject('{{ sub.id }}', '{{ sub.vendor.user.username|escapejs }}')">
+                Reject
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% else %}
+    <div class="ps-empty">
+      <div class="ps-empty-icon">
+        <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <p class="ps-empty-title">All caught up</p>
+      <p class="ps-empty-text">No subscription payments are awaiting approval.</p>
+    </div>
+  {% endif %}
+
+</div>
+
+{# Reject modal #}
+<div id="reject-modal" style="position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; padding:1rem;">
+  <div style="background:#fff; border-radius:16px; padding:1.25rem; max-width:28rem; width:100%; box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+    <h3 style="font-size:1rem; font-weight:800; color:#111827; margin:0 0 .35rem;">Reject subscription?</h3>
+    <p id="reject-modal-sub" style="font-size:.8rem; color:#6b7280; margin:0 0 1rem; line-height:1.5;"></p>
+
+    <form method="post" id="reject-form">
+      {% csrf_token %}
+      <label for="reject-reason" style="display:block; font-size:.8rem; font-weight:700; color:#374151; margin-bottom:.35rem;">
+        Reason (optional)
+      </label>
+      <textarea id="reject-reason" name="reason"
+                style="width:100%; box-sizing:border-box; border:1px solid #d1d5db; border-radius:8px; padding:.6rem .75rem; font-size:.85rem; color:#111827; background:#fff; outline:none; font-family:inherit; resize:vertical; min-height:4rem;"
+                placeholder="e.g. Payment amount didn't match the plan price"></textarea>
+
+      <div style="display:flex; justify-content:flex-end; gap:.5rem; margin-top:1rem;">
+        <button type="button"
+                onclick="closeReject()"
+                style="display:inline-flex; align-items:center; padding:.55rem 1rem; background:#fff; color:#374151; border:1px solid #d1d5db; border-radius:8px; font-size:.8rem; font-weight:700; cursor:pointer;">
+          Cancel
+        </button>
+        <button type="submit"
+                style="display:inline-flex; align-items:center; padding:.55rem 1rem; background:#dc2626; color:#fff; border:0; border-radius:8px; font-size:.8rem; font-weight:700; cursor:pointer;">
+          Reject subscription
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openReject(subId, username) {
+  var modal = document.getElementById('reject-modal');
+  var form = document.getElementById('reject-form');
+  var sub = document.getElementById('reject-modal-sub');
+  form.action = '/system/subscriptions/' + subId + '/reject/';
+  sub.textContent = 'Rejecting the payment submitted by "' + username + '". They will be notified.';
+  modal.style.display = 'flex';
+  document.getElementById('reject-reason').focus();
+}
+
+function closeReject() {
+  document.getElementById('reject-modal').style.display = 'none';
+}
+
+document.getElementById('reject-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeReject();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeReject();
+});
+</script>
+{% endblock %}
