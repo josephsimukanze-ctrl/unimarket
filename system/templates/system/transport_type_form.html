@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Edit transport type{% else %}New transport type{% endif %} — UniMarket{% endblock %}
+
+{% block content %}
+<style>
+  .ss-wrap { max-width: 56rem; margin: 0 auto; padding: 0 0.75rem 6rem; box-sizing: border-box; }
+  @media (min-width: 640px) { .ss-wrap { padding-left: 1rem; padding-right: 1rem; } }
+
+  .ss-h1 { font-size: 1.5rem; font-weight: 800; color: #111827; margin: 0; }
+  .ss-sub { font-size: 0.85rem; color: #4b5563; margin: 0.25rem 0 1.5rem; }
+
+  .ss-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 16px; overflow: hidden; margin-bottom: 1rem;
+  }
+  .ss-card-head {
+    padding: 0.85rem 1.25rem; background: #f9fafb;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .ss-card-icon {
+    width: 1.75rem; height: 1.75rem; border-radius: 8px;
+    background: #ffedd5; color: #ea580c;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ss-card-title { font-size: 0.9rem; font-weight: 800; color: #111827; margin: 0; }
+  .ss-card-body { padding: 1.25rem; }
+
+  .ss-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 640px) {
+    .ss-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ss-span2 { grid-column: span 2; }
+  }
+
+  .ss-label {
+    display: block; font-size: 0.8rem; font-weight: 700;
+    color: #374151; margin-bottom: 0.35rem;
+  }
+  .ss-error { font-size: 0.75rem; color: #dc2626; margin-top: 0.35rem; }
+
+  input.ss-input,
+  select.ss-input,
+  textarea.ss-input {
+    display: block !important; width: 100% !important;
+    box-sizing: border-box !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    padding: 0.55rem 0.7rem !important;
+    font-size: 0.85rem !important;
+    color: #111827 !important;
+    background: #fff !important;
+    outline: none !important; font-family: inherit !important;
+    min-height: 2.35rem !important; line-height: 1.4 !important;
+  }
+  input.ss-input:focus,
+  select.ss-input:focus,
+  textarea.ss-input:focus {
+    border-color: #ea580c !important;
+    box-shadow: 0 0 0 3px rgba(234,88,12,0.12) !important;
+  }
+  textarea.ss-input { resize: vertical !important; min-height: 4rem !important; }
+  select.ss-input { cursor: pointer !important; }
+
+  .ss-toggle {
+    display: flex; align-items: flex-start; gap: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #e5e7eb; border-radius: 8px;
+    cursor: pointer; background: #fff; box-sizing: border-box;
+  }
+  .ss-toggle:hover { background: #f9fafb; border-color: #d1d5db; }
+  .ss-toggle input[type="checkbox"] {
+    flex-shrink: 0; margin-top: 0.15rem;
+    width: 1rem !important; height: 1rem !important;
+    accent-color: #ea580c !important; cursor: pointer !important;
+  }
+  .ss-toggle-title { display: block; font-size: 0.8rem; font-weight: 600; color: #111827; line-height: 1.3; }
+
+  .ss-save-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+    background: #fff; border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+    padding: 0.75rem 1rem;
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 0.75rem; box-sizing: border-box;
+  }
+  .ss-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.6rem 1rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700;
+    text-decoration: none; border: 0; cursor: pointer;
+    min-height: 42px; box-sizing: border-box; white-space: nowrap;
+  }
+  .ss-btn-primary { background: #ea580c; color: #fff; }
+  .ss-btn-primary:hover { background: #c2410c; }
+  .ss-btn-secondary { border: 1px solid #d1d5db; background: #fff; color: #374151; }
+  .ss-btn-secondary:hover { background: #f9fafb; }
+
+  .ss-alert {
+    background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d;
+    padding: 0.75rem 1rem; border-radius: 10px;
+    font-size: 0.85rem; margin-bottom: 1rem;
+  }
+  .ss-hint { font-size: 0.72rem; color: #6b7280; margin: 0.35rem 0 0; line-height: 1.4; }
+</style>
+
+<div class="ss-wrap">
+  <h1 class="ss-h1">{% if is_edit %}Edit transport type{% else %}New transport type{% endif %}</h1>
+  <p class="ss-sub">Define how this delivery method is named, priced, and shown to buyers.</p>
+
+  {% if form.non_field_errors %}
+    <div class="ss-alert">
+      {% for e in form.non_field_errors %}<p style="margin:0;">{{ e }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" id="transport-form" novalidate>
+    {% csrf_token %}
+
+    {# ── BASICS ── #}
+    <section class="ss-card">
+      <div class="ss-card-head">
+        <div class="ss-card-icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3 13l2-6h11l2 6M3 13h16v4H3v-4zm2 4a2 2 0 104 0 2 2 0 00-4 0zm10 0a2 2 0 104 0 2 2 0 00-4 0z"/>
+          </svg>
+        </div>
+        <h2 class="ss-card-title">Basics</h2>
+      </div>
+      <div class="ss-card-body">
+        <div class="ss-grid">
+          <div>
+            <label for="id_name" class="ss-label">Name</label>
+            {{ form.name }}
+            {% if form.name.errors %}<p class="ss-error">{{ form.name.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_code" class="ss-label">Code (optional)</label>
+            {{ form.code }}
+            <p class="ss-hint">Auto-generated from name if left blank. Must be unique.</p>
+            {% if form.code.errors %}<p class="ss-error">{{ form.code.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div class="ss-span2">
+            <label for="id_description" class="ss-label">Description</label>
+            {{ form.description }}
+            {% if form.description.errors %}<p class="ss-error">{{ form.description.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {# ── PRICING ── #}
+    <section class="ss-card">
+      <div class="ss-card-head">
+        <div class="ss-card-icon" style="background:#dbeafe; color:#1e40af;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3 1.343 3 3-1.343 3-3 3M12 8V6m0 12v2M4 12h2m12 0h2"/>
+          </svg>
+        </div>
+        <h2 class="ss-card-title">Pricing</h2>
+      </div>
+      <div class="ss-card-body">
+        <div class="ss-grid">
+          <div class="ss-span2">
+            <label for="id_pricing_kind" class="ss-label">Pricing rule</label>
+            {{ form.pricing_kind }}
+            {% if form.pricing_kind.errors %}<p class="ss-error">{{ form.pricing_kind.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_base_fee" class="ss-label">Base fee</label>
+            {{ form.base_fee }}
+            {% if form.base_fee.errors %}<p class="ss-error">{{ form.base_fee.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_per_km_fee" class="ss-label">Per-km fee</label>
+            {{ form.per_km_fee }}
+            {% if form.per_km_fee.errors %}<p class="ss-error">{{ form.per_km_fee.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_per_kg_fee" class="ss-label">Per-kg fee</label>
+            {{ form.per_kg_fee }}
+            {% if form.per_kg_fee.errors %}<p class="ss-error">{{ form.per_kg_fee.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_max_weight_kg" class="ss-label">Max weight (kg)</label>
+            {{ form.max_weight_kg }}
+            <p class="ss-hint">0 = no limit.</p>
+          </div>
+          <div>
+            <label for="id_max_distance_km" class="ss-label">Max distance (km)</label>
+            {{ form.max_distance_km }}
+            <p class="ss-hint">0 = no limit.</p>
+          </div>
+          <div class="ss-span2">
+            <label for="id_pricing_notes" class="ss-label">Pricing notes</label>
+            {{ form.pricing_notes }}
+            <p class="ss-hint">Shown at checkout. Especially useful for "Custom" pricing.</p>
+            {% if form.pricing_notes.errors %}<p class="ss-error">{{ form.pricing_notes.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {# ── DELIVERY & VISIBILITY ── #}
+    <section class="ss-card">
+      <div class="ss-card-head">
+        <div class="ss-card-icon" style="background:#dcfce7; color:#166534;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <h2 class="ss-card-title">Delivery &amp; visibility</h2>
+      </div>
+      <div class="ss-card-body">
+        <div class="ss-grid">
+          <div>
+            <label for="id_estimated_days_min" class="ss-label">ETA — min days</label>
+            {{ form.estimated_days_min }}
+          </div>
+          <div>
+            <label for="id_estimated_days_max" class="ss-label">ETA — max days</label>
+            {{ form.estimated_days_max }}
+            {% if form.estimated_days_max.errors %}<p class="ss-error">{{ form.estimated_days_max.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="id_sort_order" class="ss-label">Sort order</label>
+            {{ form.sort_order }}
+            <p class="ss-hint">Lower numbers appear first.</p>
+          </div>
+          <div class="ss-span2">
+            <label class="ss-toggle">
+              {{ form.is_active }}
+              <span style="min-width: 0;">
+                <span class="ss-toggle-title">Active</span>
+                <span style="display:block;font-size:0.7rem;color:#6b7280;margin-top:0.15rem;line-height:1.4;">
+                  Only active types are shown to buyers at checkout.
+                </span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+  </form>
+
+  <div class="ss-save-bar">
+    <a href="{% url 'system:transport_types_list' %}" class="ss-btn ss-btn-secondary">Cancel</a>
+    <button type="submit" form="transport-form" class="ss-btn ss-btn-primary">
+      {% if is_edit %}Save changes{% else %}Create transport type{% endif %}
+    </button>
+  </div>
+</div>
+{% endblock %}

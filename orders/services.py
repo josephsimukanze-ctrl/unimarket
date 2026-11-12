@@ -35,7 +35,7 @@ def _generate_order_number() -> str:
         candidate = f"UM-{now:%Y%m%d}-{daily_count + 1:06d}"
         if not Order.objects.filter(order_number=candidate).exists():
             return candidate
-    # Extremely unlikely fallback: append a random hex chunk
+
     import uuid
     now = timezone.now()
     return f"UM-{now:%Y%m%d}-{uuid.uuid4().hex[:6].upper()}"
@@ -69,7 +69,7 @@ def create_order_from_cart(request, shipping_address):
         )
     vendor = vendors.pop()
 
-    # ── NEW: reject checkout when the vendor can't receive money ──
+    # ── Reject checkout when the vendor can't receive money ──────
     payment_settings = vendor.payment_settings  # get_or_create property
     if not payment_settings.has_payout_info:
         raise ValidationError(
@@ -78,15 +78,35 @@ def create_order_from_cart(request, shipping_address):
         )
 
     subtotal = sum(item.subtotal for item in items)
-    shipping_total = Decimal("0.00")
+
+    # ── Transport: pull the chosen type out of the address dict ──
+    # The form's field is still named "shipping_method" but its value is a
+    # system.TransportType instance. `transport_type` is the new canonical
+    # name; keep the old key as a fallback for safety.
+    transport_type = (
+        shipping_address.pop("shipping_method", None)
+        or shipping_address.pop("transport_type", None)
+    )
+
+    # ── Compute the transport fee from the chosen TransportType ──
+    # If the buyer didn't choose a transport (or the type has no pricing),
+    # fall back to zero. Otherwise use the model's fee calculation, which
+    # mirrors what the checkout preview displayed.
+    if transport_type:
+        distance_km = shipping_address.get("distance_km") or 0
+        weight_kg = shipping_address.get("weight_kg") or 0
+        shipping_total = transport_type.fee_for(
+            distance_km=distance_km,
+            weight_kg=weight_kg,
+        )
+    else:
+        shipping_total = Decimal("0.00")
+
     total = subtotal + shipping_total
 
-    # NEW: currency comes from the vendor's current selling currency
+    # Currency comes from the vendor's current selling currency
     # (falls back to the variant currency if a vendor switched recently)
     currency = payment_settings.currency or items[0].variant.currency
-
-    # Extract shipping_method out of address dict — it belongs on the Order
-    shipping_method = shipping_address.pop("shipping_method", None)
 
     # ── Create the order (retry once on order_number collision) ──
     order = None
@@ -102,14 +122,14 @@ def create_order_from_cart(request, shipping_address):
                 total=total,
                 currency=currency,
                 shipping_address=shipping_address,
-                shipping_method=shipping_method,
+                transport_type=transport_type,
             )
             break
         except IntegrityError:
             if attempt == 1:
                 raise
 
-    # ── NEW: freeze the vendor's payout details onto this order ──
+    # ── Freeze the vendor's payout details onto this order ──────
     # From this moment the order carries a permanent snapshot. If the
     # vendor edits their number tomorrow, this order still shows the
     # number the buyer was told to pay.

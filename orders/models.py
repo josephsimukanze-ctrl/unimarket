@@ -8,16 +8,19 @@ from django.db import models
 from django.utils import timezone
 
 from catalogue.models import ProductVariant
+from system.models import TransportType            # ← NEW
 from vendors.models import Vendor
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# SHIPPING METHOD
+# SHIPPING METHOD  (deprecated — kept only so old rows survive)
 # ═══════════════════════════════════════════════════════════════════════
 
 class ShippingMethod(models.Model):
-    """Transport / forwarding companies buyers can choose at checkout."""
-
+    """
+    Legacy model — kept so historical orders don't lose their FK.
+    All new checkouts use system.TransportType instead.
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=110, unique=True)
@@ -32,8 +35,8 @@ class ShippingMethod(models.Model):
 
     class Meta:
         ordering = ["sort_order", "name"]
-        verbose_name = "Shipping method"
-        verbose_name_plural = "Shipping methods"
+        verbose_name = "Shipping method (legacy)"
+        verbose_name_plural = "Shipping methods (legacy)"
 
     def __str__(self) -> str:
         return self.name
@@ -70,24 +73,33 @@ class Order(models.Model):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     currency = models.CharField(max_length=3, default="ZMW")
     shipping_address = models.JSONField(default=dict, blank=True)
-    shipping_method = models.ForeignKey(
-        ShippingMethod,
-        on_delete=models.SET_NULL,
+
+    # ── Transport ────────────────────────────────────────────────
+    # New FK → admin-managed TransportType (has pricing, ETA, notes).
+    transport_type = models.ForeignKey(
+        TransportType,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name="orders",
-        help_text="Transport company chosen by the buyer at checkout.",
+        help_text="Transport method chosen by the buyer at checkout.",
     )
+
+    # Legacy FK — keep for old rows only, will be null going forward.
+    shipping_method = models.ForeignKey(ShippingMethod,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="legacy_orders",
+        help_text="Legacy transport reference — new orders use transport_type.",
+    )
+
     placed_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     # ── Frozen payout snapshot ─────────────────────────────────────
-    # Captured from vendor.payment_settings when the order is created.
-    # Immutable from the buyer's side so historical orders stay accurate
-    # even after the seller changes their payout details.
     payout_method = models.CharField(max_length=20, blank=True)
     payout_network = models.CharField(max_length=20, blank=True)
-    # NEW: receiver's name on the mobile wallet (frozen)
     payout_mobile_name = models.CharField(max_length=150, blank=True)
     payout_mobile_number = models.CharField(max_length=30, blank=True)
     payout_bank_name = models.CharField(max_length=100, blank=True)
@@ -114,13 +126,6 @@ class Order(models.Model):
 
     @property
     def payout_receiver_name(self) -> str:
-        """
-        Single accessor that returns whatever name we have on file,
-        in order of specificity:
-          - mobile money wallet name (for mobile payouts)
-          - bank account name (for bank payouts)
-          - vendor display name (always available)
-        """
         if self.payout_method == "mobile_money":
             return self.payout_mobile_name or self.vendor.display_name
         if self.payout_method == "bank_transfer":
@@ -129,7 +134,6 @@ class Order(models.Model):
 
     @property
     def payout_summary(self) -> str:
-        """Human-readable payout summary for emails / detail page."""
         if self.payout_method == "mobile_money":
             net = dict(self.vendor.payment_settings.MobileMoneyNetwork.choices).get(
                 self.payout_network, self.payout_network or "Mobile Money"
@@ -141,15 +145,19 @@ class Order(models.Model):
             return f"{self.payout_bank_name}: {self.payout_account_no} ({name})"
         return "—"
 
+    @property
+    def transport_label(self) -> str:
+        """Friendly transport name for templates — handles legacy fallback."""
+        if self.transport_type_id:
+            return self.transport_type.name
+        if self.shipping_method_id:
+            return self.shipping_method.name
+        return ""
+
     def freeze_payout(self, save: bool = True):
-        """
-        Copy the vendor's current payment settings onto this order.
-        Call once, immediately after creating the order.
-        """
-        ps = self.vendor.payment_settings  # get_or_create property
+        ps = self.vendor.payment_settings
         self.payout_method = ps.payout_method
         self.payout_network = ps.mobile_money_network
-        # NEW: copy the wallet name too
         self.payout_mobile_name = ps.mobile_money_name
         self.payout_mobile_number = ps.mobile_money_number
         self.payout_bank_name = ps.bank_name
@@ -159,14 +167,13 @@ class Order(models.Model):
         self.payout_instructions = ps.payout_instructions
         self.payout_frozen_at = timezone.now()
 
-        # Also inherit the vendor's current selling currency if not set
         if not self.currency or self.currency == "ZMW":
             self.currency = ps.currency
 
         if save:
             self.save(update_fields=[
                 "payout_method", "payout_network",
-                "payout_mobile_name", "payout_mobile_number",   # ← new field
+                "payout_mobile_name", "payout_mobile_number",
                 "payout_bank_name", "payout_account_name", "payout_account_no",
                 "payout_branch", "payout_instructions", "payout_frozen_at",
                 "currency", "updated_at",
@@ -191,15 +198,10 @@ class OrderItem(models.Model):
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# PAYMENT TRANSACTION  (for Airtel / MTN integration)
+# PAYMENT TRANSACTION
 # ═══════════════════════════════════════════════════════════════════════
 
 class PaymentTransaction(models.Model):
-    """
-    One row per payment attempt against an order.
-    Used by Airtel Cash-In and MTN MoMo callbacks to reconcile.
-    """
-
     class Provider(models.TextChoices):
         AIRTEL = "airtel", "Airtel Money"
         MTN = "mtn", "MTN MoMo"
@@ -221,7 +223,6 @@ class PaymentTransaction(models.Model):
         max_length=20, choices=Status.choices, default=Status.INITIATED
     )
 
-    # Partner-side identifiers
     partner_reference = models.CharField(
         max_length=100, db_index=True,
         help_text="Transaction ID sent by us to the provider.",
@@ -267,7 +268,6 @@ class PaymentTransaction(models.Model):
         self.save(update_fields=[
             "status", "provider_reference", "raw_response", "updated_at",
         ])
-        # Flip the order to PAID in the same call
         self.order.status = OrderStatus.PAID
         self.order.save(update_fields=["status", "updated_at"])
 
@@ -301,10 +301,25 @@ def generate_tracking_number(method_code: str) -> str:
 class Shipment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="shipments")
-    shipping_method = models.ForeignKey(
-        ShippingMethod, on_delete=models.PROTECT,
-        related_name="shipments", null=True, blank=True,
+
+    # New: preferred FK to TransportType
+    transport_type = models.ForeignKey(
+        TransportType,
+        on_delete=models.PROTECT,
+        related_name="shipments",
+        null=True,
+        blank=True,
     )
+
+    # Legacy (kept for old rows)
+    shipping_method = models.ForeignKey(
+        ShippingMethod,
+        on_delete=models.PROTECT,
+        related_name="legacy_shipments",
+        null=True,
+        blank=True,
+    )
+
     carrier = models.CharField(max_length=100, blank=True)
     tracking_number = models.CharField(max_length=100, blank=True, db_index=True)
     shipped_at = models.DateTimeField(null=True, blank=True)
@@ -320,8 +335,13 @@ class Shipment(models.Model):
         return f"Shipment for {self.order.order_number}"
 
     def save(self, *args, **kwargs):
-        if not self.tracking_number and self.shipping_method_id:
-            self.tracking_number = generate_tracking_number(self.shipping_method.code)
+        # Generate tracking number from the transport's `code` when available.
+        # `TransportType` has a `code` field (auto-slugified name); `ShippingMethod`
+        # also has `code`. Fall back gracefully.
+        transport = self.transport_type or self.shipping_method
+        if not self.tracking_number and transport:
+            code = getattr(transport, "code", "") or transport.name[:5]
+            self.tracking_number = generate_tracking_number(code)
             if not self.carrier:
-                self.carrier = self.shipping_method.name
+                self.carrier = transport.name
         super().save(*args, **kwargs)

@@ -342,3 +342,78 @@ class ParentCategoryForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+from .models import SiteSetting, TransportType
+
+
+class TransportTypeForm(forms.ModelForm):
+    class Meta:
+        model = TransportType
+        fields = [
+            "name", "code", "description",
+            "pricing_kind",
+            "base_fee", "per_km_fee", "per_kg_fee",
+            "max_weight_kg", "max_distance_km",
+            "pricing_notes",
+            "estimated_days_min", "estimated_days_max",
+            "is_active", "sort_order",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "ss-input",
+                                           "placeholder": "e.g. Motorbike courier"}),
+            "code": forms.TextInput(attrs={"class": "ss-input",
+                                           "placeholder": "auto-generated from name"}),
+            "description": forms.TextInput(attrs={"class": "ss-input",
+                                                  "placeholder": "Short note shown at checkout"}),
+            "pricing_kind": forms.Select(attrs={"class": "ss-input"}),
+            "base_fee": forms.NumberInput(attrs={"class": "ss-input", "step": "0.01", "min": 0}),
+            "per_km_fee": forms.NumberInput(attrs={"class": "ss-input", "step": "0.01", "min": 0}),
+            "per_kg_fee": forms.NumberInput(attrs={"class": "ss-input", "step": "0.01", "min": 0}),
+            "max_weight_kg": forms.NumberInput(attrs={"class": "ss-input", "step": "0.01", "min": 0}),
+            "max_distance_km": forms.NumberInput(attrs={"class": "ss-input", "step": "0.01", "min": 0}),
+            "pricing_notes": forms.Textarea(attrs={"class": "ss-input", "rows": 3,
+                                                    "placeholder": "Optional — explain the pricing to buyers."}),
+            "estimated_days_min": forms.NumberInput(attrs={"class": "ss-input", "min": 0}),
+            "estimated_days_max": forms.NumberInput(attrs={"class": "ss-input", "min": 0}),
+            "is_active": forms.CheckboxInput(attrs={"class": "h-4 w-4 rounded border-gray-300"}),
+            "sort_order": forms.NumberInput(attrs={"class": "ss-input", "min": 0}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["code"].required = False
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.CheckboxInput):
+                continue
+            existing = field.widget.attrs.get("class", "")
+            if "ss-input" not in existing:
+                field.widget.attrs["class"] = f"ss-input {existing}".strip()
+
+    def clean_code(self):
+        code = (self.cleaned_data.get("code") or "").strip()
+        if not code:
+            from django.utils.text import slugify
+            code = slugify(self.cleaned_data.get("name", ""))
+        qs = TransportType.objects.filter(code=code)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("A transport type with that code already exists.")
+        return code
+
+    def clean(self):
+        cleaned = super().clean()
+        kind = cleaned.get("pricing_kind")
+        lo = cleaned.get("estimated_days_min") or 0
+        hi = cleaned.get("estimated_days_max") or 0
+        if hi and lo and hi < lo:
+            self.add_error("estimated_days_max",
+                           "Max days must be greater than or equal to min days.")
+        if kind == TransportType.PricingKind.PER_KM and not cleaned.get("per_km_fee"):
+            self.add_error("per_km_fee", "Per-km pricing needs a per-km fee.")
+        if kind == TransportType.PricingKind.WEIGHT_BASED and not cleaned.get("per_kg_fee"):
+            self.add_error("per_kg_fee", "Weight-based pricing needs a per-kg fee.")
+        if kind == TransportType.PricingKind.CUSTOM and not (cleaned.get("pricing_notes") or "").strip():
+            self.add_error("pricing_notes",
+                           "Describe the custom pricing so buyers know what to expect.")
+        return cleaned

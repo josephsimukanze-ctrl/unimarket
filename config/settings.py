@@ -1,4 +1,3 @@
-
 import os
 from pathlib import Path
 
@@ -12,7 +11,8 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.environ["SECRET_KEY"]
 
-DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+# Default to True for local dev. Set DEBUG=False in .env for production.
+DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -45,7 +45,7 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
 
-# ── Applications ───────────────────────────────────────
+# ── Applications ────────────────────────────────────────
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -78,10 +78,12 @@ INSTALLED_APPS = [
 ]
 
 
-# ── Middleware ─────────────────────────────────────────
+# ── Middleware ──────────────────────────────────────────
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # WhiteNoise must sit right after SecurityMiddleware.
+    # Only enable it in production; the dev server serves static itself.
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -90,6 +92,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "vendors.middleware.SubscriptionExpiryMiddleware",
 ]
+
+if not DEBUG:
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 
 # ── URLs and Templates ──────────────────────────────────
@@ -133,7 +138,7 @@ DATABASES = {
 }
 
 
-# ── Password Validation ────────────────────────────────
+# ── Password Validation ─────────────────────────────────
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -166,6 +171,17 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# WhiteNoise: compression + hashed filenames for cache busting (production only).
+if not DEBUG:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

@@ -88,4 +88,9 @@ path(
     views.category_toggle_active,
     name="category_toggle_active",
 ),
+path("transport-types/", views.transport_types_list, name="transport_types_list"),
+path("transport-types/new/", views.transport_type_create, name="transport_type_create"),
+path("transport-types/<int:type_id>/edit/", views.transport_type_edit, name="transport_type_edit"),
+path("transport-types/<int:type_id>/toggle/", views.transport_type_toggle_active, name="transport_type_toggle_active"),
+path("transport-types/<int:type_id>/delete/", views.transport_type_delete, name="transport_type_delete"),
 ]

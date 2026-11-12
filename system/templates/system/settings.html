@@ -109,6 +109,8 @@
   .ss-btn-primary:hover { background: #c2410c; }
   .ss-btn-secondary { border: 1px solid #d1d5db; background: #fff; color: #374151; }
   .ss-btn-secondary:hover { background: #f9fafb; }
+  .ss-btn-danger { border: 1px solid #fecaca; background: #fff; color: #b91c1c; }
+  .ss-btn-danger:hover { background: #fef2f2; }
 
   .ss-alert {
     background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d;
@@ -120,12 +122,65 @@
     font-size: 0.72rem; color: #6b7280;
     margin: 0.35rem 0 0; line-height: 1.4;
   }
+
+  /* ── Transport rows (inline list) ── */
+  .ss-tr-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
+  .ss-tr {
+    border: 1px solid #e5e7eb; border-radius: 12px;
+    background: #fff; padding: 0.85rem 1rem;
+  }
+  .ss-tr-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 0.75rem; flex-wrap: wrap;
+  }
+  .ss-tr-name { font-size: 0.9rem; font-weight: 800; color: #111827; margin: 0; }
+  .ss-tr-desc { font-size: 0.78rem; color: #6b7280; margin: 0.15rem 0 0; }
+  .ss-tr-meta {
+    font-size: 0.75rem; color: #4b5563;
+    margin: 0.45rem 0 0; line-height: 1.5;
+  }
+  .ss-tr-meta b { color: #111827; }
+  .ss-tr-actions { display: flex; gap: 0.4rem; flex-shrink: 0; flex-wrap: wrap; }
+  .ss-tr-actions .ss-btn {
+    min-height: 32px; padding: 0.3rem 0.7rem; font-size: 0.72rem;
+  }
+
+  .ss-pill {
+    display: inline-flex; align-items: center;
+    padding: 0.1rem 0.5rem; border-radius: 999px;
+    font-size: 0.68rem; font-weight: 800; letter-spacing: 0.02em;
+  }
+  .ss-pill-on { background: #dcfce7; color: #166534; }
+  .ss-pill-off { background: #f3f4f6; color: #4b5563; }
+
+  .ss-empty {
+    border: 1px dashed #d1d5db; border-radius: 12px;
+    padding: 1.25rem; text-align: center;
+    color: #6b7280; font-size: 0.85rem; background: #fff;
+    margin-bottom: 1rem;
+  }
+
+  .ss-divider {
+    border-top: 1px solid #f3f4f6;
+    margin: 1.25rem 0;
+  }
+  .ss-subhead {
+    font-size: 0.8rem; font-weight: 800; color: #111827;
+    margin: 0 0 0.75rem; letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
 </style>
 
 <div class="ss-wrap">
 
   <h1 class="ss-h1">Site settings</h1>
   <p class="ss-sub">Controls platform-wide behavior. Changes take effect immediately.</p>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="ss-alert" style="background:#f0fdf4;border-color:#bbf7d0;color:#14532d;">{{ m }}</div>
+    {% endfor %}
+  {% endif %}
 
   {% if site_form.non_field_errors or deposit_form.non_field_errors %}
     <div class="ss-alert">
@@ -227,7 +282,6 @@
               {% for value, label in site_form.default_currency.field.choices %}
                 <option value="{{ value }}" {% if site_form.default_currency.value == value %}selected{% endif %}>{{ label }}</option>
               {% empty %}
-                {# fallback: widget carries hardcoded choices #}
                 {% for value, label in site_form.default_currency.field.widget.choices %}
                   <option value="{{ value }}" {% if site_form.default_currency.value == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
@@ -487,6 +541,169 @@
     </section>
 
   </form>
+
+  {# ══════════════════════════════════════════════════════════════
+     TRANSPORT TYPES  — outside the settings form so it can POST
+     independently (create / toggle / delete per row).
+     ══════════════════════════════════════════════════════════════ #}
+  <section class="ss-card" id="transport-types">
+    <div class="ss-card-head">
+      <div class="ss-card-icon" style="background:#e0f2fe; color:#0369a1;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 13l2-6h11l2 6M3 13h16v4H3v-4zm2 4a2 2 0 104 0 2 2 0 00-4 0zm10 0a2 2 0 104 0 2 2 0 00-4 0z"/>
+        </svg>
+      </div>
+      <h2 class="ss-card-title">Transport types</h2>
+    </div>
+    <div class="ss-card-body">
+      <p class="ss-hint" style="margin:0 0 1rem;">
+        Create the delivery methods buyers can choose at checkout
+        (bicycle, motorbike, van, drone, …) and set how each is priced.
+      </p>
+
+      {# Existing types #}
+      {% if transport_types %}
+        <div class="ss-tr-list">
+          {% for t in transport_types %}
+            <div class="ss-tr">
+              <div class="ss-tr-top">
+                <div style="min-width:0;">
+                  <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+                    <p class="ss-tr-name">{{ t.name }}</p>
+                    {% if t.is_active %}
+                      <span class="ss-pill ss-pill-on">Active</span>
+                    {% else %}
+                      <span class="ss-pill ss-pill-off">Inactive</span>
+                    {% endif %}
+                  </div>
+                  {% if t.description %}<p class="ss-tr-desc">{{ t.description }}</p>{% endif %}
+                  <p class="ss-tr-meta">
+                    <b>{{ t.get_pricing_kind_display }}</b>
+                    &nbsp;·&nbsp; base {{ t.base_fee }}
+                    {% if t.per_km_fee %}&nbsp;·&nbsp; +{{ t.per_km_fee }}/km{% endif %}
+                    {% if t.per_kg_fee %}&nbsp;·&nbsp; +{{ t.per_kg_fee }}/kg{% endif %}
+                    {% if t.estimated_label %}&nbsp;·&nbsp; {{ t.estimated_label }}{% endif %}
+                    {% if t.code %}&nbsp;·&nbsp; code: {{ t.code }}{% endif %}
+                  </p>
+                  {% if t.pricing_notes %}<p class="ss-tr-desc">{{ t.pricing_notes }}</p>{% endif %}
+                </div>
+                <div class="ss-tr-actions">
+                  <form method="post" action="{% url 'system:transport_type_toggle_active' t.id %}" style="margin:0;">
+                    {% csrf_token %}
+                    <button class="ss-btn ss-btn-secondary" type="submit">
+                      {{ t.is_active|yesno:"Disable,Enable" }}
+                    </button>
+                  </form>
+                  <form method="post" action="{% url 'system:transport_type_delete' t.id %}" style="margin:0;"
+                        onsubmit="return confirm('Delete this transport type?');">
+                    {% csrf_token %}
+                    <button class="ss-btn ss-btn-danger" type="submit">Delete</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="ss-empty">
+          No transport types yet. Add your first one below.
+        </div>
+      {% endif %}
+
+      <div class="ss-divider"></div>
+      <p class="ss-subhead">Add a transport type</p>
+
+      {# Inline create form — posts to the transport_type_create view #}
+      <form method="post" action="{% url 'system:transport_type_create' %}" id="transport-create-form" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'system:settings' %}#transport-types">
+
+        <div class="ss-grid">
+          <div>
+            <label for="tr_name" class="ss-label">Name</label>
+            {{ transport_form.name }}
+            {% if transport_form.name.errors %}<p class="ss-error">{{ transport_form.name.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="tr_code" class="ss-label">Code (optional)</label>
+            {{ transport_form.code }}
+            <p class="ss-hint">Auto-generated from name if left blank.</p>
+            {% if transport_form.code.errors %}<p class="ss-error">{{ transport_form.code.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div class="ss-span2">
+            <label for="tr_description" class="ss-label">Description</label>
+            {{ transport_form.description }}
+            {% if transport_form.description.errors %}<p class="ss-error">{{ transport_form.description.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="ss-span2">
+            <label for="tr_pricing_kind" class="ss-label">Pricing rule</label>
+            {{ transport_form.pricing_kind }}
+            {% if transport_form.pricing_kind.errors %}<p class="ss-error">{{ transport_form.pricing_kind.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="tr_base_fee" class="ss-label">Base fee</label>
+            {{ transport_form.base_fee }}
+            {% if transport_form.base_fee.errors %}<p class="ss-error">{{ transport_form.base_fee.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="tr_per_km_fee" class="ss-label">Per-km fee</label>
+            {{ transport_form.per_km_fee }}
+            {% if transport_form.per_km_fee.errors %}<p class="ss-error">{{ transport_form.per_km_fee.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="tr_per_kg_fee" class="ss-label">Per-kg fee</label>
+            {{ transport_form.per_kg_fee }}
+            {% if transport_form.per_kg_fee.errors %}<p class="ss-error">{{ transport_form.per_kg_fee.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="tr_max_weight_kg" class="ss-label">Max weight (kg)</label>
+            {{ transport_form.max_weight_kg }}
+            <p class="ss-hint">0 = no limit.</p>
+          </div>
+          <div>
+            <label for="tr_max_distance_km" class="ss-label">Max distance (km)</label>
+            {{ transport_form.max_distance_km }}
+            <p class="ss-hint">0 = no limit.</p>
+          </div>
+          <div class="ss-span2">
+            <label for="tr_pricing_notes" class="ss-label">Pricing notes</label>
+            {{ transport_form.pricing_notes }}
+            <p class="ss-hint">Shown at checkout. Especially useful for "Custom" pricing.</p>
+            {% if transport_form.pricing_notes.errors %}<p class="ss-error">{{ transport_form.pricing_notes.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="tr_estimated_days_min" class="ss-label">ETA — min days</label>
+            {{ transport_form.estimated_days_min }}
+          </div>
+          <div>
+            <label for="tr_estimated_days_max" class="ss-label">ETA — max days</label>
+            {{ transport_form.estimated_days_max }}
+            {% if transport_form.estimated_days_max.errors %}<p class="ss-error">{{ transport_form.estimated_days_max.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="tr_sort_order" class="ss-label">Sort order</label>
+            {{ transport_form.sort_order }}
+            <p class="ss-hint">Lower numbers appear first.</p>
+          </div>
+          <div class="ss-span2">
+            <label class="ss-toggle">
+              {{ transport_form.is_active }}
+              <span style="min-width: 0;">
+                <span class="ss-toggle-title">Active</span>
+                <span class="ss-toggle-text">Only active types are shown to buyers at checkout.</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:1rem;">
+          <button type="submit" class="ss-btn ss-btn-primary">+ Add transport type</button>
+        </div>
+      </form>
+    </div>
+  </section>
 
   <div class="ss-save-bar">
     <a href="{% url 'dashboards:dashboard' %}" class="ss-btn ss-btn-secondary">Cancel</a>

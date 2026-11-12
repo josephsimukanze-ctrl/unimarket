@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import ShippingMethod
+from system.models import TransportType
 
 
 # Plain color classes that always render — no custom palette dependency
@@ -62,13 +62,17 @@ class ShippingForm(forms.Form):
         label="Country",
         widget=forms.TextInput(attrs={"class": FIELD_CLASS}),
     )
+
+    # ── Transport: backed by system.TransportType (admin-managed) ──
     shipping_method = forms.ModelChoiceField(
-        queryset=ShippingMethod.objects.filter(is_active=True),
+        queryset=TransportType.objects.none(),   # set in __init__
         label="Transport company",
         empty_label="Choose how you want your goods shipped",
         required=True,
+        to_field_name="pk",
         widget=forms.Select(attrs={"class": SELECT_CLASS}),
     )
+
     notes = forms.CharField(
         widget=forms.Textarea(attrs={"class": FIELD_CLASS, "rows": 2, "placeholder": "Delivery instructions (optional)"}),
         required=False,
@@ -77,8 +81,17 @@ class ShippingForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Refresh queryset at request time (not import time)
-        self.fields["shipping_method"].queryset = ShippingMethod.objects.filter(is_active=True)
-        # Only show a placeholder if there are actual choices
-        if not self.fields["shipping_method"].queryset.exists():
-            self.fields["shipping_method"].empty_label = "No transport companies available — contact support"
+
+        # Refresh at request time, not import time.
+        # Only show active transport types, ordered the same way as settings.
+        qs = (
+            TransportType.objects.filter(is_active=True)
+            .order_by("sort_order", "name")
+        )
+        self.fields["shipping_method"].queryset = qs
+
+        # Only replace the empty label if there are truly none to pick.
+        if not qs.exists():
+            self.fields["shipping_method"].empty_label = (
+                "No transport options available — contact support"
+            )

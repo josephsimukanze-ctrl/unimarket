@@ -211,7 +211,7 @@ def seller_order_update_status(request, order_number):
     if new_status == OrderStatus.SHIPPED and not order.shipments.exists():
         shipment = Shipment.objects.create(
             order=order,
-            shipping_method=order.shipping_method,
+            shipping_method=order.transport_label, 
             shipped_at=timezone.now(),
         )
         if order.shipping_method:

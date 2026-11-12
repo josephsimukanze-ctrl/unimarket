@@ -16,16 +16,17 @@ from vendors.models import (
 )
 
 from .forms import (
-    ParentCategoryForm,       # NEW
+    ParentCategoryForm,
     PlatformSettingsForm,
     SiteSettingForm,
     SubscriptionPlanForm,
+    TransportTypeForm,
 )
-from .models import SiteSetting
+from .models import SiteSetting, TransportType
 
 
 # ═══════════════════════════════════════════════════════
-# Site settings
+# Site settings  (includes inline transport-type management)
 # ═══════════════════════════════════════════════════════
 @staff_member_required
 def settings_view(request):
@@ -66,6 +67,11 @@ def settings_view(request):
         {
             "site_form": site_form,
             "deposit_form": deposit_form,
+            "transport_types": (
+                TransportType.objects.all()
+                .order_by("sort_order", "name")
+            ),
+            "transport_form": TransportTypeForm(),  # blank for inline create
         },
     )
 
@@ -411,7 +417,7 @@ def plan_toggle_active(request, plan_id):
 
 
 # ═══════════════════════════════════════════════════════
-# Categories (staff-managed)  — NEW
+# Categories (staff-managed)
 # ═══════════════════════════════════════════════════════
 @staff_member_required
 def categories_list(request):
@@ -487,3 +493,99 @@ def category_toggle_active(request, category_id):
     state = "active" if category.is_active else "inactive"
     messages.success(request, f'Category "{category.name}" is now {state}.')
     return redirect("system:categories_list")
+
+
+# ═══════════════════════════════════════════════════════
+# Transport types
+# ═══════════════════════════════════════════════════════
+@staff_member_required
+def transport_types_list(request):
+    """Standalone list page (kept for convenience — settings page also lists them)."""
+    types = TransportType.objects.all().order_by("sort_order", "name")
+    return render(request, "system/transport_types.html", {"types": types})
+
+
+@staff_member_required
+def transport_type_create(request):
+    """
+    Create a new transport type.
+
+    - Accepts `next` (POST or GET) to redirect back to the settings page
+      with the inline list refreshed.
+    - On validation errors, flashes them as messages so the inline form
+      on settings can be retried without losing the page.
+    """
+    next_url = request.POST.get("next") or request.GET.get("next")
+
+    if request.method == "POST":
+        form = TransportTypeForm(request.POST)
+        if form.is_valid():
+            t = form.save()
+            messages.success(request, f'Transport type "{t.name}" created.')
+            return redirect(next_url or "system:transport_types_list")
+
+        for field, errors in form.errors.items():
+            for err in errors:
+                messages.error(request, f"Transport type — {field}: {err}")
+        return redirect(next_url or "system:transport_types_list")
+
+    form = TransportTypeForm()
+    return render(
+        request,
+        "system/transport_type_form.html",
+        {"form": form, "is_edit": False},
+    )
+
+
+@staff_member_required
+def transport_type_edit(request, type_id):
+    """Edit an existing transport type."""
+    t = get_object_or_404(TransportType, id=type_id)
+    next_url = request.POST.get("next") or request.GET.get("next")
+
+    if request.method == "POST":
+        form = TransportTypeForm(request.POST, instance=t)
+        if form.is_valid():
+            t = form.save()
+            messages.success(request, f'Transport type "{t.name}" updated.')
+            return redirect(next_url or "system:transport_types_list")
+
+        for field, errors in form.errors.items():
+            for err in errors:
+                messages.error(request, f"Transport type — {field}: {err}")
+        return redirect(next_url or "system:transport_types_list")
+
+    form = TransportTypeForm(instance=t)
+    return render(
+        request,
+        "system/transport_type_form.html",
+        {"form": form, "type": t, "is_edit": True},
+    )
+
+
+@staff_member_required
+@require_POST
+def transport_type_toggle_active(request, type_id):
+    """Flip a transport type between active and inactive."""
+    t = get_object_or_404(TransportType, id=type_id)
+    t.is_active = not t.is_active
+    t.save(update_fields=["is_active"])
+
+    state = "active" if t.is_active else "inactive"
+    messages.success(request, f'Transport type "{t.name}" is now {state}.')
+
+    next_url = request.POST.get("next") or request.GET.get("next")
+    return redirect(next_url or "system:settings")
+
+
+@staff_member_required
+@require_POST
+def transport_type_delete(request, type_id):
+    """Delete a transport type."""
+    t = get_object_or_404(TransportType, id=type_id)
+    name = t.name
+    t.delete()
+    messages.warning(request, f'Transport type "{name}" deleted.')
+
+    next_url = request.POST.get("next") or request.GET.get("next")
+    return redirect(next_url or "system:settings")
